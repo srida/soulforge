@@ -192,8 +192,8 @@
 .archetype-select:focus { border-color: var(--accent); }
 .archetype-select option { background: var(--surface2); }
 
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
-.loading-text { color: var(--muted); font-size: 13px; grid-column: 1/-1; }
+.card-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.loading-text { color: var(--muted); font-size: 13px; width: 100%; }
 
 .card-item {
   background: var(--surface);
@@ -205,6 +205,7 @@
   transition: border-color var(--transition-fast), transform var(--transition-fast);
   position: relative;
   font-family: inherit; color: var(--text);
+  flex: 1 1 72px;
 }
 .card-item:hover { border-color: var(--accent); transform: scale(1.05); z-index: 1; }
 .card-item.full { opacity: 0.4; pointer-events: none; }
@@ -921,24 +922,18 @@ img {
   border-color: var(--accent);
   outline: 2px solid var(--accent);
 }
-/* Wrapper establishes portrait ratio via padding-bottom (width-relative, always reliable) */
+/* Image keeps its natural aspect ratio, fully visible */
 .tb-card-img-wrap {
   width: 100%;
-  position: relative;
-  padding-bottom: 133.33%; /* 4/3 = portrait 3:4 */
-  overflow: hidden;
   flex-shrink: 0;
 }
 .tb-card-img-wrap img {
-  position: absolute;
-  inset: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
 }
-.card-grid {
-  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+.card-item {
+  flex: 1 1 68px;
 }
 
 /* ── TestBench layout ── */
@@ -978,7 +973,10 @@ img {
   -webkit-overflow-scrolling: touch;
   flex: 1;
   min-height: 0;
-  grid-template-columns: repeat(2, 1fr);
+  align-content: flex-start;
+}
+.tb-browser-col .card-grid > .card-item {
+  flex: 0 0 calc(50% - 4px);
 }
 .tb-side-toggle {
   display: flex;
