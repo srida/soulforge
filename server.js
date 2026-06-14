@@ -17,7 +17,7 @@ const ILLUS_DIR      = process.env.ILLUS_DIR || path.join(PROJECT_ROOT, 'resourc
 const INITIAL_DIR    = path.join(__dirname, 'initial-data');
 
 const CARDS_FILE     = path.join(DATA_DIR, 'cards.json');
-const ARCHETYPES_FILE = path.join(DATA_DIR, 'archetypes.json');
+const ATTRIBUTES_FILE = path.join(DATA_DIR, 'attributes.json');
 const POWERS_FILE    = path.join(DATA_DIR, 'powers.json');
 const BOARDS_FILE    = path.join(DATA_DIR, 'boards.json');
 const MAGIES_FILE    = path.join(DATA_DIR, 'magies.json');
@@ -27,7 +27,7 @@ const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
 function bootstrap() {
   fs.mkdirSync(DATA_DIR,  { recursive: true });
   fs.mkdirSync(ILLUS_DIR, { recursive: true });
-  for (const f of ['cards.json', 'archetypes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -205,64 +205,64 @@ app.delete('/api/cards/:id/illustration', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- Archetypes API ---
-app.get('/api/archetypes', (req, res) => {
-  try { res.json(readJson(ARCHETYPES_FILE)); } catch (e) { res.status(500).json({ error: e.message }); }
+// --- Attributes API ---
+app.get('/api/attributes', (req, res) => {
+  try { res.json(readJson(ATTRIBUTES_FILE)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/archetypes', (req, res) => {
+app.post('/api/attributes', (req, res) => {
   try {
-    const archetypes = readJson(ARCHETYPES_FILE);
-    const arch = req.body;
-    if (!arch.id) return res.status(400).json({ error: 'id required' });
-    if (archetypes.find(a => a.id === arch.id)) return res.status(400).json({ error: `ID ${arch.id} already exists` });
-    archetypes.push(arch);
-    writeJson(ARCHETYPES_FILE, archetypes);
+    const attributes = readJson(ATTRIBUTES_FILE);
+    const attr = req.body;
+    if (!attr.id) return res.status(400).json({ error: 'id required' });
+    if (attributes.find(a => a.id === attr.id)) return res.status(400).json({ error: `ID ${attr.id} already exists` });
+    attributes.push(attr);
+    writeJson(ATTRIBUTES_FILE, attributes);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/archetypes/import', (req, res) => {
+app.post('/api/attributes/import', (req, res) => {
   try {
     const { items, mode = 'skip' } = req.body;
     if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const archetypes = readJson(ARCHETYPES_FILE);
+    const attributes = readJson(ATTRIBUTES_FILE);
     let added = 0, replaced = 0, skipped = 0;
     const errors = [];
     for (const item of items) {
       if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
-      const idx = archetypes.findIndex(a => a.id === item.id);
+      const idx = attributes.findIndex(a => a.id === item.id);
       if (idx !== -1) {
-        if (mode === 'replace') { archetypes[idx] = item; replaced++; }
+        if (mode === 'replace') { attributes[idx] = item; replaced++; }
         else skipped++;
       } else {
-        archetypes.push(item);
+        attributes.push(item);
         added++;
       }
     }
-    writeJson(ARCHETYPES_FILE, archetypes);
+    writeJson(ATTRIBUTES_FILE, attributes);
     res.json({ ok: true, added, replaced, skipped, errors });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/archetypes/:id', (req, res) => {
+app.put('/api/attributes/:id', (req, res) => {
   try {
-    const archetypes = readJson(ARCHETYPES_FILE);
-    const idx = archetypes.findIndex(a => a.id === req.params.id);
+    const attributes = readJson(ATTRIBUTES_FILE);
+    const idx = attributes.findIndex(a => a.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    archetypes[idx] = req.body;
-    writeJson(ARCHETYPES_FILE, archetypes);
+    attributes[idx] = req.body;
+    writeJson(ATTRIBUTES_FILE, attributes);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/archetypes/:id', (req, res) => {
+app.delete('/api/attributes/:id', (req, res) => {
   try {
-    let archetypes = readJson(ARCHETYPES_FILE);
-    const idx = archetypes.findIndex(a => a.id === req.params.id);
+    let attributes = readJson(ATTRIBUTES_FILE);
+    const idx = attributes.findIndex(a => a.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    archetypes.splice(idx, 1);
-    writeJson(ARCHETYPES_FILE, archetypes);
+    attributes.splice(idx, 1);
+    writeJson(ATTRIBUTES_FILE, attributes);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -577,7 +577,7 @@ app.delete('/api/decks/:id', requireAuth, (req, res) => {
 app.get('/api/export', (req, res) => {
   try {
     const cards      = readJson(CARDS_FILE);
-    const archetypes = readJson(ARCHETYPES_FILE);
+    const attributes = readJson(ATTRIBUTES_FILE);
     const powers     = readJson(POWERS_FILE);
     const boards     = readJson(BOARDS_FILE);
     const magies     = readJson(MAGIES_FILE);
@@ -588,7 +588,7 @@ app.get('/api/export', (req, res) => {
         const id = f.replace('.png', '');
         return { id, checksum: illustrationChecksum(id) };
       });
-    res.json({ cards, archetypes, powers, boards, magies, publicDecks, illustrations });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, illustrations });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

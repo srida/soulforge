@@ -1,11 +1,11 @@
 import { navigate } from '../../main.js';
 import * as CardDatabase from '../../data/CardDatabase.js';
 import * as PowerDatabase from '../../data/PowerDatabase.js';
-import * as ArchetypeDatabase from '../../data/ArchetypeDatabase.js';
+import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import { Board } from '../../logic/Board.js';
 import { Unit } from '../../logic/Unit.js';
-import { ArchetypeManager } from '../../logic/ArchetypeManager.js';
+import { AttributeManager } from '../../logic/AttributeManager.js';
 import { CombatManager } from '../../logic/CombatManager.js';
 import { BoardGrid } from '../components/BoardGrid.js';
 import { CombatAnimator } from '../components/CombatAnimator.js';
@@ -15,7 +15,7 @@ const TIERS = [1, 2, 3, 4, 5];
 const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'rituel', 'transformation'];
 
 export async function mount(container) {
-  await Promise.all([CardDatabase.init(), PowerDatabase.init(), ArchetypeDatabase.init(), BoardDatabase.init()]);
+  await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init(), BoardDatabase.init()]);
 
   const board = new Board();
   let selectedCard = null;         // card from browser
@@ -52,7 +52,7 @@ export async function mount(container) {
           </select>
           <button id="tb-terrain-info" class="tb-terrain-info" style="display:none">ℹ</button>
         </div>
-        <div class="archetype-panel" id="tb-archetype-panel"></div>
+        <div class="attribute-panel" id="tb-attribute-panel"></div>
         <div class="board-area" id="tb-board-area"></div>
         <div id="tb-speed-controls" class="combat-speed-controls" style="display:none;padding:6px 12px;border-top:1px solid var(--border)">
           <span class="speed-label">Vitesse</span>
@@ -91,16 +91,16 @@ export async function mount(container) {
     onUnitDrag: handleUnitDrag,
     onUnitLongPress: (unit, pos, el) => {
       if (phase !== 'prep') {
-        Tooltip.show(Tooltip.unitHtml(unit, PowerDatabase, ArchetypeDatabase), el);
+        Tooltip.show(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase), el);
         return;
       }
       board.removeUnit(unit);
       grid.refresh();
-      _refreshArchetypePanel();
+      _refreshAttributePanel();
     },
     showEnemySide: true,
     powerDb: PowerDatabase,
-    archetypeDb: ArchetypeDatabase,
+    attributeDb: AttributeDatabase,
   });
   grid.expand(11);
   grid.setBoard(board);
@@ -136,7 +136,7 @@ export async function mount(container) {
 
   terrainInfo.addEventListener('pointerdown', e => {
     e.stopPropagation();
-    if (selectedBoard) Tooltip.toggle(Tooltip.boardHtml(selectedBoard, ArchetypeDatabase), terrainInfo);
+    if (selectedBoard) Tooltip.toggle(Tooltip.boardHtml(selectedBoard, AttributeDatabase), terrainInfo);
   });
 
   // ── Interaction ───────────────────────────────────────────────────────────
@@ -153,11 +153,11 @@ export async function mount(container) {
     const unit = new Unit(selectedCard, side);
     board.placeUnit(unit, pos);
     grid.refresh();
-    _refreshArchetypePanel();
+    _refreshAttributePanel();
   }
 
   function handleUnitTap(unit, pos, el) {
-    Tooltip.toggle(Tooltip.unitHtml(unit, PowerDatabase, ArchetypeDatabase), el);
+    Tooltip.toggle(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase), el);
   }
 
   function handleUnitDrag(unit, fromPos, toPos) {
@@ -185,7 +185,7 @@ export async function mount(container) {
       placingSide = btn.dataset.side;
       container.querySelectorAll('.tb-side-btn').forEach(b =>
         b.classList.toggle('active', b === btn));
-      _refreshArchetypePanel();
+      _refreshAttributePanel();
     });
   });
 
@@ -248,7 +248,7 @@ export async function mount(container) {
       let longPressTimer;
       btn.addEventListener('pointerdown', () => {
         longPressTimer = setTimeout(() => {
-          Tooltip.showAtRect(Tooltip.cardHtml(c, PowerDatabase, ArchetypeDatabase, CardDatabase), btn.getBoundingClientRect());
+          Tooltip.showAtRect(Tooltip.cardHtml(c, PowerDatabase, AttributeDatabase, CardDatabase), btn.getBoundingClientRect());
         }, 500);
       });
       btn.addEventListener('pointerup',     () => clearTimeout(longPressTimer));
@@ -270,8 +270,8 @@ export async function mount(container) {
 
   function _applyBoardEffect(effect, playerUnits, enemyUnits) {
     const all = [...playerUnits, ...enemyUnits];
-    const targets = effect.target_archetypes?.length
-      ? all.filter(u => u.archetypes.some(a => effect.target_archetypes.includes(a)))
+    const targets = effect.target_attributes?.length
+      ? all.filter(u => u.attributes.some(a => effect.target_attributes.includes(a)))
       : all;
     switch (effect.type) {
       case 'stat_bonus':
@@ -286,31 +286,31 @@ export async function mount(container) {
     }
   }
 
-  function _refreshArchetypePanel() {
-    const panel = container.querySelector('#tb-archetype-panel');
+  function _refreshAttributePanel() {
+    const panel = container.querySelector('#tb-attribute-panel');
     if (!panel) return;
     const sideUnits = board.getLivingUnitsOnSide(placingSide);
     if (sideUnits.length === 0) { panel.innerHTML = ''; return; }
-    const archetypeList = ArchetypeDatabase.getAllArchetypes();
-    const mgr = new ArchetypeManager(archetypeList,
+    const attributeList = AttributeDatabase.getAllAttributes();
+    const mgr = new AttributeManager(attributeList,
       placingSide === 'player' ? sideUnits : [],
       placingSide === 'enemy'  ? sideUnits : []);
     const synergies = mgr.getActiveSynergies(sideUnits);
-    panel.innerHTML = synergies.map(({ arch, count, activeThreshold, nextThreshold }) => {
+    panel.innerHTML = synergies.map(({ attr, count, activeThreshold, nextThreshold }) => {
       const isActive = !!activeThreshold;
       const label = nextThreshold ? `${count}/${nextThreshold.count}` : `${count}`;
-      return `<button class="archetype-chip${isActive ? ' arch-active' : ''}" data-arch-id="${arch.id}" title="${arch.name}">`
-        + `<span class="archetype-chip-icon">${arch.icon ?? '?'}</span>`
-        + `<span class="archetype-chip-count">${label}</span>`
+      return `<button class="attribute-chip${isActive ? ' attr-active' : ''}" data-attr-id="${attr.id}" title="${attr.name}">`
+        + `<span class="attribute-chip-icon">${attr.icon ?? '?'}</span>`
+        + `<span class="attribute-chip-count">${label}</span>`
         + `</button>`;
     }).join('');
-    panel.querySelectorAll('.archetype-chip').forEach(chip => {
+    panel.querySelectorAll('.attribute-chip').forEach(chip => {
       chip.addEventListener('pointerdown', e => {
         e.stopPropagation();
-        const archId = chip.dataset.archId;
-        const s = synergies.find(x => x.arch.id === archId);
+        const attrId = chip.dataset.attrId;
+        const s = synergies.find(x => x.attr.id === attrId);
         if (!s) return;
-        Tooltip.toggle(Tooltip.archetypeHtml(s.arch, s.count, s.activeThreshold, CardDatabase), chip);
+        Tooltip.toggle(Tooltip.attributeHtml(s.attr, s.count, s.activeThreshold, CardDatabase), chip);
       });
     });
   }
@@ -342,13 +342,13 @@ export async function mount(container) {
     container.querySelector('#tb-combat').textContent = '■ Stop';
     container.querySelector('#tb-clear').disabled = true;
 
-    const archetypeList = ArchetypeDatabase.getAllArchetypes();
-    const archetypeManager = new ArchetypeManager(archetypeList, playerUnits, enemyUnits);
-    archetypeManager.applyStartOfCombat();
+    const attributeList = AttributeDatabase.getAllAttributes();
+    const attributeManager = new AttributeManager(attributeList, playerUnits, enemyUnits);
+    attributeManager.applyStartOfCombat();
 
     if (selectedBoard?.effect) _applyBoardEffect(selectedBoard.effect, playerUnits, enemyUnits);
 
-    const combat = new CombatManager(board, playerUnits, enemyUnits, archetypeManager);
+    const combat = new CombatManager(board, playerUnits, enemyUnits, attributeManager);
 
     grid.enterCombatMode();
 

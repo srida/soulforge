@@ -1,21 +1,21 @@
 /**
- * ArchetypeManager
+ * AttributeManager
  *
- * Handles all archetype effects across three timings:
+ * Handles all attribute effects across three timings:
  *   start_of_combat  — stat_bonus, shield
  *   during_combat    — stat_modifier (on_enemy_neutralized, on_ally_neutralized)
  *   end_of_combat    — revive, draw_bonus, guaranteed_draw, board_slot_bonus
  *
  * Designed to be stateless between rounds: reconstruct each combat.
  */
-export class ArchetypeManager {
+export class AttributeManager {
   /**
-   * @param {Object[]} archetypeList   - raw data from ArchetypeDatabase
+   * @param {Object[]} attributeList   - raw data from AttributeDatabase
    * @param {Unit[]}   playerUnits
    * @param {Unit[]}   enemyUnits
    */
-  constructor(archetypeList, playerUnits, enemyUnits) {
-    this._archetypeMap = Object.fromEntries(archetypeList.map(a => [a.id, a]));
+  constructor(attributeList, playerUnits, enemyUnits) {
+    this._attributeMap = Object.fromEntries(attributeList.map(a => [a.id, a]));
     this.playerUnits = playerUnits;
     this.enemyUnits = enemyUnits;
 
@@ -24,31 +24,31 @@ export class ArchetypeManager {
 
     // during_combat thresholds locked at start of combat so unit deaths mid-combat
     // don't deactivate effects that were already unlocked.
-    this._duringCombatThresholds = null; // Map<archId, { player, enemy }> — populated by applyStartOfCombat
+    this._duringCombatThresholds = null; // Map<attrId, { player, enemy }> — populated by applyStartOfCombat
   }
 
   // ── Counting ──
 
   // Counts distinct units (by card_id) — duplicate copies of the same card
-  // only count once toward archetype thresholds.
-  _countArchetype(archId, units) {
+  // only count once toward attribute thresholds.
+  _countAttribute(attrId, units) {
     const ids = new Set();
     for (const u of units) {
-      if (u.isAlive() && u.archetypes.includes(archId)) ids.add(u.card_id);
+      if (u.isAlive() && u.attributes.includes(attrId)) ids.add(u.card_id);
     }
     return ids.size;
   }
 
-  // Returns the active threshold for this archetype on the given side, or null
-  _activeThreshold(archId, units) {
-    const arch = this._archetypeMap[archId];
-    if (!arch) return null;
-    const count = this._countArchetype(archId, units);
+  // Returns the active threshold for this attribute on the given side, or null
+  _activeThreshold(attrId, units) {
+    const attr = this._attributeMap[attrId];
+    if (!attr) return null;
+    const count = this._countAttribute(attrId, units);
     let best = null;
-    for (const t of arch.thresholds) {
+    for (const t of attr.thresholds) {
       if (count >= t.count) best = t;
     }
-    return best ? { arch, threshold: best, count } : null;
+    return best ? { attr, threshold: best, count } : null;
   }
 
   // ── Start of combat ──
@@ -59,39 +59,39 @@ export class ArchetypeManager {
     this._lockDuringCombatThresholds();
   }
 
-  // Snapshot which during_combat archetypes are active on each side at combat start.
+  // Snapshot which during_combat attributes are active on each side at combat start.
   // Once locked, mid-combat unit deaths cannot drop a threshold below its unlock level.
   _lockDuringCombatThresholds() {
     this._duringCombatThresholds = new Map();
-    for (const archId of Object.keys(this._archetypeMap)) {
-      const arch = this._archetypeMap[archId];
-      if (arch.timing !== 'during_combat') continue;
-      this._duringCombatThresholds.set(archId, {
-        player: this._activeThreshold(archId, this.playerUnits),
-        enemy:  this._activeThreshold(archId, this.enemyUnits),
+    for (const attrId of Object.keys(this._attributeMap)) {
+      const attr = this._attributeMap[attrId];
+      if (attr.timing !== 'during_combat') continue;
+      this._duringCombatThresholds.set(attrId, {
+        player: this._activeThreshold(attrId, this.playerUnits),
+        enemy:  this._activeThreshold(attrId, this.enemyUnits),
       });
     }
   }
 
   _applyStartForSide(units) {
-    const archIds = new Set(units.flatMap(u => u.archetypes));
-    for (const archId of archIds) {
-      const result = this._activeThreshold(archId, units);
+    const attrIds = new Set(units.flatMap(u => u.attributes));
+    for (const attrId of attrIds) {
+      const result = this._activeThreshold(attrId, units);
       if (!result) continue;
-      const { arch, threshold } = result;
-      if (arch.timing !== 'start_of_combat') continue;
+      const { attr, threshold } = result;
+      if (attr.timing !== 'start_of_combat') continue;
 
       for (const effect of threshold.effects) {
         switch (effect.type) {
           case 'stat_bonus': {
-            // value_per: scale bonus by the count of enemy units carrying that archetype
+            // value_per: scale bonus by the count of enemy units carrying that attribute
             const otherUnits = units === this.playerUnits ? this.enemyUnits : this.playerUnits;
             const multiplier = effect.value_per
-              ? otherUnits.filter(u => u.isAlive() && u.archetypes.includes(effect.value_per)).length
+              ? otherUnits.filter(u => u.isAlive() && u.attributes.includes(effect.value_per)).length
               : 1;
             const bonus = effect.value * multiplier;
             if (bonus === 0) break;
-            for (const u of units.filter(u => u.isAlive() && u.archetypes.includes(archId))) {
+            for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
               u.applyStatBonus(effect.stat, bonus);
               this._recordBonus(u, effect.stat, bonus);
             }
@@ -100,7 +100,7 @@ export class ArchetypeManager {
 
           case 'shield':
             // shield value = effect.value * number of active ally units on this side
-            for (const u of units.filter(u => u.isAlive() && u.archetypes.includes(archId))) {
+            for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
               const shieldAmount = effect.value * units.filter(x => x.isAlive()).length;
               u.applyShield(shieldAmount);
             }
@@ -130,18 +130,18 @@ export class ArchetypeManager {
   }
 
   _triggerStatModifiers(trigger, affectedUnits, referenceUnits, events) {
-    const archIds = new Set(affectedUnits.flatMap(u => u.archetypes));
+    const attrIds = new Set(affectedUnits.flatMap(u => u.attributes));
     const isPlayerSide = affectedUnits === this.playerUnits;
 
-    for (const archId of archIds) {
-      const cached = this._duringCombatThresholds?.get(archId);
+    for (const attrId of attrIds) {
+      const cached = this._duringCombatThresholds?.get(attrId);
       const result = cached ? (isPlayerSide ? cached.player : cached.enemy) : null;
       if (!result) continue;
-      const { arch, threshold } = result;
+      const { attr, threshold } = result;
 
       for (const effect of threshold.effects) {
         if (effect.type !== 'stat_modifier' || effect.trigger !== trigger) continue;
-        for (const u of affectedUnits.filter(u => u.isAlive() && u.archetypes.includes(archId))) {
+        for (const u of affectedUnits.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
           u.applyStatModifier(effect.stat, effect.value);
           events.push({ type: 'stat_change', unit: u, stat: effect.stat, value: effect.value });
         }
@@ -161,23 +161,23 @@ export class ArchetypeManager {
     const result = {
       revived: [],
       draw_bonus: 0,
-      guaranteed_draws: [], // { category, archetype }
+      guaranteed_draws: [], // { category, attribute }
       board_slot_bonus: 0,
     };
 
-    const archIds = new Set(this.playerUnits.flatMap(u => u.archetypes));
+    const attrIds = new Set(this.playerUnits.flatMap(u => u.attributes));
 
-    for (const archId of archIds) {
-      const arch = this._archetypeMap[archId];
-      if (!arch || arch.timing !== 'end_of_combat') continue;
+    for (const attrId of attrIds) {
+      const attr = this._attributeMap[attrId];
+      if (!attr || attr.timing !== 'end_of_combat') continue;
 
       // For end_of_combat, count ALL distinct units that participated (alive + neutralized)
-      // so the threshold is met even if some archetype units died during combat
+      // so the threshold is met even if some attribute units died during combat
       const count = new Set(
-        this.playerUnits.filter(u => u.archetypes.includes(archId)).map(u => u.card_id)
+        this.playerUnits.filter(u => u.attributes.includes(attrId)).map(u => u.card_id)
       ).size;
       let best = null;
-      for (const t of arch.thresholds) {
+      for (const t of attr.thresholds) {
         if (count >= t.count) best = t;
       }
       if (!best) continue;
@@ -204,7 +204,7 @@ export class ArchetypeManager {
             result.draw_bonus = Math.min(result.draw_bonus + effect.value, effect.max ?? Infinity);
             break;
           case 'guaranteed_draw':
-            result.guaranteed_draws.push({ category: effect.category, archetype: effect.archetype });
+            result.guaranteed_draws.push({ category: effect.category, attribute: effect.attribute });
             break;
           case 'board_slot_bonus':
             result.board_slot_bonus = Math.min(result.board_slot_bonus + effect.value, effect.max ?? Infinity);
@@ -231,20 +231,20 @@ export class ArchetypeManager {
 
   // ── Public API for UI ──
 
-  /** Returns active archetype synergies for display */
+  /** Returns active attribute synergies for display */
   getActiveSynergies(units) {
-    const archIds = new Set(units.flatMap(u => u.archetypes));
+    const attrIds = new Set(units.flatMap(u => u.attributes));
     const synergies = [];
-    for (const archId of archIds) {
-      const arch = this._archetypeMap[archId];
-      if (!arch) continue;
-      const count = this._countArchetype(archId, units);
-      const result = this._activeThreshold(archId, units);
+    for (const attrId of attrIds) {
+      const attr = this._attributeMap[attrId];
+      if (!attr) continue;
+      const count = this._countAttribute(attrId, units);
+      const result = this._activeThreshold(attrId, units);
       const activeThreshold = result?.threshold ?? null;
-      const nextThreshold = arch.thresholds
+      const nextThreshold = attr.thresholds
         .filter(t => t.count > count)
         .sort((a, b) => a.count - b.count)[0] ?? null;
-      synergies.push({ arch, count, activeThreshold, nextThreshold });
+      synergies.push({ attr, count, activeThreshold, nextThreshold });
     }
     return synergies.sort((a, b) => b.count - a.count);
   }

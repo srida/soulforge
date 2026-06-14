@@ -20,13 +20,13 @@ export class GameState {
     this.player_multiplier = 1.0;
     this.enemy_multiplier  = 1.0;
 
-    // Expanded by board_slot_bonus archetype effect
+    // Expanded by board_slot_bonus attribute effect
     this.player_board_slots = DEFAULT_BOARD_SLOTS;
     this.enemy_board_slots  = DEFAULT_BOARD_SLOTS;
 
     // Carry-over from previous rounds
     this.player_extra_draws = 0;   // accumulated draw_bonus
-    this.player_guaranteed_draws = []; // [{ category, archetype }]
+    this.player_guaranteed_draws = []; // [{ category, attribute }]
     this.player_hand_modifiers = []; // [{ type, value? }] applied to drawn cards
   }
 
@@ -51,9 +51,9 @@ export class GameState {
    * @param {'player'|'enemy'|'draw'} winner
    * @param {number} playerSurvivorsAtk  - sum of ATK of surviving player units
    * @param {number} enemySurvivorsAtk   - sum of ATK of surviving enemy units
-   * @param {Object} archetypeResult     - from ArchetypeManager.applyEndOfCombat()
+   * @param {Object} attributeResult     - from AttributeManager.applyEndOfCombat()
    */
-  applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, archetypeResult = {}) {
+  applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult = {}) {
     this.phase = Phase.END_ROUND;
 
     if (winner === 'player') {
@@ -67,15 +67,15 @@ export class GameState {
     this.player_hp = Math.max(0, this.player_hp);
     this.enemy_hp  = Math.max(0, this.enemy_hp);
 
-    // Accumulate end-of-combat archetype bonuses
-    if (archetypeResult.board_slot_bonus) {
-      this.player_board_slots += archetypeResult.board_slot_bonus;
+    // Accumulate end-of-combat attribute bonuses
+    if (attributeResult.board_slot_bonus) {
+      this.player_board_slots += attributeResult.board_slot_bonus;
     }
-    if (archetypeResult.draw_bonus) {
-      this.player_extra_draws += archetypeResult.draw_bonus;
+    if (attributeResult.draw_bonus) {
+      this.player_extra_draws += attributeResult.draw_bonus;
     }
-    if (archetypeResult.guaranteed_draws?.length) {
-      this.player_guaranteed_draws.push(...archetypeResult.guaranteed_draws);
+    if (attributeResult.guaranteed_draws?.length) {
+      this.player_guaranteed_draws.push(...attributeResult.guaranteed_draws);
     }
   }
 

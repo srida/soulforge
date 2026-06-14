@@ -5,7 +5,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
 			"ARCH_007"
@@ -33,7 +33,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
 			"ARCH_017"
@@ -62,7 +62,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
 			"ARCH_007"
@@ -87,7 +87,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_004"
 		],
@@ -111,7 +111,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_009",
 			"ARCH_004"
@@ -136,7 +136,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_009",
 			"ARCH_004"
@@ -161,7 +161,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_003",
@@ -194,7 +194,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004"
 		],
@@ -218,7 +218,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_004"
 		],
@@ -242,7 +242,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_028",
 			"ARCH_004"
 		],
@@ -266,7 +266,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "rituel",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_026",
@@ -298,7 +298,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_020",
 			"ARCH_004"
@@ -323,7 +323,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_016"
@@ -348,7 +348,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_004",
 			"ARCH_022"
@@ -373,7 +373,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_004",
 			"ARCH_022"
@@ -398,7 +398,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_004",
@@ -431,7 +431,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_021",
 			"ARCH_004"
@@ -456,7 +456,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_023",
 			"ARCH_004"
 		],
@@ -484,7 +484,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_004"
@@ -509,7 +509,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_029",
 			"ARCH_021",
 			"ARCH_004"
@@ -534,7 +534,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_004"
 		],
@@ -558,7 +558,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_017"
 		],
@@ -582,7 +582,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_017"
@@ -607,7 +607,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_017"
 		],
@@ -631,7 +631,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_017"
 		],
@@ -655,7 +655,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_017"
@@ -680,7 +680,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_017"
 		],
@@ -704,7 +704,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_001",
 			"ARCH_017"
@@ -729,7 +729,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_002",
 			"ARCH_017"
@@ -754,7 +754,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_017"
@@ -779,7 +779,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_005",
 			"ARCH_017"
@@ -804,7 +804,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_025",
 			"ARCH_018"
@@ -833,7 +833,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
 			"ARCH_018"
@@ -862,7 +862,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_018"
 		],
@@ -886,7 +886,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_018"
 		],
@@ -910,7 +910,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_010",
 			"ARCH_018"
@@ -935,7 +935,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_018"
 		],
@@ -959,7 +959,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_018"
 		],
@@ -990,7 +990,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_027",
 			"ARCH_018"
@@ -1015,7 +1015,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_018"
 		],
@@ -1039,7 +1039,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
 			"ARCH_017"
@@ -1064,7 +1064,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "rituel",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
 			"ARCH_005",
@@ -1096,7 +1096,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003"
 		],
 		"stats": {
@@ -1119,7 +1119,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003"
 		],
 		"stats": {
@@ -1142,7 +1142,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_001",
 			"ARCH_017"
@@ -1167,7 +1167,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_017"
 		],
@@ -1191,7 +1191,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_013",
 			"ARCH_017"
@@ -1216,7 +1216,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_013",
 			"ARCH_017"
@@ -1241,7 +1241,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_013",
 			"ARCH_017"
@@ -1266,7 +1266,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_004"
 		],
@@ -1290,7 +1290,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
 			"ARCH_007"
@@ -1315,7 +1315,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
 			"ARCH_011"
@@ -1340,7 +1340,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
 			"ARCH_011"
@@ -1365,7 +1365,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
 			"ARCH_011"
@@ -1390,7 +1390,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_014"
@@ -1415,7 +1415,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_014"
@@ -1442,7 +1442,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_014"
@@ -1473,7 +1473,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
 			"ARCH_012"
@@ -1498,7 +1498,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
 			"ARCH_012"
@@ -1523,7 +1523,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
 			"ARCH_012"
@@ -1548,7 +1548,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
 			"ARCH_012"
@@ -1581,7 +1581,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_015"
@@ -1606,7 +1606,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_015"
@@ -1631,7 +1631,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_015"
@@ -1656,7 +1656,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_015"
@@ -1689,7 +1689,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_002",
 			"ARCH_004",
@@ -1722,7 +1722,7 @@
 		"type": "monster",
 		"tier": 5,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_028",
 			"ARCH_004",
@@ -1754,7 +1754,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_003",
 			"ARCH_004",
@@ -1786,7 +1786,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
 			"ARCH_013"
@@ -1819,7 +1819,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
 			"ARCH_013"
@@ -1851,7 +1851,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
 			"ARCH_013"
@@ -1883,7 +1883,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
 			"ARCH_013"
@@ -1915,7 +1915,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_018"
 		],
@@ -1939,7 +1939,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_018"
@@ -1964,7 +1964,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_018"
 		],
@@ -1992,7 +1992,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
 			"ARCH_018"
@@ -2024,7 +2024,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "rituel",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
 			"ARCH_007",
@@ -2056,7 +2056,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_019",
 			"ARCH_004",
 			"ARCH_020",
@@ -2087,7 +2087,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_017",
 			"ARCH_005"
@@ -2112,7 +2112,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_018"
 		],
@@ -2136,7 +2136,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_018"
@@ -2161,7 +2161,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_018"
@@ -2186,7 +2186,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_014",
 			"ARCH_004"
@@ -2211,7 +2211,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_014",
 			"ARCH_004"
@@ -2242,7 +2242,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_023",
 			"ARCH_004"
@@ -2271,7 +2271,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_004"
 		],
@@ -2295,7 +2295,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_004"
 		],
@@ -2325,7 +2325,7 @@
 		"type": "monster",
 		"tier": 5,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_004"
 		],
@@ -2355,7 +2355,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
 			"ARCH_018"
@@ -2387,7 +2387,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
 			"ARCH_018",
@@ -2420,7 +2420,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_018"
@@ -2445,7 +2445,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_004"
 		],
@@ -2473,7 +2473,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2498,7 +2498,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2523,7 +2523,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2548,7 +2548,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2573,7 +2573,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2598,7 +2598,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2630,7 +2630,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2662,7 +2662,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2694,7 +2694,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -2726,7 +2726,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
 			"ARCH_011"
@@ -2759,7 +2759,7 @@
 		"type": "monster",
 		"tier": 5,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
 			"ARCH_017",
@@ -2791,7 +2791,7 @@
 		"type": "monster",
 		"tier": 5,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_002",
 			"ARCH_007",
@@ -2824,7 +2824,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_002",
 			"ARCH_007"
@@ -2855,7 +2855,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_007",
 			"ARCH_027"
@@ -2886,7 +2886,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_027",
 			"ARCH_010"
@@ -2916,7 +2916,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_017",
 			"ARCH_021"
@@ -2948,7 +2948,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "rituel",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
 			"ARCH_008"
@@ -2979,7 +2979,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "sacrifice",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_018",
 			"ARCH_010"
@@ -3008,7 +3008,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_018"
 		],
@@ -3034,7 +3034,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "rituel",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_018"
 		],
@@ -3060,7 +3060,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_008",
 			"ARCH_010"
@@ -3087,7 +3087,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_008",
 			"ARCH_019",
 			"ARCH_020"
@@ -3114,7 +3114,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_008"
 		],
@@ -3140,7 +3140,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "transformation",
-		"archetypes": [
+		"attributes": [
 			"ARCH_003",
 			"ARCH_008"
 		],
@@ -3166,7 +3166,7 @@
 		"type": "monster",
 		"tier": 1,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_002",
 			"ARCH_017",
 			"ARCH_019"
@@ -3195,7 +3195,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "normal",
-		"archetypes": [
+		"attributes": [
 			"ARCH_004",
 			"ARCH_021",
 			"ARCH_025"
@@ -3220,7 +3220,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -3253,7 +3253,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -3284,7 +3284,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -3312,7 +3312,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -3340,7 +3340,7 @@
 		"type": "monster",
 		"tier": 3,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -3373,7 +3373,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -3405,7 +3405,7 @@
 		"type": "monster",
 		"tier": 2,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"
@@ -3437,7 +3437,7 @@
 		"type": "monster",
 		"tier": 4,
 		"summon_type": "fusion",
-		"archetypes": [
+		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
 			"ARCH_024"

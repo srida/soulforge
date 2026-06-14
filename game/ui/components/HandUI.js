@@ -1,11 +1,11 @@
 import * as Tooltip from './Tooltip.js';
 
 export class HandUI {
-  constructor(container, { onSelect, powerDb = null, archetypeDb = null, cardDb = null, isPlayable = null } = {}) {
+  constructor(container, { onSelect, powerDb = null, attributeDb = null, cardDb = null, isPlayable = null } = {}) {
     this._container = container;
     this._onSelect = onSelect;
     this._powerDb = powerDb;
-    this._archetypeDb = archetypeDb;
+    this._attributeDb = attributeDb;
     this._cardDb = cardDb;
     this._isPlayable = isPlayable;
     this._hand = [];
@@ -82,7 +82,7 @@ export class HandUI {
         Tooltip.hide();
         const rect = el.getBoundingClientRect();
         longPressTimer = setTimeout(() => {
-          Tooltip.showAtRect(Tooltip.cardHtml(card, this._powerDb, this._archetypeDb, this._cardDb), rect);
+          Tooltip.showAtRect(Tooltip.cardHtml(card, this._powerDb, this._attributeDb, this._cardDb), rect);
         }, 500);
         // Compute CURRENT DOM position — the render-time `idx` becomes stale after
         // removeSelected() shifts remaining elements without a full re-render.

@@ -2,7 +2,7 @@ import { navigate } from '../../main.js';
 import * as CardDatabase from '../../data/CardDatabase.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
 import * as PowerDatabase from '../../data/PowerDatabase.js';
-import * as ArchetypeDatabase from '../../data/ArchetypeDatabase.js';
+import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import * as MagieDatabase from '../../data/MagieDatabase.js';
 import { applyEffect as applyMagieEffect, needsUnitTarget, needsGraveyardTarget, effectLabel as magieEffectLabel } from '../../logic/MagieEffect.js';
@@ -10,7 +10,7 @@ import { Unit } from '../../logic/Unit.js';
 import { Board } from '../../logic/Board.js';
 import { GameState, Phase } from '../../logic/GameState.js';
 import { EnemyAI } from '../../logic/EnemyAI.js';
-import { ArchetypeManager } from '../../logic/ArchetypeManager.js';
+import { AttributeManager } from '../../logic/AttributeManager.js';
 import { CombatManager } from '../../logic/CombatManager.js';
 import * as InvocationManager from '../../logic/InvocationManager.js';
 import { BoardGrid } from '../components/BoardGrid.js';
@@ -22,7 +22,7 @@ import * as Tooltip from '../components/Tooltip.js';
 const HAND_SIZE = 5;
 
 export async function mount(container, params = {}) {
-  await Promise.all([CardDatabase.init(), PowerDatabase.init(), ArchetypeDatabase.init(), BoardDatabase.init(), MagieDatabase.init()]);
+  await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init(), BoardDatabase.init(), MagieDatabase.init()]);
 
   const deckName = params.deckName || DeckRepository.getActiveDeck();
   if (!deckName) { navigate('deck_selector'); return; }
@@ -70,7 +70,7 @@ export async function mount(container, params = {}) {
     </div>
     <div class="game-layout">
       <div class="game-header-row">
-        <div class="archetype-panel" id="archetype-panel"></div>
+        <div class="attribute-panel" id="attribute-panel"></div>
         <div id="board-indicator" class="board-ind" style="display:none"></div>
       </div>
       <div class="board-area" id="board-area"></div>
@@ -116,14 +116,14 @@ export async function mount(container, params = {}) {
     onUnitTap: handleUnitTap,
     onUnitDrag: handleUnitDrag,
     powerDb: PowerDatabase,
-    archetypeDb: ArchetypeDatabase,
+    attributeDb: AttributeDatabase,
   });
   grid.setBoard(board);
 
   // Board indicator tap → tooltip
   container.querySelector('#board-indicator').addEventListener('pointerdown', e => {
     e.stopPropagation();
-    if (_currentBoardData) Tooltip.show(Tooltip.boardHtml(_currentBoardData, ArchetypeDatabase), container.querySelector('#board-indicator'));
+    if (_currentBoardData) Tooltip.show(Tooltip.boardHtml(_currentBoardData, AttributeDatabase), container.querySelector('#board-indicator'));
   });
 
   handArea.className = 'hand-ui-wrap';
@@ -134,7 +134,7 @@ export async function mount(container, params = {}) {
   const handUI = new HandUI(handInner, {
     onSelect: handleCardSelect,
     powerDb: PowerDatabase,
-    archetypeDb: ArchetypeDatabase,
+    attributeDb: AttributeDatabase,
     cardDb: CardDatabase,
     isPlayable: (card) => _isPlayable(card, board, graveyard, gameState.player_board_slots),
   });
@@ -261,7 +261,7 @@ export async function mount(container, params = {}) {
     grid.refresh();
     _updateHUD();
     _refreshGraveyard();
-    _refreshArchetypePanel();
+    _refreshAttributePanel();
   }
 
   function handleUnitDrag(unit, fromPos, toPos) {
@@ -291,7 +291,7 @@ export async function mount(container, params = {}) {
     grid.clearMaterialHighlight();
     grid.setSelectedPos(null);
     grid.refresh();
-    _refreshArchetypePanel();
+    _refreshAttributePanel();
   }
 
   function _tryMove(to) {
@@ -307,7 +307,7 @@ export async function mount(container, params = {}) {
     grid.setSelectedPos(null);
     grid.clearHighlight();
     grid.refresh();
-    _refreshArchetypePanel();
+    _refreshAttributePanel();
   }
 
   function _validCells(card) {
@@ -419,41 +419,41 @@ export async function mount(container, params = {}) {
     return [];
   }
 
-  function _refreshArchetypePanel() {
-    const panel = container.querySelector('#archetype-panel');
+  function _refreshAttributePanel() {
+    const panel = container.querySelector('#attribute-panel');
     if (!panel) return;
     const units = board.getLivingUnitsOnSide('player');
     if (units.length === 0) { panel.innerHTML = ''; return; }
-    const archetypeList = ArchetypeDatabase.getAllArchetypes();
-    const mgr = new ArchetypeManager(archetypeList, units, []);
+    const attributeList = AttributeDatabase.getAllAttributes();
+    const mgr = new AttributeManager(attributeList, units, []);
     const synergies = mgr.getActiveSynergies(units);
-    panel.innerHTML = synergies.map(({ arch, count, activeThreshold, nextThreshold }) => {
+    panel.innerHTML = synergies.map(({ attr, count, activeThreshold, nextThreshold }) => {
       const isActive = !!activeThreshold;
       const label = nextThreshold ? `${count}/${nextThreshold.count}` : `${count}`;
-      return `<button class="archetype-chip${isActive ? ' arch-active' : ''}" data-arch-id="${arch.id}" title="${arch.name}">`
-        + `<span class="archetype-chip-icon">${arch.icon ?? '?'}</span>`
-        + `<span class="archetype-chip-count">${label}</span>`
+      return `<button class="attribute-chip${isActive ? ' attr-active' : ''}" data-attr-id="${attr.id}" title="${attr.name}">`
+        + `<span class="attribute-chip-icon">${attr.icon ?? '?'}</span>`
+        + `<span class="attribute-chip-count">${label}</span>`
         + `</button>`;
     }).join('');
-    panel.querySelectorAll('.archetype-chip').forEach(chip => {
+    panel.querySelectorAll('.attribute-chip').forEach(chip => {
       chip.addEventListener('pointerdown', e => {
         e.stopPropagation();
-        const archId = chip.dataset.archId;
-        const s = synergies.find(x => x.arch.id === archId);
+        const attrId = chip.dataset.attrId;
+        const s = synergies.find(x => x.attr.id === attrId);
         if (!s) return;
-        Tooltip.toggle(Tooltip.archetypeHtml(s.arch, s.count, s.activeThreshold, CardDatabase), chip);
+        Tooltip.toggle(Tooltip.attributeHtml(s.attr, s.count, s.activeThreshold, CardDatabase), chip);
       });
     });
   }
 
-  function _flashArchetypeChips() {
-    const panel = container.querySelector('#archetype-panel');
+  function _flashAttributeChips() {
+    const panel = container.querySelector('#attribute-panel');
     if (!panel) return;
-    panel.querySelectorAll('.archetype-chip.arch-active').forEach(chip => {
-      chip.classList.remove('arch-flash');
+    panel.querySelectorAll('.attribute-chip.attr-active').forEach(chip => {
+      chip.classList.remove('attr-flash');
       void chip.offsetWidth;
-      chip.classList.add('arch-flash');
-      chip.addEventListener('animationend', () => chip.classList.remove('arch-flash'), { once: true });
+      chip.classList.add('attr-flash');
+      chip.addEventListener('animationend', () => chip.classList.remove('attr-flash'), { once: true });
     });
   }
 
@@ -492,7 +492,7 @@ export async function mount(container, params = {}) {
         el.addEventListener('pointerdown', e => {
           e.stopPropagation();
           startX = e.clientX; startY = e.clientY; moved = false;
-          longPressTimer = setTimeout(() => Tooltip.show(Tooltip.unitHtml(unit, PowerDatabase, ArchetypeDatabase), el), 500);
+          longPressTimer = setTimeout(() => Tooltip.show(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase), el), 500);
           const onMove = ev => {
             if (Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) > 10) moved = true;
           };
@@ -591,8 +591,8 @@ export async function mount(container, params = {}) {
 
   function _applyBoardEffect(effect, playerUnits, enemyUnits) {
     const allUnits = [...playerUnits, ...enemyUnits];
-    const targets = effect.target_archetypes?.length
-      ? allUnits.filter(u => u.archetypes.some(a => effect.target_archetypes.includes(a)))
+    const targets = effect.target_attributes?.length
+      ? allUnits.filter(u => u.attributes.some(a => effect.target_attributes.includes(a)))
       : allUnits;
     switch (effect.type) {
       case 'stat_bonus':
@@ -627,7 +627,7 @@ export async function mount(container, params = {}) {
     // Guaranteed draws occupy slots within the normal hand (not extra cards)
     const guaranteedDraws = gameState.player_guaranteed_draws.splice(0);
     const extraDraws = gameState.player_extra_draws;
-    gameState.player_extra_draws = 0; // consumed — re-earned each round from archetypes
+    gameState.player_extra_draws = 0; // consumed — re-earned each round from attributes
     const randomCount = Math.max(0, HAND_SIZE + extraDraws - guaranteedDraws.length);
     hand = _drawHand(cardsByTier, gameState.round, randomCount);
 
@@ -637,7 +637,7 @@ export async function mount(container, params = {}) {
     for (const draw of guaranteedDraws) {
       const matches = fullPool.filter(c =>
         (!draw.tier      || c.tier === draw.tier) &&
-        (!draw.archetype || c.archetypes?.includes(draw.archetype)) &&
+        (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
         (!draw.category  || c.summon_type === draw.category)
       );
       if (matches.length > 0) {
@@ -645,7 +645,7 @@ export async function mount(container, params = {}) {
       } else {
         // Fallback: relax tier, then any card from full pool
         const fallback = fullPool.filter(c =>
-          (!draw.archetype || c.archetypes?.includes(draw.archetype)) &&
+          (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
           (!draw.category  || c.summon_type === draw.category)
         );
         if (fallback.length > 0) hand.push(fallback[Math.floor(Math.random() * fallback.length)]);
@@ -687,7 +687,7 @@ export async function mount(container, params = {}) {
     grid.refresh();
     _updateHUD();
     _refreshGraveyard();
-    _refreshArchetypePanel();
+    _refreshAttributePanel();
   }
 
   // ── Combat ───────────────────────────────────────────────────────────────
@@ -705,23 +705,23 @@ export async function mount(container, params = {}) {
     grid.setBlockedCells(boardData?.blocked_cells || []);
     _showBoardIndicator(boardData);
 
-    // Player units + archetypes
+    // Player units + attributes
     const playerUnits = board.getLivingUnitsOnSide('player');
 
     // Multipliers based on units present on the board at start of combat
     gameState.startCombat(playerUnits.length, enemyUnits.length);
     _showCombatMultipliers();
 
-    const archetypeList = ArchetypeDatabase.getAllArchetypes();
-    const archetypeManager = new ArchetypeManager(archetypeList, playerUnits, enemyUnits);
-    archetypeManager.applyStartOfCombat();
+    const attributeList = AttributeDatabase.getAllAttributes();
+    const attributeManager = new AttributeManager(attributeList, playerUnits, enemyUnits);
+    attributeManager.applyStartOfCombat();
 
-    // Apply board effects to all units (after archetype bonuses)
+    // Apply board effects to all units (after attribute bonuses)
     if (boardData?.effect) _applyBoardEffect(boardData.effect, playerUnits, enemyUnits);
 
-    setTimeout(() => _flashArchetypeChips(), 120);
+    setTimeout(() => _flashAttributeChips(), 120);
 
-    const combat = new CombatManager(board, playerUnits, enemyUnits, archetypeManager);
+    const combat = new CombatManager(board, playerUnits, enemyUnits, attributeManager);
 
     // Switch to combat UI
     grid.enterCombatMode();
@@ -734,9 +734,9 @@ export async function mount(container, params = {}) {
     // Wire speed buttons (once per combat)
     let currentSpeed = 1;
     const animator = new CombatAnimator(combat, grid.gridEl(), {
-      onFinished: () => _finishCombat(combat, playerUnits, archetypeManager),
+      onFinished: () => _finishCombat(combat, playerUnits, attributeManager),
       onStep: (events) => {
-        if (events.some(e => e.type === 'stat_change')) _flashArchetypeChips();
+        if (events.some(e => e.type === 'stat_change')) _flashAttributeChips();
       },
     });
 
@@ -767,21 +767,21 @@ export async function mount(container, params = {}) {
     animator.start();
   }
 
-  function _finishCombat(combat, playerUnits, archetypeManager) {
-    // Post-combat archetype effects
+  function _finishCombat(combat, playerUnits, attributeManager) {
+    // Post-combat attribute effects
     const playerNeutralized = playerUnits.filter(u => u.is_neutralized);
     const enemyNeutralized  = enemyUnits.filter(u => u.is_neutralized);
-    const archetypeResult = archetypeManager.applyEndOfCombat(playerNeutralized, enemyNeutralized);
-    const hasArchEffects = archetypeResult.revived.length > 0
-      || archetypeResult.draw_bonus > 0
-      || archetypeResult.guaranteed_draws.length > 0
-      || archetypeResult.board_slot_bonus > 0;
-    if (hasArchEffects) _flashArchetypeChips();
+    const attributeResult = attributeManager.applyEndOfCombat(playerNeutralized, enemyNeutralized);
+    const hasAttrEffects = attributeResult.revived.length > 0
+      || attributeResult.draw_bonus > 0
+      || attributeResult.guaranteed_draws.length > 0
+      || attributeResult.board_slot_bonus > 0;
+    if (hasAttrEffects) _flashAttributeChips();
 
     const winner = combat.winner ?? 'draw';
     const playerSurvivorsAtk = playerUnits.filter(u => !u.is_neutralized).reduce((s, u) => s + u.atk, 0);
     const enemySurvivorsAtk  = enemyUnits.filter(u => !u.is_neutralized).reduce((s, u) => s + u.atk, 0);
-    gameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, archetypeResult);
+    gameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult);
 
     // Remove dead enemy units; surviving ones stay on board
     for (const u of enemyUnits) {
@@ -814,7 +814,7 @@ export async function mount(container, params = {}) {
     }
 
     // Re-place revived units
-    for (const u of archetypeResult.revived) {
+    for (const u of attributeResult.revived) {
       u.is_neutralized = false;
       const target = u.initial_position && !board.isOccupied(u.initial_position)
         ? u.initial_position
@@ -989,7 +989,7 @@ export async function mount(container, params = {}) {
     }
     grid.refresh();
     _refreshGraveyard();
-    _refreshArchetypePanel();
+    _refreshAttributePanel();
   }
 
   function _destroyUnit(unit) {
@@ -998,7 +998,7 @@ export async function mount(container, params = {}) {
     graveyard.push(unit);
     grid.refresh();
     _refreshGraveyard();
-    _refreshArchetypePanel();
+    _refreshAttributePanel();
   }
 
   // ── End of round overlay ─────────────────────────────────────────────────
@@ -1205,10 +1205,10 @@ function _isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
   return _hasEmptyPlayerCell(board);
 }
 
-// Material helpers — a requirement can be a card ID (CORE_*) or an archetype ID (ARCH_*).
+// Material helpers — a requirement can be a card ID (CORE_*) or an attribute ID (ARCH_*).
 // Transformation results count as the original monster (represented_ids).
 function _matchesMaterial(unit, matId) {
-  if (matId.startsWith('ARCH_')) return unit.archetypes?.includes(matId) ?? false;
+  if (matId.startsWith('ARCH_')) return unit.attributes?.includes(matId) ?? false;
   return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
 

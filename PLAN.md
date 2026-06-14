@@ -2,7 +2,7 @@
 
 ## Contexte
 
-Le jeu était développé sous **Godot 4.5.1** (GDScript). Il est **gameplay-complete** pour un premier vertical slice : boucle de jeu complète sur 5 tours, toutes les mécaniques d'invocation, système de pouvoirs, archetypes, pathfinding, IA ennemie, support mobile.
+Le jeu était développé sous **Godot 4.5.1** (GDScript). Il est **gameplay-complete** pour un premier vertical slice : boucle de jeu complète sur 5 tours, toutes les mécaniques d'invocation, système de pouvoirs, attributs, pathfinding, IA ennemie, support mobile.
 
 La décision de migrer vers une version **full web responsive** a été prise pour :
 - Distribution instantanée via URL (pas d'installation)
@@ -31,7 +31,7 @@ tools/card_manager/
 | `GET /` | Public | Jeu |
 | `GET /admin` | Auth basique | Card Manager |
 | `GET /api/cards` | Public | 253 cartes |
-| `GET /api/archetypes` | Public | Archetypes |
+| `GET /api/attributes` | Public | Attributs |
 | `GET /api/powers` | Public | Pouvoirs |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture (admin seulement) |
 | `GET /illustrations/:id` | Public | Art des cartes (PNG sans extension) |
@@ -68,7 +68,7 @@ game/
 ├── main.js                  ← Router SPA, bootstrap
 ├── data/
 │   ├── CardDatabase.js      ← fetch /api/cards, cache en mémoire
-│   ├── ArchetypeDatabase.js ← fetch /api/archetypes
+│   ├── AttributeDatabase.js ← fetch /api/attributes
 │   ├── PowerDatabase.js     ← fetch /api/powers
 │   └── DeckRepository.js   ← localStorage (même interface que Godot)
 ├── logic/
@@ -77,7 +77,7 @@ game/
 │   ├── GameState.js         ← Phases, tours, HP, multiplicateurs
 │   ├── CombatManager.js     ← Boucle de combat, step() → events[]
 │   ├── InvocationManager.js ← Validation + exécution des 5 types de summon
-│   ├── ArchetypeManager.js  ← Comptage archetypes + application des bonus
+│   ├── AttributeManager.js  ← Comptage attributs + application des bonus
 │   ├── PathFinder.js        ← BFS sur la grille
 │   └── EnemyAI.js           ← Placement IA, calcul multiplicateur
 └── ui/
@@ -140,7 +140,7 @@ Appliqué symétriquement. Tension risk/reward : garder des cartes en main boost
 `POWER_HEAL`, `POWER_SHIELD`, `POWER_SUPER_ATTACK`, `POWER_AOE_ATTACK`,
 `POWER_POISON`, `POWER_PARALYSIS`, `POWER_PUSH`, `POWER_DEBUFF`, `POWER_BLOCK`
 
-### Archetypes (effets)
+### Attributs (effets)
 `stat_bonus`, `stat_modifier`, `draw_bonus`, `guaranteed_draw`,
 `revive`, `shield`, `board_slot_bonus`
 
@@ -164,7 +164,7 @@ Appliqué symétriquement. Tension risk/reward : garder des cartes en main boost
 **Objectif :** accès aux données depuis n'importe quel module.
 
 - [x] `CardDatabase.js` — `getCard(id)`, `getCardsByTier(tier)`, `getAllCards()`, `buildDeckFromIds(ids)`
-- [x] `ArchetypeDatabase.js` — `getArchetype(id)`, `archetypes` (dict)
+- [x] `AttributeDatabase.js` — `getAttribute(id)`, `getAttributes()` (dict)
 - [x] `PowerDatabase.js` — `getPower(id)`
 - [x] `DeckRepository.js` — `saveDeck`, `loadDeck`, `getActiveDeck`, `setActiveDeck`, `hasDeck`, `listDecks`
 
@@ -186,7 +186,7 @@ position, initial_position, is_neutralized
 
 // Méthodes
 takeDamage(amount), heal(amount), applyShield(amount)
-resetCombatStats(), recomputeStats(archetypeManager)
+resetCombatStats(), recomputeStats(attributeManager)
 ```
 
 **`Board.js`**
@@ -214,8 +214,8 @@ resetCombatStats(), recomputeStats(archetypeManager)
 - `summon(cardId, pos, board, hand)` → `Unit | null`
 - Consomme matériaux + tributs depuis hand/board
 
-**`ArchetypeManager.js`**
-- `computeBonuses(units[], archetypeDb)` — applique tous les bonus actifs
+**`AttributeManager.js`**
+- `computeBonuses(units[], attributeDb)` — applique tous les bonus actifs
 - Recalculé à chaque début de combat
 
 **`EnemyAI.js`**
@@ -274,7 +274,7 @@ resetCombatStats(), recomputeStats(archetypeManager)
 **`Tooltip.js`**
 - Instance globale unique
 - Tap → show, tap ailleurs → hide
-- Contenu : nom, stats, power, archetypes, coût
+- Contenu : nom, stats, power, attributs, coût
 
 **Drag & Drop**
 - Pointer Events (`pointerdown`, `pointermove`, `pointerup`)
@@ -337,7 +337,7 @@ Ces règles sont héritées du projet Godot et s'appliquent à la version web :
 
 ## État actuel
 
-- [x] Serveur Express avec APIs cards/archetypes/powers
+- [x] Serveur Express avec APIs cards/attributes/powers
 - [x] Card Manager fonctionnel à `/admin`
 - [x] Illustrations servies à `/illustrations/:id`
 - [x] `index.html` placeholder à `/`

@@ -174,10 +174,10 @@ function _removeFromHand(hand, cardId, atIdx = null) {
 function ok()         { return { ok: true,  reason: '' }; }
 function fail(reason) { return { ok: false, reason }; }
 
-// A material requirement matches either a specific card ID or an archetype ID.
+// A material requirement matches either a specific card ID or an attribute ID.
 // Transformation results count as the original monster (represented_ids).
 function _matchesMaterial(unit, matId) {
-  if (matId.startsWith('ARCH_')) return unit.archetypes?.includes(matId) ?? false;
+  if (matId.startsWith('ARCH_')) return unit.attributes?.includes(matId) ?? false;
   return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
 

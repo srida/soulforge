@@ -8,7 +8,7 @@ export class Unit {
     this.side = side; // 'player' | 'enemy'
     this.tier = card.tier;
     this.summon_type = card.summon_type;
-    this.archetypes = card.archetypes || [];
+    this.attributes = card.attributes || [];
 
     // Card IDs this unit "counts as" for fusion/rituel material matching.
     // Transformation results inherit the original monster's represented IDs.
@@ -31,7 +31,7 @@ export class Unit {
       range: card.stats.range,
     };
 
-    // Start-of-combat flat bonuses (from stat_bonus archetype effects)
+    // Start-of-combat flat bonuses (from stat_bonus attribute effects)
     this._stat_bonuses = {};
 
     // Effective combat stats

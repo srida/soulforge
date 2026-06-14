@@ -2,7 +2,7 @@ import { navigate } from '../../main.js';
 import * as CardDatabase from '../../data/CardDatabase.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
 import * as PowerDatabase from '../../data/PowerDatabase.js';
-import * as ArchetypeDatabase from '../../data/ArchetypeDatabase.js';
+import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as Tooltip from '../components/Tooltip.js';
 
 const TIER_COLOR = ['', 'tier1', 'tier2', 'tier3', 'tier4', 'tier5'];
@@ -10,7 +10,7 @@ const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'rituel', 'transformation
 const DECK_MIN = 20; // minimum total cards across all tiers
 
 export async function mount(container, params = {}) {
-  await Promise.all([CardDatabase.init(), PowerDatabase.init(), ArchetypeDatabase.init()]);
+  await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init()]);
 
   // Mode "deck public" (admin) : édite un deck stocké côté serveur via /api/decks/:id
   const publicDeckId = params.publicDeckId || null;
@@ -25,7 +25,7 @@ export async function mount(container, params = {}) {
   let activeTier     = 1;
   let searchQuery    = '';
   let summonFilter   = '';
-  let archetypeFilter = '';
+  let attributeFilter = '';
   const deckMin      = publicDeckId ? 0 : DECK_MIN;
 
   // deckData[t] = Card[] (objects, duplicates allowed)
@@ -75,9 +75,9 @@ export async function mount(container, params = {}) {
           <button class="filter-pill active" data-type="">Tous</button>
           ${SUMMON_TYPES.map(t => `<button class="filter-pill" data-type="${t}">${cap(t)}</button>`).join('')}
         </div>
-        <select class="archetype-select" id="archetype-select">
-          <option value="">Tous les archétypes</option>
-          ${ArchetypeDatabase.getAllArchetypes()
+        <select class="attribute-select" id="attribute-select">
+          <option value="">Tous les attributs</option>
+          ${AttributeDatabase.getAllAttributes()
             .slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'))
             .map(a => `<option value="${esc(a.id)}">${esc(a.icon ?? '')} ${esc(a.name)}</option>`)
             .join('')}
@@ -149,7 +149,7 @@ export async function mount(container, params = {}) {
 
     const filtered = pool.filter(c => {
       if (summonFilter && c.summon_type !== summonFilter) return false;
-      if (archetypeFilter && !(c.archetypes ?? []).includes(archetypeFilter)) return false;
+      if (attributeFilter && !(c.attributes ?? []).includes(attributeFilter)) return false;
       if (query && !c.name.toLowerCase().includes(query)) return false;
       return true;
     });
@@ -187,7 +187,7 @@ export async function mount(container, params = {}) {
       let longPressTimer;
       btn.addEventListener('pointerdown', e => {
         longPressTimer = setTimeout(() => {
-          Tooltip.showAtRect(Tooltip.cardHtml(c, PowerDatabase, ArchetypeDatabase, CardDatabase), btn.getBoundingClientRect());
+          Tooltip.showAtRect(Tooltip.cardHtml(c, PowerDatabase, AttributeDatabase, CardDatabase), btn.getBoundingClientRect());
         }, 500);
       });
       btn.addEventListener('pointerup',     () => clearTimeout(longPressTimer));
@@ -245,8 +245,8 @@ export async function mount(container, params = {}) {
     renderBrowser();
   });
 
-  container.querySelector('#archetype-select').addEventListener('change', e => {
-    archetypeFilter = e.target.value;
+  container.querySelector('#attribute-select').addEventListener('change', e => {
+    attributeFilter = e.target.value;
     renderBrowser();
   });
 

@@ -50,7 +50,7 @@ const ILLUS_DIR = process.env.ILLUS_DIR || path.join(ROOT, 'resources', 'card_il
 
 const ENTITIES = [
   { type: 'cards',      file: 'cards.json',      importPath: '/api/cards/import',      deletePath: id => `/api/cards/${id}` },
-  { type: 'archetypes', file: 'archetypes.json', importPath: '/api/archetypes/import', deletePath: id => `/api/archetypes/${id}` },
+  { type: 'attributes', file: 'attributes.json', importPath: '/api/attributes/import', deletePath: id => `/api/attributes/${id}` },
   { type: 'powers',     file: 'powers.json',     importPath: '/api/powers/import',     deletePath: id => `/api/powers/${id}` },
   { type: 'boards',     file: 'boards.json',     importPath: '/api/boards/import',     deletePath: id => `/api/boards/${id}` },
   { type: 'magies',     file: 'magies.json',     importPath: '/api/magies/import',     deletePath: id => `/api/magies/${id}` },

@@ -109,13 +109,13 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 /* Stats grid */
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
-/* Archetype chips */
-.arch-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.arch-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
-.arch-chip:hover { border-color: var(--red); }
-.arch-chip .remove { color: var(--red); font-weight: 700; }
-.arch-add { background: none; border: 1px dashed var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
-.arch-add:hover { border-color: var(--accent); color: var(--accent); }
+/* Attribute chips */
+.attr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.attr-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.attr-chip:hover { border-color: var(--red); }
+.attr-chip .remove { color: var(--red); font-weight: 700; }
+.attr-add { background: none; border: 1px dashed var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.attr-add:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Materials list */
 .materials-list { display: flex; flex-direction: column; gap: 6px; }
@@ -164,7 +164,7 @@ select.filter:focus { border-color: var(--accent); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* Archetype detail */
+/* Attribute detail */
 .threshold-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
 .effect-block { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 8px; }
 
@@ -341,7 +341,7 @@ select.filter:focus { border-color: var(--accent); }
     <h1>Soulforge — Card Manager</h1>
     <div class="tabs">
       <button class="tab active" onclick="switchTab('cards')">Cartes</button>
-      <button class="tab" onclick="switchTab('archetypes')">Archétypes</button>
+      <button class="tab" onclick="switchTab('attributes')">Attributs</button>
       <button class="tab" onclick="switchTab('powers')">Pouvoirs</button>
       <button class="tab" onclick="switchTab('boards')">Terrains</button>
       <button class="tab" onclick="switchTab('magies')">Magies</button>
@@ -380,8 +380,8 @@ select.filter:focus { border-color: var(--accent); }
             <option value="no">Sans illus.</option>
             <option value="yes">Avec illus.</option>
           </select>
-          <select class="filter" id="filter-archetype" onchange="filterCards()">
-            <option value="">Tous archétypes</option>
+          <select class="filter" id="filter-attribute" onchange="filterCards()">
+            <option value="">Tous attributs</option>
           </select>
           <select class="filter" id="filter-power" onchange="filterCards()">
             <option value="">Tous pouvoirs</option>
@@ -402,23 +402,23 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
-  <!-- ARCHETYPES TAB -->
-  <div id="tab-archetypes" class="main hidden">
+  <!-- ATTRIBUTES TAB -->
+  <div id="tab-attributes" class="main hidden">
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="arch-search" placeholder="Rechercher..." oninput="filterArchetypes()">
-          <span id="arch-count" class="count">0</span>
+          <input type="search" id="attr-search" placeholder="Rechercher..." oninput="filterAttributes()">
+          <span id="attr-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewArchetype()">+ Nouvel archétype</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('archetypes')">Importer JSON</button>
+          <button class="btn btn-primary btn-sm" onclick="openNewAttribute()">+ Nouvel attribut</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('attributes')">Importer JSON</button>
         </div>
       </div>
-      <div class="sidebar-list" id="arch-list"></div>
+      <div class="sidebar-list" id="attr-list"></div>
     </div>
-    <div class="content" id="arch-detail">
-      <div class="empty"><span>Sélectionne un archétype</span></div>
+    <div class="content" id="attr-detail">
+      <div class="empty"><span>Sélectionne un attribut</span></div>
     </div>
   </div>
 
@@ -526,38 +526,38 @@ select.filter:focus { border-color: var(--accent); }
 
 <script>
 // ================== STATE ==================
-let cards = [], archetypes = [], powers = [], boards = [], magies = [], publicDecks = [];
-let selectedCard = null, selectedArch = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewArch = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, archetypes, powers, boards, magies, publicDecks] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks] = await Promise.all([
     apiFetch('/api/cards'),
-    apiFetch('/api/archetypes'),
+    apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
     apiFetch('/api/boards'),
     apiFetch('/api/magies'),
     apiFetch('/api/decks'),
   ]);
-  populateArchetypeFilter();
+  populateAttributeFilter();
   populatePowerFilter();
   renderCardList();
-  renderArchList();
+  renderAttrList();
   renderPowerList();
   renderBoardList();
   renderMagieList();
   renderPublicDeckList();
 }
 
-function populateArchetypeFilter() {
-  const sel = document.getElementById('filter-archetype');
+function populateAttributeFilter() {
+  const sel = document.getElementById('filter-attribute');
   if (!sel) return;
-  const sorted = [...archetypes].sort((a, b) => a.name.localeCompare(b.name));
-  sel.innerHTML = '<option value="">Tous archétypes</option>' +
+  const sorted = [...attributes].sort((a, b) => a.name.localeCompare(b.name));
+  sel.innerHTML = '<option value="">Tous attributs</option>' +
     sorted.map(a => `<option value="${a.id}">${a.icon ? a.icon + ' ' : ''}${a.name}</option>`).join('');
 }
 
@@ -588,7 +588,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(el => {
     const t = el.textContent.toLowerCase();
     const match = (tab === 'cards' && t.includes('carte')) ||
-                  (tab === 'archetypes' && t.includes('archét')) ||
+                  (tab === 'attributes' && t.includes('attribut')) ||
                   (tab === 'powers' && t.includes('pouv')) ||
                   (tab === 'boards' && t.includes('terrain')) ||
                   (tab === 'magies' && t.includes('magie')) ||
@@ -616,14 +616,14 @@ function filterCards() {
   const tier = document.getElementById('filter-tier').value;
   const summon = document.getElementById('filter-summon').value;
   const illus = document.getElementById('filter-illus').value;
-  const archetype = document.getElementById('filter-archetype').value;
+  const attribute = document.getElementById('filter-attribute').value;
   const power = document.getElementById('filter-power').value;
   const filtered = cards.filter(c =>
     (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
     (!tier || Math.round(c.tier) == tier) &&
     (!summon || c.summon_type === summon) &&
     (!illus || (illus === 'yes' ? c._has_illustration : !c._has_illustration)) &&
-    (!archetype || (c.archetypes || []).includes(archetype)) &&
+    (!attribute || (c.attributes || []).includes(attribute)) &&
     (!power || (power === 'none' ? !(c.power && c.power.id) : (c.power && c.power.id === power)))
   );
   renderCardList(filtered);
@@ -662,8 +662,8 @@ function selectCard(id) {
   showDetail();
 }
 
-function getArchName(id) {
-  const a = archetypes.find(x => x.id === id);
+function getAttrName(id) {
+  const a = attributes.find(x => x.id === id);
   return a ? `${a.icon || ''} ${a.name}` : id;
 }
 function getPowerName(id) {
@@ -677,12 +677,12 @@ function getCardName(id) {
 function getMaterialName(id) {
   const c = cards.find(x => x.id === id);
   if (c) return c.name;
-  const a = archetypes.find(x => x.id === id);
+  const a = attributes.find(x => x.id === id);
   if (a) return (a.icon ? a.icon + ' ' : '') + a.name;
   return id;
 }
-function isMaterialArchetype(id) {
-  return !cards.find(x => x.id === id) && !!archetypes.find(x => x.id === id);
+function isMaterialAttribute(id) {
+  return !cards.find(x => x.id === id) && !!attributes.find(x => x.id === id);
 }
 
 function renderCardDetail() {
@@ -801,11 +801,11 @@ function renderCardDetail() {
       <div id="material-section-label" style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${c.summon_type === 'rituel' ? 'Matériaux de rituel' : 'Matériaux de fusion/rituel'}</div>
       <div class="materials-list" id="materials-list">
         ${(c.cost.materials || []).map(mid => {
-          const isArch = !cards.find(x => x.id === mid) && !!archetypes.find(x => x.id === mid);
+          const isAttr = !cards.find(x => x.id === mid) && !!attributes.find(x => x.id === mid);
           return `
           <div class="material-item" data-mid="${mid}">
             <span style="display:flex;align-items:center;gap:6px">
-              ${isArch ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px;white-space:nowrap">Archétype</span>` : ''}
+              ${isAttr ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px;white-space:nowrap">Attribut</span>` : ''}
               <span>${esc(getMaterialName(mid))}</span>
               <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
             </span>
@@ -814,21 +814,21 @@ function renderCardDetail() {
         }).join('')}
       </div>
       <div style="position:relative;margin-top:8px" id="material-search-wrap">
-        <input type="text" id="material-search" placeholder="${c.summon_type === 'rituel' ? 'Rechercher une carte ou un archétype...' : 'Rechercher une carte à ajouter...'}" autocomplete="off"
+        <input type="text" id="material-search" placeholder="${c.summon_type === 'rituel' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...'}" autocomplete="off"
           oninput="filterMaterialSearch()" onfocus="showMaterialDropdown()" onblur="hideMaterialDropdown()"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
         <div id="material-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
       </div>
     </div>
 
-    <div class="section-title">Archétypes</div>
-    <div class="arch-chips" id="arch-chips">
-      ${(c.archetypes || []).map(aid => `
-        <span class="arch-chip" onclick="removeArchetype('${aid}')">
-          ${getArchName(aid)} <span class="remove">×</span>
+    <div class="section-title">Attributs</div>
+    <div class="attr-chips" id="attr-chips">
+      ${(c.attributes || []).map(aid => `
+        <span class="attr-chip" onclick="removeAttribute('${aid}')">
+          ${getAttrName(aid)} <span class="remove">×</span>
         </span>
       `).join('')}
-      <button class="arch-add" onclick="openArchPickModal()">+ Ajouter</button>
+      <button class="attr-add" onclick="openAttrPickModal()">+ Ajouter</button>
     </div>
 
     <div class="actions">
@@ -851,9 +851,9 @@ function togglePowerFields() {
   if (valWrap) valWrap.style.display = hasPower ? '' : 'none';
 }
 
-function removeArchetype(aid) {
+function removeAttribute(aid) {
   syncCardFromForm();
-  selectedCard.archetypes = (selectedCard.archetypes || []).filter(a => a !== aid);
+  selectedCard.attributes = (selectedCard.attributes || []).filter(a => a !== aid);
   renderCardDetail();
 }
 
@@ -877,12 +877,12 @@ function filterMaterialSearch() {
   let results = matchedCards;
 
   if (summon === 'rituel') {
-    const matchedArchs = archetypes
+    const matchedAttrs = attributes
       .filter(a => !current.includes(a.id))
       .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
       .slice(0, 10)
-      .map(a => ({ ...a, _matType: 'archetype' }));
-    results = [...matchedArchs, ...matchedCards];
+      .map(a => ({ ...a, _matType: 'attribute' }));
+    results = [...matchedAttrs, ...matchedCards];
   }
 
   renderMaterialDropdown(results);
@@ -895,15 +895,15 @@ function renderMaterialDropdown(results) {
     dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
   } else {
     dd.innerHTML = results.map(x => {
-      const isArch = x._matType === 'archetype';
-      const sub = isArch
-        ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Archétype</span>`
+      const isAttr = x._matType === 'attribute';
+      const sub = isAttr
+        ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
         : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span>`;
       return `
         <div onmousedown="addMaterial('${x.id}')"
           style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-          ${isArch ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
+          ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
           <div>
             <div style="font-size:13px">${esc(x.name)}</div>
             <div style="margin-top:2px">${sub}</div>
@@ -919,7 +919,7 @@ function onSummonTypeChange(val) {
   const label = document.getElementById('material-section-label');
   const input = document.getElementById('material-search');
   if (label) label.textContent = val === 'rituel' ? 'Matériaux de rituel' : 'Matériaux de fusion/rituel';
-  if (input) input.placeholder = val === 'rituel' ? 'Rechercher une carte ou un archétype...' : 'Rechercher une carte à ajouter...';
+  if (input) input.placeholder = val === 'rituel' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...';
   filterMaterialSearch();
 }
 
@@ -985,7 +985,7 @@ function collectCardFromForm() {
     type: 'monster',
     tier: parseFloat(document.getElementById('f-tier').value),
     summon_type: document.getElementById('f-summon').value,
-    archetypes: [...(selectedCard.archetypes || [])],
+    attributes: [...(selectedCard.attributes || [])],
     stats: {
       atk: parseFloat(document.getElementById('f-atk').value),
       hp: parseFloat(document.getElementById('f-hp').value),
@@ -1090,7 +1090,7 @@ function openNewCard() {
 
   selectedCard = {
     id: newId, name: '', type: 'monster', tier: 1, summon_type: 'normal',
-    archetypes: [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
+    attributes: [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
     power: {}, cost: { sacrifice: 0, materials: [] }, _has_illustration: false,
   };
   isNewCard = true;
@@ -1262,14 +1262,14 @@ async function deleteIllustration() {
   toast('Illustration supprimée');
 }
 
-// Archetype picker modal
-function openArchPickModal() {
-  const current = selectedCard.archetypes || [];
+// Attribute picker modal
+function openAttrPickModal() {
+  const current = selectedCard.attributes || [];
   showModal(`
-    <h2>Ajouter un archétype</h2>
+    <h2>Ajouter un attribut</h2>
     <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
-      ${archetypes.filter(a => !current.includes(a.id)).map(a => `
-        <div class="list-item" style="border-radius:6px" onclick="addArchetype('${a.id}')">
+      ${attributes.filter(a => !current.includes(a.id)).map(a => `
+        <div class="list-item" style="border-radius:6px" onclick="addAttribute('${a.id}')">
           <span style="font-size:16px">${a.icon || ''}</span>
           <div><div>${a.name}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
         </div>
@@ -1279,27 +1279,27 @@ function openArchPickModal() {
   `);
 }
 
-function addArchetype(aid) {
-  if (!selectedCard.archetypes) selectedCard.archetypes = [];
-  if (!selectedCard.archetypes.includes(aid)) {
+function addAttribute(aid) {
+  if (!selectedCard.attributes) selectedCard.attributes = [];
+  if (!selectedCard.attributes.includes(aid)) {
     syncCardFromForm();
-    selectedCard.archetypes.push(aid);
+    selectedCard.attributes.push(aid);
     closeModal();
     renderCardDetail();
   }
 }
 
-// ================== ARCHETYPES ==================
-function filterArchetypes() {
-  const q = document.getElementById('arch-search').value.toLowerCase();
-  const filtered = archetypes.filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q));
-  renderArchList(filtered);
+// ================== ATTRIBUTES ==================
+function filterAttributes() {
+  const q = document.getElementById('attr-search').value.toLowerCase();
+  const filtered = attributes.filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q));
+  renderAttrList(filtered);
 }
 
-function renderArchList(list = archetypes) {
-  document.getElementById('arch-count').textContent = list.length;
-  document.getElementById('arch-list').innerHTML = list.map(a => `
-    <div class="list-item ${selectedArch && selectedArch.id === a.id ? 'selected' : ''}" onclick="selectArch('${a.id}')">
+function renderAttrList(list = attributes) {
+  document.getElementById('attr-count').textContent = list.length;
+  document.getElementById('attr-list').innerHTML = list.map(a => `
+    <div class="list-item ${selectedAttr && selectedAttr.id === a.id ? 'selected' : ''}" onclick="selectAttr('${a.id}')">
       <span style="font-size:18px">${a.icon || '❓'}</span>
       <div>
         <div class="item-name">${a.name}</div>
@@ -1310,17 +1310,17 @@ function renderArchList(list = archetypes) {
   `).join('');
 }
 
-function selectArch(id) {
-  selectedArch = archetypes.find(a => a.id === id);
-  isNewArch = false;
-  renderArchList();
-  renderArchDetail();
+function selectAttr(id) {
+  selectedAttr = attributes.find(a => a.id === id);
+  isNewAttr = false;
+  renderAttrList();
+  renderAttrDetail();
   showDetail();
 }
 
-function renderArchDetail() {
-  const a = selectedArch;
-  const el = document.getElementById('arch-detail');
+function renderAttrDetail() {
+  const a = selectedAttr;
+  const el = document.getElementById('attr-detail');
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
     <div class="detail-header" style="align-items:center;gap:16px">
@@ -1351,11 +1351,11 @@ function renderArchDetail() {
     </div>
 
     <div class="actions">
-      ${isNewArch
-        ? `<button class="btn btn-success" onclick="createArchetype()">Créer l'archétype</button>
-           <button class="btn btn-secondary" onclick="cancelNewArch()">Annuler</button>`
-        : `<button class="btn btn-primary" onclick="saveArchetype()">Enregistrer</button>
-           <button class="btn btn-danger" onclick="deleteArchetype()">Supprimer</button>`}
+      ${isNewAttr
+        ? `<button class="btn btn-success" onclick="createAttribute()">Créer l'attribut</button>
+           <button class="btn btn-secondary" onclick="cancelNewAttr()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveAttribute()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteAttribute()">Supprimer</button>`}
     </div>
   `;
 }
@@ -1394,29 +1394,29 @@ function renderEffectBlock(ef, ti, ei) {
 }
 
 function addThreshold() {
-  if (!selectedArch.thresholds) selectedArch.thresholds = [];
-  selectedArch.thresholds.push({ count: 2, medal: 'silver', effects: [{ type: 'stat_bonus', stat: 'atk', value: 1 }] });
-  renderArchDetail();
+  if (!selectedAttr.thresholds) selectedAttr.thresholds = [];
+  selectedAttr.thresholds.push({ count: 2, medal: 'silver', effects: [{ type: 'stat_bonus', stat: 'atk', value: 1 }] });
+  renderAttrDetail();
 }
 
 function removeThreshold(ti) {
-  selectedArch.thresholds.splice(ti, 1);
-  renderArchDetail();
+  selectedAttr.thresholds.splice(ti, 1);
+  renderAttrDetail();
 }
 
 function addEffect(ti) {
-  if (!selectedArch.thresholds[ti].effects) selectedArch.thresholds[ti].effects = [];
-  selectedArch.thresholds[ti].effects.push({ type: 'stat_bonus', stat: 'atk', value: 1 });
-  renderArchDetail();
+  if (!selectedAttr.thresholds[ti].effects) selectedAttr.thresholds[ti].effects = [];
+  selectedAttr.thresholds[ti].effects.push({ type: 'stat_bonus', stat: 'atk', value: 1 });
+  renderAttrDetail();
 }
 
 function removeEffect(ti, ei) {
-  selectedArch.thresholds[ti].effects.splice(ei, 1);
-  renderArchDetail();
+  selectedAttr.thresholds[ti].effects.splice(ei, 1);
+  renderAttrDetail();
 }
 
-function collectArchFromForm() {
-  const thresholds = (selectedArch.thresholds || []).map((th, ti) => {
+function collectAttrFromForm() {
+  const thresholds = (selectedAttr.thresholds || []).map((th, ti) => {
     const effects = (th.effects || []).map((ef, ei) => {
       try { return JSON.parse(document.getElementById(`ef-${ti}-${ei}-json`).value); }
       catch { return ef; }
@@ -1436,64 +1436,64 @@ function collectArchFromForm() {
   };
 }
 
-async function saveArchetype() {
-  const updated = collectArchFromForm();
-  const oldId = selectedArch.id;
-  const res = await apiFetch(`/api/archetypes/${oldId}`, { method: 'PUT', body: updated });
+async function saveAttribute() {
+  const updated = collectAttrFromForm();
+  const oldId = selectedAttr.id;
+  const res = await apiFetch(`/api/attributes/${oldId}`, { method: 'PUT', body: updated });
   if (res.error) return toast(res.error, 'err');
-  const idx = archetypes.findIndex(a => a.id === oldId);
-  archetypes[idx] = updated;
-  selectedArch = updated;
-  filterArchetypes();
-  renderArchDetail();
-  toast('Archétype enregistré');
+  const idx = attributes.findIndex(a => a.id === oldId);
+  attributes[idx] = updated;
+  selectedAttr = updated;
+  filterAttributes();
+  renderAttrDetail();
+  toast('Attribut enregistré');
 }
 
-async function deleteArchetype() {
-  if (!confirm(`Supprimer "${selectedArch.name}" ?`)) return;
-  const res = await apiFetch(`/api/archetypes/${selectedArch.id}`, { method: 'DELETE' });
+async function deleteAttribute() {
+  if (!confirm(`Supprimer "${selectedAttr.name}" ?`)) return;
+  const res = await apiFetch(`/api/attributes/${selectedAttr.id}`, { method: 'DELETE' });
   if (res.error) return toast(res.error, 'err');
-  archetypes = archetypes.filter(a => a.id !== selectedArch.id);
-  selectedArch = null;
-  filterArchetypes();
-  document.getElementById('arch-detail').innerHTML = '<div class="empty"><span>Sélectionne un archétype</span></div>';
+  attributes = attributes.filter(a => a.id !== selectedAttr.id);
+  selectedAttr = null;
+  filterAttributes();
+  document.getElementById('attr-detail').innerHTML = '<div class="empty"><span>Sélectionne un attribut</span></div>';
   showList();
-  toast('Archétype supprimé');
+  toast('Attribut supprimé');
 }
 
-function openNewArchetype() {
-  const nextNum = archetypes.reduce((max, a) => {
+function openNewAttribute() {
+  const nextNum = attributes.reduce((max, a) => {
     const m = a.id.match(/ARCH_(\d+)/);
     return m ? Math.max(max, parseInt(m[1])) : max;
   }, 0) + 1;
-  selectedArch = {
+  selectedAttr = {
     id: `ARCH_${String(nextNum).padStart(3, '0')}`,
     name: '', icon: '', timing: 'start_of_combat', thresholds: [],
   };
-  isNewArch = true;
-  renderArchList();
-  renderArchDetail();
+  isNewAttr = true;
+  renderAttrList();
+  renderAttrDetail();
   showDetail();
 }
 
-async function createArchetype() {
-  const arch = collectArchFromForm();
-  if (!arch.id || !arch.name) return toast('ID et nom requis', 'err');
-  const res = await apiFetch('/api/archetypes', { method: 'POST', body: arch });
+async function createAttribute() {
+  const attr = collectAttrFromForm();
+  if (!attr.id || !attr.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/attributes', { method: 'POST', body: attr });
   if (res.error) return toast(res.error, 'err');
-  archetypes.push(arch);
-  selectedArch = arch;
-  isNewArch = false;
-  filterArchetypes();
-  renderArchDetail();
-  toast('Archétype créé');
+  attributes.push(attr);
+  selectedAttr = attr;
+  isNewAttr = false;
+  filterAttributes();
+  renderAttrDetail();
+  toast('Attribut créé');
 }
 
-function cancelNewArch() {
-  selectedArch = null;
-  isNewArch = false;
-  filterArchetypes();
-  document.getElementById('arch-detail').innerHTML = '<div class="empty"><span>Sélectionne un archétype</span></div>';
+function cancelNewAttr() {
+  selectedAttr = null;
+  isNewAttr = false;
+  filterAttributes();
+  document.getElementById('attr-detail').innerHTML = '<div class="empty"><span>Sélectionne un attribut</span></div>';
   showList();
 }
 
@@ -2127,7 +2127,7 @@ function showList() {
 
 function fabAction() {
   if (currentTab === 'cards')           openNewCard();
-  else if (currentTab === 'archetypes') openNewArchetype();
+  else if (currentTab === 'attributes') openNewAttribute();
   else if (currentTab === 'powers')     openNewPower();
   else if (currentTab === 'boards')     openNewBoard();
   else if (currentTab === 'magies')     openNewMagie();
@@ -2250,19 +2250,19 @@ function detectCompositeOutliers(compTierStats) {
 }
 
 function detectBrokenLinks() {
-  const archIds = new Set(archetypes.map(a => a.id));
+  const attrIds = new Set(attributes.map(a => a.id));
   const powerIds = new Set(powers.map(p => p.id));
   const cardIds = new Set(cards.map(c => c.id));
   const broken = [];
   for (const card of cards) {
-    for (const aid of (card.archetypes || [])) {
-      if (!archIds.has(aid)) broken.push({ card, type: 'archetype', refId: aid });
+    for (const aid of (card.attributes || [])) {
+      if (!attrIds.has(aid)) broken.push({ card, type: 'attribute', refId: aid });
     }
     if (card.power?.id && !powerIds.has(card.power.id)) {
       broken.push({ card, type: 'power', refId: card.power.id });
     }
     for (const mid of (card.cost?.materials || [])) {
-      const valid = cardIds.has(mid) || (card.summon_type === 'rituel' && archIds.has(mid));
+      const valid = cardIds.has(mid) || (card.summon_type === 'rituel' && attrIds.has(mid));
       if (!valid) broken.push({ card, type: 'material', refId: mid });
     }
   }
@@ -2493,8 +2493,8 @@ function renderStats() {
     `;
 
   const brokenLinks = detectBrokenLinks();
-  const TYPE_LABEL = { archetype: 'Archétype', power: 'Pouvoir', material: 'Matériel' };
-  const TYPE_COLOR = { archetype: '#a78bfa', power: '#fb923c', material: '#34d399' };
+  const TYPE_LABEL = { attribute: 'Attribut', power: 'Pouvoir', material: 'Matériel' };
+  const TYPE_COLOR = { attribute: '#a78bfa', power: '#fb923c', material: '#34d399' };
   const brokenRows = brokenLinks.length === 0
     ? `<div class="no-anomalies">✅ Aucun lien manquant</div>`
     : brokenLinks.map(b => {
@@ -2741,7 +2741,7 @@ function renderMassToolbar() {
       </div>
       <div class="mass-toolbar-actions">
         <button class="btn btn-secondary btn-sm" onclick="openMassEditModal()" ${dis}>Modifier un champ</button>
-        <button class="btn btn-secondary btn-sm" onclick="openMassArchModal()" ${dis}>Archétype</button>
+        <button class="btn btn-secondary btn-sm" onclick="openMassAttrModal()" ${dis}>Attribut</button>
         <button class="btn btn-danger btn-sm" onclick="confirmMassDelete()" ${dis}>Supprimer (${n})</button>
       </div>
     </div>`;
@@ -2799,30 +2799,30 @@ async function applyMassEdit() {
   await loadData(); filterCards(); renderMassToolbar();
 }
 
-function openMassArchModal() {
+function openMassAttrModal() {
   const n = bulkSelected.size;
   showModal(`
-    <h2>Archétypes en masse <span style="font-size:13px;font-weight:400;color:var(--muted)">${n} carte${n>1?'s':''}</span></h2>
+    <h2>Attributs en masse <span style="font-size:13px;font-weight:400;color:var(--muted)">${n} carte${n>1?'s':''}</span></h2>
     <div class="field"><label>Action</label>
-      <select id="mass-arch-action">
+      <select id="mass-attr-action">
         <option value="add">Ajouter</option>
         <option value="remove">Retirer</option>
       </select>
     </div>
-    <div class="field"><label>Archétype</label>
-      <select id="mass-arch-id">${archetypes.map(a=>`<option value="${a.id}">${esc((a.icon||'')+' '+a.name)}</option>`).join('')}</select>
+    <div class="field"><label>Attribut</label>
+      <select id="mass-attr-id">${attributes.map(a=>`<option value="${a.id}">${esc((a.icon||'')+' '+a.name)}</option>`).join('')}</select>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-primary" onclick="applyMassArchetype()">Appliquer</button>
+      <button class="btn btn-primary" onclick="applyMassAttribute()">Appliquer</button>
       <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
     </div>
   `);
 }
 
-async function applyMassArchetype() {
-  const action = document.getElementById('mass-arch-action')?.value;
-  const archId = document.getElementById('mass-arch-id')?.value;
-  if (!archId) return;
+async function applyMassAttribute() {
+  const action = document.getElementById('mass-attr-action')?.value;
+  const attrId = document.getElementById('mass-attr-id')?.value;
+  if (!attrId) return;
   closeModal();
   const ids = [...bulkSelected];
   await Promise.all(ids.map(id => {
@@ -2830,10 +2830,10 @@ async function applyMassArchetype() {
     if (!card) return;
     const updated = { ...card };
     delete updated._has_illustration;
-    const archs = [...(updated.archetypes || [])];
-    if (action === 'add' && !archs.includes(archId)) archs.push(archId);
-    else if (action === 'remove') { const i = archs.indexOf(archId); if (i !== -1) archs.splice(i, 1); }
-    updated.archetypes = archs;
+    const attrs = [...(updated.attributes || [])];
+    if (action === 'add' && !attrs.includes(attrId)) attrs.push(attrId);
+    else if (action === 'remove') { const i = attrs.indexOf(attrId); if (i !== -1) attrs.splice(i, 1); }
+    updated.attributes = attrs;
     return fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
   }));
   toast(`${ids.length} carte${ids.length>1?'s':''} mise${ids.length>1?'s':''} à jour`, 'ok');
@@ -2854,7 +2854,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', archetypes: 'archétypes', powers: 'pouvoirs', boards: 'terrains', magies: 'magies' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies' };
 
 function openImportModal(type) {
   importType = type;
@@ -2927,9 +2927,9 @@ async function confirmImport() {
   if (importType === 'cards') {
     cards = await apiFetch('/api/cards');
     filterCards();
-  } else if (importType === 'archetypes') {
-    archetypes = await apiFetch('/api/archetypes');
-    filterArchetypes();
+  } else if (importType === 'attributes') {
+    attributes = await apiFetch('/api/attributes');
+    filterAttributes();
   } else if (importType === 'powers') {
     powers = await apiFetch('/api/powers');
     filterPowers();
@@ -3024,14 +3024,14 @@ function renderBoardDetail() {
       </div>
     </div>
     <div id="bf-target-wrap" style="${e?.type?'':'display:none'}">
-      <div class="section-title" style="margin-top:20px">Archétypes cibles <span style="font-size:10px;font-weight:400;color:var(--muted)">(vide = tous les archétypes)</span></div>
-      <div class="arch-chips" id="bf-arch-chips">
-        ${(e?.target_archetypes || []).map(aid => `
-          <span class="arch-chip" data-aid="${aid}" onclick="removeBoardTargetArch('${aid}')">
-            ${getArchName(aid)} <span class="remove">×</span>
+      <div class="section-title" style="margin-top:20px">Attributs cibles <span style="font-size:10px;font-weight:400;color:var(--muted)">(vide = tous les attributs)</span></div>
+      <div class="attr-chips" id="bf-attr-chips">
+        ${(e?.target_attributes || []).map(aid => `
+          <span class="attr-chip" data-aid="${aid}" onclick="removeBoardTargetAttr('${aid}')">
+            ${getAttrName(aid)} <span class="remove">×</span>
           </span>
         `).join('')}
-        <button class="arch-add" onclick="openBoardArchPickModal()">+ Ajouter</button>
+        <button class="attr-add" onclick="openBoardAttrPickModal()">+ Ajouter</button>
       </div>
     </div>
 
@@ -3072,18 +3072,18 @@ function toggleBoardEffectFields() {
   document.getElementById('bf-target-wrap').style.display = type ? '' : 'none';
 }
 
-function removeBoardTargetArch(aid) {
-  const chip = document.querySelector(`#bf-arch-chips .arch-chip[data-aid="${aid}"]`);
+function removeBoardTargetAttr(aid) {
+  const chip = document.querySelector(`#bf-attr-chips .attr-chip[data-aid="${aid}"]`);
   if (chip) chip.remove();
 }
 
-function openBoardArchPickModal() {
-  const current = [...document.querySelectorAll('#bf-arch-chips .arch-chip')].map(el => el.dataset.aid);
+function openBoardAttrPickModal() {
+  const current = [...document.querySelectorAll('#bf-attr-chips .attr-chip')].map(el => el.dataset.aid);
   showModal(`
-    <h2>Ajouter un archétype cible</h2>
+    <h2>Ajouter un attribut cible</h2>
     <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
-      ${archetypes.filter(a => !current.includes(a.id)).map(a => `
-        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetArch('${a.id}')">
+      ${attributes.filter(a => !current.includes(a.id)).map(a => `
+        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetAttr('${a.id}')">
           <span style="font-size:16px">${a.icon || ''}</span>
           <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
         </div>
@@ -3093,15 +3093,15 @@ function openBoardArchPickModal() {
   `);
 }
 
-function addBoardTargetArch(aid) {
-  const chipsEl = document.getElementById('bf-arch-chips');
+function addBoardTargetAttr(aid) {
+  const chipsEl = document.getElementById('bf-attr-chips');
   if (!chipsEl || chipsEl.querySelector(`[data-aid="${aid}"]`)) { closeModal(); return; }
-  const addBtn = chipsEl.querySelector('.arch-add');
+  const addBtn = chipsEl.querySelector('.attr-add');
   const chip = document.createElement('span');
-  chip.className = 'arch-chip';
+  chip.className = 'attr-chip';
   chip.dataset.aid = aid;
-  chip.onclick = () => removeBoardTargetArch(aid);
-  chip.innerHTML = `${getArchName(aid)} <span class="remove">×</span>`;
+  chip.onclick = () => removeBoardTargetAttr(aid);
+  chip.innerHTML = `${getAttrName(aid)} <span class="remove">×</span>`;
   chipsEl.insertBefore(chip, addBtn);
   closeModal();
 }
@@ -3137,7 +3137,7 @@ function _collectBoardFields() {
     const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
     effect = { type, value: +document.getElementById('bf-effect-value').value };
     if (needsStat) effect.stat = document.getElementById('bf-effect-stat').value;
-    effect.target_archetypes = [...document.querySelectorAll('#bf-arch-chips .arch-chip')].map(el => el.dataset.aid);
+    effect.target_attributes = [...document.querySelectorAll('#bf-attr-chips .attr-chip')].map(el => el.dataset.aid);
   }
   return {
     id:            document.getElementById('bf-id').value.trim(),

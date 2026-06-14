@@ -4,7 +4,7 @@ import * as Tooltip from './Tooltip.js';
 const COLS = 5;
 
 export class BoardGrid {
-  constructor(container, { rows = 4, onCellTap, onUnitTap, onUnitDrag, onUnitLongPress = null, showEnemySide = false, powerDb = null, archetypeDb = null } = {}) {
+  constructor(container, { rows = 4, onCellTap, onUnitTap, onUnitDrag, onUnitLongPress = null, showEnemySide = false, powerDb = null, attributeDb = null } = {}) {
     this._container = container;
     this._displayRows = rows;
     this._onCellTap = onCellTap;
@@ -13,7 +13,7 @@ export class BoardGrid {
     this._onUnitLongPress = onUnitLongPress;
     this._showEnemySide = showEnemySide;
     this._powerDb = powerDb;
-    this._archetypeDb = archetypeDb;
+    this._attributeDb = attributeDb;
     this._board = null;
     this._highlighted = new Set();         // "col,row" — valid placement cells (blue)
     this._materialCandidates = new Set();  // "col,row" — selectable material units (yellow border)
@@ -191,7 +191,7 @@ export class BoardGrid {
       dragging = false;
       longPressTimer = setTimeout(() => {
         if (this._onUnitLongPress) this._onUnitLongPress(unit, pos, el);
-        else Tooltip.show(Tooltip.unitHtml(unit, this._powerDb, this._archetypeDb), el);
+        else Tooltip.show(Tooltip.unitHtml(unit, this._powerDb, this._attributeDb), el);
       }, 500);
 
       // Track move/up on document so events are received regardless of where the pointer goes

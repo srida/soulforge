@@ -29,7 +29,7 @@ Terminé :
 - Boucle de jeu complète sur 5 tours
 - Tous les systèmes d'invocation
 - Système de pouvoirs
-- Archetypes
+- Attributs
 - Pathfinding + ligne de vue (Bresenham)
 - IA ennemie
 - DeckBuilder + DeckSelector + MainMenu
@@ -60,7 +60,7 @@ Repo : `https://github.com/srida/my-auto-battler`
 | `GET /` | Public | Jeu (SPA) |
 | `GET /admin` | Auth basique | Card Manager |
 | `GET /api/cards` | Public | 253 cartes |
-| `GET /api/archetypes` | Public | Archetypes |
+| `GET /api/attributes` | Public | Attributs |
 | `GET /api/powers` | Public | Pouvoirs |
 | `GET /api/boards` | Public | Terrains de combat |
 | `GET /api/magies` | Public | Magies (Phase Shopping) |
@@ -68,7 +68,7 @@ Repo : `https://github.com/srida/my-auto-battler`
 | `GET /illustrations/:id` | Public | Art des cartes (PNG sans extension) |
 | `POST /api/cards/import` | Auth | Import en masse (mode skip/replace) |
 | `POST /api/cards/:id/illustration` | Auth | Upload illustration (URL ou base64) |
-| `POST /api/archetypes/import` | Auth | Import archetypes en masse |
+| `POST /api/attributes/import` | Auth | Import attributs en masse |
 | `POST /api/powers/import` | Auth | Import pouvoirs en masse |
 | `GET /api/export` | Auth | Export complet avec checksums illustrations |
 
@@ -84,7 +84,7 @@ game/
 ├── game.css                 ← Variables CSS, design system
 ├── data/
 │   ├── CardDatabase.js      ← fetch /api/cards, cache mémoire
-│   ├── ArchetypeDatabase.js ← fetch /api/archetypes
+│   ├── AttributeDatabase.js ← fetch /api/attributes
 │   ├── PowerDatabase.js     ← fetch /api/powers
 │   ├── BoardDatabase.js     ← fetch /api/boards, cache mémoire
 │   ├── MagieDatabase.js     ← fetch /api/magies, cache mémoire
@@ -95,7 +95,7 @@ game/
 │   ├── GameState.js         ← Phases, tours, HP, multiplicateurs
 │   ├── CombatManager.js     ← Boucle de combat, step() → events[]
 │   ├── InvocationManager.js ← Validation + exécution des 5 types de summon
-│   ├── ArchetypeManager.js  ← Comptage archetypes + application des bonus
+│   ├── AttributeManager.js  ← Comptage attributs + application des bonus
 │   ├── MagieEffect.js       ← Effets des magies (Phase Shopping)
 │   ├── PathFinder.js        ← BFS sur la grille
 │   └── EnemyAI.js           ← Placement IA, calcul multiplicateur
@@ -127,9 +127,9 @@ CardDatabase.getCardsByTier(tier)
 CardDatabase.getAllCards()
 CardDatabase.buildDeckFromIds(ids)
 
-await ArchetypeDatabase.init()
-ArchetypeDatabase.getArchetype(id)
-ArchetypeDatabase.archetypes    // Dictionary
+await AttributeDatabase.init()
+AttributeDatabase.getAttribute(id)
+AttributeDatabase.getAttributes()    // Dictionary
 
 await PowerDatabase.init()
 PowerDatabase.getPower(id)
@@ -174,7 +174,7 @@ DeckRepository.consumePendingEdit()      // lit ET efface le pendingEdit
 { type: 'attack',      attacker, target, damage }
 { type: 'power',       unit, targets, power_id, extra: {...} }
 { type: 'dot',         unit, damage }               // pulse de poison
-{ type: 'stat_change', unit, stat, value }          // effet archetype during_combat
+{ type: 'stat_change', unit, stat, value }          // effet attribut during_combat
 { type: 'death',       unit }
 { type: 'combat_end',  winner }
 ```
@@ -243,7 +243,7 @@ Le pool dépend du tour :
 
 Les cartes non jouées sont défaussées à la fin de la phase de préparation.
 
-**Pioches garanties** (issues des effets d'archetype `guaranteed_draw`) :
+**Pioches garanties** (issues des effets d'attribut `guaranteed_draw`) :
 Ordre de priorité de résolution : Transformation > Rituel > Fusion > Pioche normale.
 
 ---
@@ -395,7 +395,7 @@ Joueur : rangées 0–3
 Zone neutre : rangées 4–6 (inoccupables en préparation)
 Ennemi : rangées 7–10
 
-Maximum d'unités sur le board : **5** (6 avec certaines synergies d'archetype).
+Maximum d'unités sur le board : **5** (6 avec certaines synergies d'attribut).
 
 Pendant la préparation :
 - Joueur voit uniquement son côté
@@ -453,12 +453,12 @@ Chaque combat tire aléatoirement un terrain depuis `BoardDatabase`. Le terrain 
     "type": "stat_bonus",
     "stat": "atk",
     "value": 10,
-    "target_archetypes": ["ARCH_DRAGON"]
+    "target_attributes": ["ARCH_DRAGON"]
   }
 }
 ```
 
-`effect` peut être `null` (aucun effet). `target_archetypes` vide = toutes les unités des deux joueurs.
+`effect` peut être `null` (aucun effet). `target_attributes` vide = toutes les unités des deux joueurs.
 
 ### Types d'effets supportés
 
@@ -504,7 +504,7 @@ startPreparation()
 
 ### Indicateur de terrain (UI)
 
-Pendant le combat, un chip compact s'affiche **à droite des chips d'archetype** sur la même rangée (`game-header-row`). Il montre la miniature d'illustration et le nom du terrain. Un tap ouvre le tooltip complet (effet + archetypes ciblés par nom).
+Pendant le combat, un chip compact s'affiche **à droite des chips d'attribut** sur la même rangée (`game-header-row`). Il montre la miniature d'illustration et le nom du terrain. Un tap ouvre le tooltip complet (effet + attributs ciblés par nom).
 
 ```js
 // GameScreen.js
@@ -512,7 +512,7 @@ _showBoardIndicator(boardData)   // stocke dans _currentBoardData, affiche le ch
 _hideBoardIndicator()
 
 // Tooltip.js
-Tooltip.boardHtml(board, archetypeDb)  // archetypeDb optionnel — résout les noms d'archetype
+Tooltip.boardHtml(board, attributeDb)  // attributeDb optionnel — résout les noms d'attribut
 ```
 
 ### TestBench
@@ -592,7 +592,7 @@ player_hp -= round(sum(survivingEnemyUnits.atk) × enemy_multiplier)
 // draw → aucun dégât
 ```
 
-`applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, archetypeResult)`
+`applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult)`
 — reçoit la somme d'ATK, pas un nombre d'unités.
 
 Effets des pouvoirs : prennent fin à la fin du combat (sauf indication contraire).
@@ -670,11 +670,11 @@ Les coûts `sacrifice`/`rituel` (`canSummon`, `_isPlayable`, sélection de maté
 
 ---
 
-## Archetypes
+## Attributs
 
-Chargés depuis `/api/archetypes`.
+Chargés depuis `/api/attributes`.
 
-Un monstre peut posséder un ou plusieurs archetypes. Un seul palier d'archetype est actif à la fois (le plus élevé atteint).
+Un monstre peut posséder un ou plusieurs attributs. Un seul palier d'attribut est actif à la fois (le plus élevé atteint).
 
 Effets supportés :
 
@@ -696,20 +696,20 @@ Les effets se déclenchent à trois moments précis :
 
 ### Réinitialisation
 
-Tous les bonus d'archetype sont réinitialisés à la fin de chaque combat.
+Tous les bonus d'attribut sont réinitialisés à la fin de chaque combat.
 
 Les effets `start_of_combat` sont recalculés au prochain combat en fonction des unités présentes au lancement. Le bonus de slot (ex: Yeux Bleus +1) n'est actif que si les unités déclenchant le palier sont toujours en vie.
 
-`ArchetypeManager.computeBonuses(units, archetypeDb)` — appelé au début de chaque combat.
+`AttributeManager.computeBonuses(units, attributeDb)` — appelé au début de chaque combat.
 
 ### Détails d'implémentation
 
-- **Comptage des liens (thresholds)** : seules les unités **distinctes** (par `card_id`) sont comptées — deux exemplaires de la même carte ne comptent que pour 1 dans le décompte d'archetype (`_countArchetype`, et le décompte `end_of_combat`).
-- `stat_bonus` avec champ `value_per` : la valeur est multipliée par le nombre d'unités **ennemies** portant cet archetype (bonus contextuel)
+- **Comptage des liens (thresholds)** : seules les unités **distinctes** (par `card_id`) sont comptées — deux exemplaires de la même carte ne comptent que pour 1 dans le décompte d'attribut (`_countAttribute`, et le décompte `end_of_combat`).
+- `stat_bonus` avec champ `value_per` : la valeur est multipliée par le nombre d'unités **ennemies** portant cet attribut (bonus contextuel)
 - `shield` : la valeur est multipliée par le nombre d'unités **alliées vivantes** au moment du déclenchement
 - Les seuils `during_combat` sont **verrouillés au début du combat** — les morts en cours de combat ne désactivent pas les effets déjà actifs
 - `reapplyBonuses(unit)` : ré-applique les bonus `start_of_combat` après un `POWER_DEBUFF` (qui réinitialise les stats de la cible)
-- `getActiveSynergies(units)` → `[{arch, count, activeThreshold, nextThreshold}]` — utilisé par le panneau d'archetypes de l'UI
+- `getActiveSynergies(units)` → `[{attr, count, activeThreshold, nextThreshold}]` — utilisé par le panneau d'attributs de l'UI
 
 ---
 
@@ -844,7 +844,7 @@ Pendant la phase de combat, chaque `UnitCard` affiche des indicateurs visuels :
 - Paralysée
 - Pouvoir bloqué
 
-**Panneau d'archetypes** : s'affiche en haut du board dès que des monstres sont présents. Tap sur l'icône d'un archetype → tooltip avec le palier actif et l'effet.
+**Panneau d'attributs** : s'affiche en haut du board dès que des monstres sont présents. Tap sur l'icône d'un attribut → tooltip avec le palier actif et l'effet.
 
 **Indicateur de slots** : en phase de préparation, affiche les emplacements libres sur le terrain. Remplacé par le **multiplicateur de dégâts** au lancement du combat.
 
@@ -862,7 +862,7 @@ Comportement :
 
 Instance globale unique (`Tooltip.js`).
 
-Contenu : nom, stats, pouvoir, archetypes, coût d'invocation.
+Contenu : nom, stats, pouvoir, attributs, coût d'invocation.
 
 ---
 
@@ -957,7 +957,7 @@ Avertissement plein écran en CSS pur (`game/game.css`), aucune logique JS :
 ### Touch targets
 
 `--touch-target: 44px` (déjà défini) appliqué aux éléments qui en manquaient :
-- `.topbar-back`, `.filter-pill`, `.speed-btn`, `.tb-terrain-select`, `.tb-terrain-info`, `.archetype-chip`, `.board-ind` → `min-height`/`min-width: var(--touch-target)`.
+- `.topbar-back`, `.filter-pill`, `.speed-btn`, `.tb-terrain-select`, `.tb-terrain-info`, `.attribute-chip`, `.board-ind` → `min-height`/`min-width: var(--touch-target)`.
 - `.slot-remove` (badge de suppression sur un `.deck-slot` de 52px) : agrandi à 24×24px — un plein 44px chevaucherait excessivement le slot ; compromis documenté ici.
 
 ---
@@ -975,7 +975,7 @@ Les classes `logic/` ne doivent jamais :
 
 Les classes `ui/` ne doivent jamais contenir :
 - Logique de combat
-- Logique d'archetype
+- Logique d'attribut
 - Logique d'invocation
 
 ---

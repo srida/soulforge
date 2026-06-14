@@ -37,7 +37,7 @@
     {
         "id": "POWER_DEBUFF",
         "name": "Silence",
-        "description": "Supprime tous les bonus et modificateurs de statistiques de la cible (archétypes, paralysie, etc.)."
+        "description": "Supprime tous les bonus et modificateurs de statistiques de la cible (attributs, paralysie, etc.)."
     },
     {
         "id": "POWER_BLOCK",

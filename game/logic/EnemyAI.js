@@ -337,9 +337,9 @@ function _freeCells(board) {
   return cells;
 }
 
-// A material ID matches either a specific card or an archetype tag.
+// A material ID matches either a specific card or an attribute tag.
 function _matchesMaterial(unit, matId) {
-  if (matId.startsWith('ARCH_')) return unit.archetypes?.includes(matId) ?? false;
+  if (matId.startsWith('ARCH_')) return unit.attributes?.includes(matId) ?? false;
   return unit.card_id === matId;
 }
 

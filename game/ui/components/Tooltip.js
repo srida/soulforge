@@ -54,15 +54,15 @@ function _repositionFromRect(r) {
 }
 
 // Builds tooltip HTML from a card data object
-export function cardHtml(card, powerDb = null, archetypeDb = null, cardDb = null) {
+export function cardHtml(card, powerDb = null, attributeDb = null, cardDb = null) {
   const summonLabels = { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', rituel: 'Rituel', transformation: 'Transformation' };
-  const archetypeNames = (card.archetypes || []).map(id => archetypeDb?.getArchetype(id)?.name ?? id);
+  const attributeNames = (card.attributes || []).map(id => attributeDb?.getAttribute(id)?.name ?? id);
   const power = card.power?.id && powerDb ? powerDb.getPower(card.power.id) : null;
   const costLines = [];
   if (card.cost?.sacrifice) costLines.push(`Sacrifice : ${card.cost.sacrifice}`);
   if (card.cost?.materials?.length) {
     const matNames = card.cost.materials.map(id => {
-      if (id.startsWith('ARCH_')) return archetypeDb?.getArchetype(id)?.name ?? id;
+      if (id.startsWith('ARCH_')) return attributeDb?.getAttribute(id)?.name ?? id;
       return cardDb?.getCard(id)?.name ?? id;
     });
     costLines.push(`Matériaux : ${matNames.join(', ')}`);
@@ -81,15 +81,15 @@ export function cardHtml(card, powerDb = null, archetypeDb = null, cardDb = null
       <span title="Range">↔ ${card.stats.range}</span>
       <span title="SPD">🏃 ${card.stats.movement_speed}</span>
     </div>
-    ${archetypeNames.length ? `<div class="tip-archetypes">${archetypeNames.map(n => `<span class="badge">${esc(n)}</span>`).join('')}</div>` : ''}
+    ${attributeNames.length ? `<div class="tip-attributes">${attributeNames.map(n => `<span class="badge">${esc(n)}</span>`).join('')}</div>` : ''}
     ${power ? `<div class="tip-power">✨ ${esc(power.name || card.power.id)}</div>` : ''}
     ${costLines.length ? `<div class="tip-cost">${costLines.map(l => `<span>${esc(l)}</span>`).join('')}</div>` : ''}
   `;
 }
 
 // Builds tooltip HTML from a live Unit object
-export function unitHtml(unit, powerDb = null, archetypeDb = null) {
-  const archetypeNames = (unit.archetypes || []).map(id => archetypeDb?.getArchetype(id)?.name ?? id);
+export function unitHtml(unit, powerDb = null, attributeDb = null) {
+  const attributeNames = (unit.attributes || []).map(id => attributeDb?.getAttribute(id)?.name ?? id);
   const powerName = unit.power_id
     ? (powerDb?.getPower(unit.power_id)?.name ?? unit.power_id)
     : null;
@@ -106,17 +106,17 @@ export function unitHtml(unit, powerDb = null, archetypeDb = null) {
       <span title="Vitesse de déplacement">🏃 ${unit.movement_speed}</span>
       <span title="Initiative">🎯 ${unit.initiative}</span>
     </div>
-    ${archetypeNames.length ? `<div class="tip-archetypes">${archetypeNames.map(n => `<span class="badge">${esc(n)}</span>`).join('')}</div>` : ''}
+    ${attributeNames.length ? `<div class="tip-attributes">${attributeNames.map(n => `<span class="badge">${esc(n)}</span>`).join('')}</div>` : ''}
     ${unit.shield > 0 ? `<div class="tip-power">🛡 Shield : ${unit.shield}</div>` : ''}
     ${powerName ? `<div class="tip-power">✨ ${esc(powerName)} ${unit.power_gauge}/${unit.power_speed}</div>` : ''}
   `;
 }
 
-// Builds tooltip HTML for an archetype synergy chip
-export function archetypeHtml(arch, count, activeThreshold, cardDb = null) {
+// Builds tooltip HTML for an attribute synergy chip
+export function attributeHtml(attr, count, activeThreshold, cardDb = null) {
   const medalColors = { bronze: '#cd7f32', silver: '#b0b8c8', gold: '#f0c040', platinum: '#e5e4e2' };
   const medalNames  = { bronze: 'Bronze',  silver: 'Argent',  gold: 'Or',      platinum: 'Platine' };
-  const rows = (arch.thresholds ?? []).map(t => {
+  const rows = (attr.thresholds ?? []).map(t => {
     const isActive = activeThreshold && t.count <= activeThreshold.count;
     const color = isActive ? (medalColors[t.medal] ?? 'var(--accent)') : 'var(--muted)';
     const desc  = _describeEffects(t.effects, cardDb);
@@ -124,8 +124,8 @@ export function archetypeHtml(arch, count, activeThreshold, cardDb = null) {
   }).join('');
   return `
     <div class="tip-header">
-      <span style="font-size:18px;line-height:1">${arch.icon ?? ''}</span>
-      <span class="tip-name">${esc(arch.name)}</span>
+      <span style="font-size:18px;line-height:1">${attr.icon ?? ''}</span>
+      <span class="tip-name">${esc(attr.name)}</span>
       <span style="font-size:11px;color:var(--muted)">${count} présent${count > 1 ? 's' : ''}</span>
     </div>
     <div style="margin-top:6px">${rows || '<span style="color:var(--muted);font-size:11px">Aucun palier</span>'}</div>
@@ -133,7 +133,7 @@ export function archetypeHtml(arch, count, activeThreshold, cardDb = null) {
 }
 
 // Builds tooltip HTML for a board (terrain)
-export function boardHtml(board, archetypeDb = null) {
+export function boardHtml(board, attributeDb = null) {
   const e = board.effect;
   const STAT_LBL = { atk: 'ATK', hp: 'HP', movement_speed: 'Déplacement', attack_speed: "Vit. attaque", initiative: 'Initiative', range: 'Portée' };
   const TYPE_LBL = { stat_bonus: 'Bonus de stat', stat_modifier: 'Modificateur', shield: 'Bouclier', draw_bonus: 'Pioche +' };
@@ -146,14 +146,14 @@ export function boardHtml(board, archetypeDb = null) {
       ? `<span style="color:var(--accent)">${STAT_LBL[e.stat] || e.stat}</span> ${valStr}`
       : valStr;
     let tgtLine;
-    if (!e.target_archetypes?.length) {
+    if (!e.target_attributes?.length) {
       tgtLine = 'Toutes les unités (les 2 joueurs)';
-    } else if (archetypeDb) {
-      tgtLine = e.target_archetypes
-        .map(id => { const a = archetypeDb.getArchetype(id); return a ? `${a.icon ?? ''} ${a.name}` : id; })
+    } else if (attributeDb) {
+      tgtLine = e.target_attributes
+        .map(id => { const a = attributeDb.getAttribute(id); return a ? `${a.icon ?? ''} ${a.name}` : id; })
         .join(', ');
     } else {
-      tgtLine = `${e.target_archetypes.length} archétype${e.target_archetypes.length > 1 ? 's' : ''} ciblé${e.target_archetypes.length > 1 ? 's' : ''}`;
+      tgtLine = `${e.target_attributes.length} attribut${e.target_attributes.length > 1 ? 's' : ''} ciblé${e.target_attributes.length > 1 ? 's' : ''}`;
     }
     effectHtml = `
       <div style="font-size:11px;font-weight:600">${esc(typeLbl)}</div>

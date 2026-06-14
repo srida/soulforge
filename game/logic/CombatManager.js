@@ -16,13 +16,13 @@ export class CombatManager {
    * @param {Board} board
    * @param {Unit[]} playerUnits
    * @param {Unit[]} enemyUnits
-   * @param {ArchetypeManager} archetypeManager
+   * @param {AttributeManager} attributeManager
    */
-  constructor(board, playerUnits, enemyUnits, archetypeManager) {
+  constructor(board, playerUnits, enemyUnits, attributeManager) {
     this.board = board;
     this.playerUnits = playerUnits;
     this.enemyUnits = enemyUnits;
-    this.archetypeManager = archetypeManager;
+    this.attributeManager = attributeManager;
     this.isOver = false;
     this.winner = null; // 'player' | 'enemy' | 'draw'
     this._stepCount = 0;
@@ -146,9 +146,9 @@ export class CombatManager {
     this._checkDeaths(allUnits, events);
     this._checkEnd(events);
 
-    // ── 6. During-combat archetype triggers (stat_modifier) ──
-    // stat_modifier triggers are fired from CombatManager via ArchetypeManager callbacks
-    // This is handled by events; the ArchetypeManager is called reactively on 'death' events.
+    // ── 6. During-combat attribute triggers (stat_modifier) ──
+    // stat_modifier triggers are fired from CombatManager via AttributeManager callbacks
+    // This is handled by events; the AttributeManager is called reactively on 'death' events.
 
     return events;
   }
@@ -271,9 +271,9 @@ export class CombatManager {
         this.board.removeUnit(u);
         events.push({ type: 'death', unit: u });
 
-        // Trigger during-combat archetype stat_modifiers
-        if (this.archetypeManager) {
-          const evts = this.archetypeManager.onUnitNeutralized(u, this.playerUnits, this.enemyUnits);
+        // Trigger during-combat attribute stat_modifiers
+        if (this.attributeManager) {
+          const evts = this.attributeManager.onUnitNeutralized(u, this.playerUnits, this.enemyUnits);
           events.push(...evts);
         }
       }

@@ -187,7 +187,7 @@
 }
 .search-input:focus { border-color: var(--accent); }
 
-.archetype-select {
+.attribute-select {
   width: 100%;
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -205,8 +205,8 @@
   background-position: right 12px center;
   padding-right: 32px;
 }
-.archetype-select:focus { border-color: var(--accent); }
-.archetype-select option { background: var(--surface2); }
+.attribute-select:focus { border-color: var(--accent); }
+.attribute-select option { background: var(--surface2); }
 
 .card-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .loading-text { color: var(--muted); font-size: 13px; width: 100%; }
@@ -247,7 +247,7 @@
 /* GameScreen layout */
 .game-layout { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-/* Game header row — archetype chips + board indicator on the same row */
+/* Game header row — attribute chips + board indicator on the same row */
 .game-header-row {
   display: flex;
   align-items: stretch;
@@ -256,8 +256,8 @@
   flex-shrink: 0;
 }
 
-/* Archetype synergy panel */
-.archetype-panel {
+/* Attribute synergy panel */
+.attribute-panel {
   display: flex;
   gap: 5px;
   padding: 4px 8px;
@@ -268,12 +268,12 @@
   min-height: 0;
 }
 /* In GameScreen's header row (row flex), the panel expands horizontally */
-.game-header-row .archetype-panel { flex: 1; }
-.archetype-panel:empty { display: none; }
-.archetype-panel:not(:empty) { min-height: 44px; }
-.archetype-panel::-webkit-scrollbar { display: none; }
+.game-header-row .attribute-panel { flex: 1; }
+.attribute-panel:empty { display: none; }
+.attribute-panel:not(:empty) { min-height: 44px; }
+.attribute-panel::-webkit-scrollbar { display: none; }
 
-/* Board terrain indicator (shown during combat, right of archetype chips) */
+/* Board terrain indicator (shown during combat, right of attribute chips) */
 .board-ind {
   display: flex;
   align-items: center;
@@ -295,7 +295,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.archetype-chip {
+.attribute-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -312,13 +312,13 @@
   font-family: inherit;
   color: var(--text);
 }
-.archetype-chip.arch-active {
+.attribute-chip.attr-active {
   border-color: var(--accent);
   background: rgba(108, 99, 255, 0.15);
 }
-.archetype-chip-icon { font-size: 14px; line-height: 1.2; }
-.archetype-chip-count { font-size: 10px; font-weight: 700; color: var(--muted); }
-.archetype-chip.arch-active .archetype-chip-count { color: var(--accent); }
+.attribute-chip-icon { font-size: 14px; line-height: 1.2; }
+.attribute-chip-count { font-size: 10px; font-weight: 700; color: var(--muted); }
+.attribute-chip.attr-active .attribute-chip-count { color: var(--accent); }
 .board-area { flex: 1; min-height: 0; padding: 6px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center; }
 .phase-controls { padding: 10px 16px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
 .game-hud { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; }
@@ -609,7 +609,7 @@
 .tip-name { font-weight: 700; font-size: 14px; flex: 1; }
 .tip-type { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .tip-stats { display: flex; gap: 10px; font-size: 12px; font-weight: 600; margin-bottom: 6px; flex-wrap: wrap; }
-.tip-archetypes { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.tip-attributes { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
 .tip-power { font-size: 11px; color: var(--accent); margin-top: 4px; }
 .tip-cost { font-size: 11px; color: var(--yellow); margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
 
@@ -859,14 +859,14 @@
   animation: power-toast-anim 1.8s ease forwards;
 }
 
-/* ── Archetype activation flash ── */
-@keyframes arch-flash-anim {
+/* ── Attribute activation flash ── */
+@keyframes attr-flash-anim {
   0%,100% { transform: scale(1); box-shadow: none; }
   35%     { transform: scale(1.35); box-shadow: 0 0 14px 4px var(--accent); border-color: var(--accent); }
   65%     { transform: scale(1.15); box-shadow: 0 0 7px 2px var(--accent); }
 }
-.arch-flash {
-  animation: arch-flash-anim 0.55s ease;
+.attr-flash {
+  animation: attr-flash-anim 0.55s ease;
   position: relative;
   z-index: 1;
 }
@@ -1015,8 +1015,8 @@ img {
   transition: all var(--transition-fast);
 }
 .tb-side-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: #1c1840; }
-/* Keep archetype panel always in layout to avoid board shift when first unit is placed */
-.tb-board-col .archetype-panel:empty { display: flex; min-height: 44px; }
+/* Keep attribute panel always in layout to avoid board shift when first unit is placed */
+.tb-board-col .attribute-panel:empty { display: flex; min-height: 44px; }
 .tb-board-col .board-area { flex: 1; min-height: 0; padding: 4px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center; }
 /* --available-h is set by ResizeObserver on #tb-board-area in TestBench.js (prep + combat). */
 .tb-board-col .board-grid {
