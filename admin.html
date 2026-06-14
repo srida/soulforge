@@ -2173,6 +2173,8 @@ const COMPOSITE_STATS = [
 
 let statsFilterTier = 0;
 let statsThreshold = 1.5;
+let statsPowerExpanded = null;
+let statsPowerDetailId = null;
 
 function mean(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
 function stdDev(arr) {
@@ -2265,6 +2267,27 @@ function detectBrokenLinks() {
     }
   }
   return broken;
+}
+
+function computePowerStats() {
+  const byPower = powers.map(p => {
+    const used = cards.filter(c => c.power?.id === p.id);
+    const tierCounts = [1,2,3,4,5].map(t => used.filter(c => Math.round(c.tier) === t).length);
+    return { power: p, cards: used, count: used.length, tierCounts };
+  }).sort((a, b) => b.count - a.count);
+  const noPower = cards.filter(c => !c.power?.id);
+  const noPowerTierCounts = [1,2,3,4,5].map(t => noPower.filter(c => Math.round(c.tier) === t).length);
+  return { byPower, noPower, noPowerTierCounts };
+}
+
+function togglePowerExpand(key) {
+  statsPowerExpanded = statsPowerExpanded === key ? null : key;
+  renderStats();
+}
+
+function setStatsPowerDetail(id) {
+  statsPowerDetailId = id || null;
+  renderStats();
 }
 
 function renderStats() {
@@ -2487,8 +2510,104 @@ function renderStats() {
           </div>`;
       }).join('');
 
+  const { byPower, noPower, noPowerTierCounts } = computePowerStats();
+  const powerCardChips = (list) => list.length === 0
+    ? `<span style="font-size:11px;color:var(--muted)">Aucune carte</span>`
+    : list.map(c => `<span class="badge" style="background:var(--surface2);cursor:pointer" onclick="event.stopPropagation();jumpToCard('${c.id}')">${esc(c.name)} <span style="color:${TIER_COLORS[Math.round(c.tier)]}">T${Math.round(c.tier)}</span></span>`).join(' ');
+
+  const powerRows = byPower.map(ps => `
+    <tr class="power-row" style="cursor:pointer" onclick="togglePowerExpand('${ps.power.id}')">
+      <td style="font-weight:600">${esc(ps.power.name)}</td>
+      ${[0,1,2,3,4].map(i => `<td>${ps.tierCounts[i] || '<span style="color:var(--muted)">—</span>'}</td>`).join('')}
+      <td style="font-weight:700">${ps.count}</td>
+    </tr>
+    ${statsPowerExpanded === ps.power.id ? `<tr><td colspan="7" style="background:var(--surface2)"><div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0">${powerCardChips(ps.cards)}</div></td></tr>` : ''}
+  `).join('');
+
+  const noPowerRow = `
+    <tr class="power-row" style="cursor:pointer;border-top:1px solid var(--border)" onclick="togglePowerExpand('NONE')">
+      <td style="font-weight:600;color:var(--muted)">Sans pouvoir</td>
+      ${[0,1,2,3,4].map(i => `<td>${noPowerTierCounts[i] || '<span style="color:var(--muted)">—</span>'}</td>`).join('')}
+      <td style="font-weight:700">${noPower.length}</td>
+    </tr>
+    ${statsPowerExpanded === 'NONE' ? `<tr><td colspan="7" style="background:var(--surface2)"><div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0">${powerCardChips(noPower)}</div></td></tr>` : ''}
+  `;
+
+  const powerSection = `
+    <div class="stat-panel" style="margin-top:20px">
+      <h3>Pouvoirs <span style="font-size:11px;font-weight:400;color:var(--muted)">(répartition des cartes par pouvoir et par tier — clic sur une ligne pour voir le détail)</span></h3>
+      <div style="overflow-x:auto">
+        <table class="tier-overview-table">
+          <thead>
+            <tr>
+              <th>Pouvoir</th>
+              ${[1,2,3,4,5].map(t => `<th style="color:${TIER_COLORS[t]}">T${t}</th>`).join('')}
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${powerRows}
+            ${noPowerRow}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const detailPowerId = statsPowerDetailId || (powers[0] && powers[0].id) || null;
+  const detailPower = powers.find(p => p.id === detailPowerId);
+  const detailCards = detailPower
+    ? cards.filter(c => c.power?.id === detailPower.id).sort((a, b) => Math.round(a.tier) - Math.round(b.tier) || a.name.localeCompare(b.name))
+    : [];
+  const hasValue = detailCards.some(c => c.power.value != null);
+  const hasSpeed = detailCards.some(c => c.power.power_speed != null);
+
+  const powerDetailRows = detailCards.length === 0
+    ? `<div class="no-anomalies">Aucune carte n'utilise ce pouvoir</div>`
+    : `
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <table class="tier-overview-table" style="width:100%">
+          <thead>
+            <tr>
+              <th style="text-align:left">Carte</th>
+              <th>Tier</th>
+              ${hasValue ? '<th>Valeur</th>' : ''}
+              ${hasSpeed ? '<th>Vit. pouvoir</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${detailCards.map(c => {
+              const tier = Math.round(c.tier);
+              return `
+                <tr class="power-row" style="cursor:pointer" onclick="jumpToCard('${c.id}')">
+                  <td style="text-align:left;font-weight:600">${esc(c.name)}</td>
+                  <td><span class="badge" style="background:${TIER_COLORS[tier]}22;color:${TIER_COLORS[tier]}">T${tier}</span></td>
+                  ${hasValue ? `<td>${c.power.value != null ? c.power.value : '<span style="color:var(--muted)">—</span>'}</td>` : ''}
+                  ${hasSpeed ? `<td>${c.power.power_speed != null ? c.power.power_speed : '<span style="color:var(--muted)">—</span>'}</td>` : ''}
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  const powerDetailSection = `
+    <div class="stat-panel" style="margin-top:20px">
+      <h3>Détail par pouvoir <span style="font-size:11px;font-weight:400;color:var(--muted)">(valeurs par carte et par tier pour un pouvoir donné)</span></h3>
+      <div style="margin-bottom:12px">
+        <select onchange="setStatsPowerDetail(this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px">
+          ${powers.map(p => `<option value="${p.id}" ${p.id === detailPowerId ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${powerDetailRows}
+    </div>
+  `;
+
   el.innerHTML = `
     ${overviewTable}
+    ${powerSection}
+    ${powerDetailSection}
     <div class="stat-panel">
       <h3>Anomalies détectées <span style="font-size:11px;font-weight:400;color:var(--muted)">(cartes dont une stat s'écarte significativement de la moyenne du tier)</span></h3>
       ${tierChips}
