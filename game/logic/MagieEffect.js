@@ -28,7 +28,7 @@ export function effectLabel(magie) {
     case 'destroy_unit':             return 'Détruit une unité alliée (libère son emplacement, devient un matériau disponible au cimetière)';
     case 'reduce_sacrifice_cost':    return `-${e.value ?? 1} sacrifice(s) sur une carte Sacrifice en main`;
     case 'free_transformation':      return 'Invoque une Transformation sans son monstre cible';
-    case 'remove_ritual_material':   return 'Retire le matériel obligatoire d\'une carte Rituel en main';
+    case 'remove_heritage_material':   return 'Retire le matériel obligatoire d\'une carte Heritage en main';
     default: return e.type;
   }
 }
@@ -82,8 +82,8 @@ export function applyEffect(magie, { gameState = null, targetUnit = null } = {})
     case 'free_transformation':
       if (gameState) gameState.player_hand_modifiers.push({ type: 'free_transformation' });
       break;
-    case 'remove_ritual_material':
-      if (gameState) gameState.player_hand_modifiers.push({ type: 'remove_ritual_material' });
+    case 'remove_heritage_material':
+      if (gameState) gameState.player_hand_modifiers.push({ type: 'remove_heritage_material' });
       break;
     case 'defuse_fusion':
       // Handled by GameScreen._defuseFusion() — applyEffect is a no-op here

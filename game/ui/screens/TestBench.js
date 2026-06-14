@@ -12,7 +12,7 @@ import { CombatAnimator } from '../components/CombatAnimator.js';
 import * as Tooltip from '../components/Tooltip.js';
 
 const TIERS = [1, 2, 3, 4, 5];
-const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'rituel', 'transformation'];
+const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
 
 export async function mount(container) {
   await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init(), BoardDatabase.init()]);
@@ -451,7 +451,7 @@ function _costHint(card) {
     return n > 0 ? `×${n}💀` : null;
   }
   if (card.summon_type === 'fusion')         return '⚗';
-  if (card.summon_type === 'rituel')         return '🔮';
+  if (card.summon_type === 'heritage')         return '🔮';
   if (card.summon_type === 'transformation') return '🔄';
   return null;
 }

@@ -37,7 +37,7 @@ tools/card_manager/
 | `GET /illustrations/:id` | Public | Art des cartes (PNG sans extension) |
 
 **Données :**
-- 253 cartes — tiers 1 à 5, 5 types d'invocation (normal, sacrifice, fusion, rituel, transformation)
+- 253 cartes — tiers 1 à 5, 5 types d'invocation (normal, sacrifice, fusion, heritage, transformation)
 - Stats par carte : `atk`, `hp`, `movement_speed`, `attack_speed`, `initiative`, `range`
 - Chaque carte peut avoir zéro ou un pouvoir (`power_speed` = vitesse de charge)
 
@@ -124,7 +124,7 @@ Appliqué symétriquement. Tension risk/reward : garder des cartes en main boost
 | Normal | Placement direct |
 | Sacrifice | Consomme N unités alliées sur le board |
 | Fusion | Consomme des matériaux spécifiques |
-| Rituel | Matériau rituel + tributs supplémentaires |
+| Heritage | Matériau Heritage + tributs supplémentaires |
 | Transformation | Remplace une unité spécifique déjà en jeu |
 
 ### Combat

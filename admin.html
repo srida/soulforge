@@ -372,7 +372,7 @@ select.filter:focus { border-color: var(--accent); }
             <option value="normal">Normal</option>
             <option value="sacrifice">Sacrifice</option>
             <option value="fusion">Fusion</option>
-            <option value="rituel">Rituel</option>
+            <option value="heritage">Heritage</option>
             <option value="transformation">Transformation</option>
           </select>
           <select class="filter" id="filter-illus" onchange="filterCards()">
@@ -605,10 +605,10 @@ function tierBadge(tier) {
   return `<span class="badge badge-tier${Math.round(tier)}">T${Math.round(tier)}</span>`;
 }
 function summonLabel(t) {
-  return { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', rituel: 'Rituel', transformation: 'Transfo' }[t] || t;
+  return { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Heritage', transformation: 'Transfo' }[t] || t;
 }
 function summonColor(t) {
-  return { normal: '#78c8a8', sacrifice: '#f0a040', fusion: '#c878e0', rituel: '#6ab4e8', transformation: '#ff8040' }[t] || '#888';
+  return { normal: '#78c8a8', sacrifice: '#f0a040', fusion: '#c878e0', heritage: '#6ab4e8', transformation: '#ff8040' }[t] || '#888';
 }
 
 function filterCards() {
@@ -746,7 +746,7 @@ function renderCardDetail() {
       </div>
       <div class="field"><label>Type d'invocation</label>
         <select id="f-summon" onchange="onSummonTypeChange(this.value)">
-          ${['normal','sacrifice','fusion','rituel','transformation'].map(s => `<option value="${s}" ${c.summon_type===s?'selected':''}>${summonLabel(s)}</option>`).join('')}
+          ${['normal','sacrifice','fusion','heritage','transformation'].map(s => `<option value="${s}" ${c.summon_type===s?'selected':''}>${summonLabel(s)}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -798,7 +798,7 @@ function renderCardDetail() {
       </div>
     </div>
     <div id="materials-section">
-      <div id="material-section-label" style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${c.summon_type === 'rituel' ? 'Matériaux de rituel' : 'Matériaux de fusion/rituel'}</div>
+      <div id="material-section-label" style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${c.summon_type === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage'}</div>
       <div class="materials-list" id="materials-list">
         ${(c.cost.materials || []).map(mid => {
           const isAttr = !cards.find(x => x.id === mid) && !!attributes.find(x => x.id === mid);
@@ -814,7 +814,7 @@ function renderCardDetail() {
         }).join('')}
       </div>
       <div style="position:relative;margin-top:8px" id="material-search-wrap">
-        <input type="text" id="material-search" placeholder="${c.summon_type === 'rituel' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...'}" autocomplete="off"
+        <input type="text" id="material-search" placeholder="${c.summon_type === 'heritage' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...'}" autocomplete="off"
           oninput="filterMaterialSearch()" onfocus="showMaterialDropdown()" onblur="hideMaterialDropdown()"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
         <div id="material-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
@@ -876,7 +876,7 @@ function filterMaterialSearch() {
 
   let results = matchedCards;
 
-  if (summon === 'rituel') {
+  if (summon === 'heritage') {
     const matchedAttrs = attributes
       .filter(a => !current.includes(a.id))
       .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
@@ -918,8 +918,8 @@ function onSummonTypeChange(val) {
   syncCardFromForm();
   const label = document.getElementById('material-section-label');
   const input = document.getElementById('material-search');
-  if (label) label.textContent = val === 'rituel' ? 'Matériaux de rituel' : 'Matériaux de fusion/rituel';
-  if (input) input.placeholder = val === 'rituel' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...';
+  if (label) label.textContent = val === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage';
+  if (input) input.placeholder = val === 'heritage' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...';
   filterMaterialSearch();
 }
 
@@ -1623,7 +1623,7 @@ const EFFECT_TYPE_LABELS = {
   destroy_unit: 'Détruire une unité',
   reduce_sacrifice_cost: 'Réduire coût sacrifice',
   free_transformation: 'Transformation gratuite',
-  remove_ritual_material: 'Retirer matériel rituel',
+  remove_heritage_material: 'Retirer matériel Heritage',
 };
 
 function filterMagies() {
@@ -1663,7 +1663,7 @@ function renderMagieDetail() {
   const effectType = effect.type || 'none';
   const showStat = ['stat_bonus', 'stat_modifier'].includes(effectType);
   const showTier = effectType === 'guaranteed_draw';
-  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_ritual_material'];
+  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(effectType);
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -1714,7 +1714,7 @@ function renderMagieDetail() {
           <option value="destroy_unit" ${effectType === 'destroy_unit' ? 'selected' : ''}>Détruire une unité alliée</option>
           <option value="reduce_sacrifice_cost" ${effectType === 'reduce_sacrifice_cost' ? 'selected' : ''}>Réduire coût de sacrifice (main)</option>
           <option value="free_transformation" ${effectType === 'free_transformation' ? 'selected' : ''}>Transformation gratuite (main)</option>
-          <option value="remove_ritual_material" ${effectType === 'remove_ritual_material' ? 'selected' : ''}>Retirer matériel Rituel (main)</option>
+          <option value="remove_heritage_material" ${effectType === 'remove_heritage_material' ? 'selected' : ''}>Retirer matériel Heritage (main)</option>
           </optgroup>
         </select>
       </div>
@@ -1761,7 +1761,7 @@ function updateMagieEffectFields() {
   const type = document.getElementById('mf-effect-type')?.value || 'none';
   const showStat = ['stat_bonus', 'stat_modifier'].includes(type);
   const showTier = type === 'guaranteed_draw';
-  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_ritual_material'];
+  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(type);
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
@@ -1771,7 +1771,7 @@ function updateMagieEffectFields() {
 function _collectMagieFields() {
   const effectType = document.getElementById('mf-effect-type')?.value || 'none';
   let effect = null;
-  const noValue = ['defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_ritual_material'];
+  const noValue = ['defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
   if (effectType !== 'none') {
     effect = { type: effectType };
     if (effectType === 'guaranteed_draw') {
@@ -2262,7 +2262,7 @@ function detectBrokenLinks() {
       broken.push({ card, type: 'power', refId: card.power.id });
     }
     for (const mid of (card.cost?.materials || [])) {
-      const valid = cardIds.has(mid) || (card.summon_type === 'rituel' && attrIds.has(mid));
+      const valid = cardIds.has(mid) || (card.summon_type === 'heritage' && attrIds.has(mid));
       if (!valid) broken.push({ card, type: 'material', refId: mid });
     }
   }
@@ -2774,7 +2774,7 @@ function onMassFieldChange() {
   if (field === 'tier') {
     wrap.innerHTML = `<label>Tier</label><select id="mass-value">${[1,2,3,4,5].map(t=>`<option value="${t}">${t}</option>`).join('')}</select>`;
   } else if (field === 'summon_type') {
-    wrap.innerHTML = `<label>Type d'invocation</label><select id="mass-value">${['normal','sacrifice','fusion','rituel','transformation'].map(s=>`<option value="${s}">${summonLabel(s)}</option>`).join('')}</select>`;
+    wrap.innerHTML = `<label>Type d'invocation</label><select id="mass-value">${['normal','sacrifice','fusion','heritage','transformation'].map(s=>`<option value="${s}">${summonLabel(s)}</option>`).join('')}</select>`;
   } else if (field === 'power') {
     wrap.innerHTML = `<label>Pouvoir</label><select id="mass-value"><option value="">Aucun</option>${powers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`;
   }

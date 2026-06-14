@@ -224,7 +224,7 @@
                 "effects": [
                     {
                         "type": "guaranteed_draw",
-                        "category": "rituel",
+                        "category": "heritage",
                         "attribute": "ARCH_007"
                     }
                 ]

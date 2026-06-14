@@ -89,9 +89,9 @@
 	},
 	{
 		"id": "MAGIC_012",
-		"name": "Rituel Simplifié",
+		"name": "Heritage Simplifié",
 		"effect": {
-			"type": "remove_ritual_material"
+			"type": "remove_heritage_material"
 		}
 	},
 	{

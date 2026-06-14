@@ -265,7 +265,7 @@
 		"name": "Soldat du lustre noir",
 		"type": "monster",
 		"tier": 4,
-		"summon_type": "rituel",
+		"summon_type": "heritage",
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -1063,7 +1063,7 @@
 		"name": "Paladin du dragon blanc",
 		"type": "monster",
 		"tier": 3,
-		"summon_type": "rituel",
+		"summon_type": "heritage",
 		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
@@ -2023,7 +2023,7 @@
 		"name": "Magicien du chaos",
 		"type": "monster",
 		"tier": 4,
-		"summon_type": "rituel",
+		"summon_type": "heritage",
 		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
@@ -2947,7 +2947,7 @@
 		"name": "Paladin du dragon noir",
 		"type": "monster",
 		"tier": 3,
-		"summon_type": "rituel",
+		"summon_type": "heritage",
 		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
@@ -3033,7 +3033,7 @@
 		"name": "Magicien du temps de demain",
 		"type": "monster",
 		"tier": 2,
-		"summon_type": "rituel",
+		"summon_type": "heritage",
 		"attributes": [
 			"ARCH_002",
 			"ARCH_018"

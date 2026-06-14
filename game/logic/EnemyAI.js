@@ -6,7 +6,7 @@ const HAND_SIZE = 5;
  * EnemyAI
  * Draws from the enemy deck each round and places units on rows 7–10
  * using the same summon rules as the player (normal, sacrifice, fusion,
- * ritual, transformation). Graveyard units (neutralized last combat) are
+ * heritage, transformation). Graveyard units (neutralized last combat) are
  * available as materials during the preparation phase.
  */
 export class EnemyAI {
@@ -47,7 +47,7 @@ export class EnemyAI {
   /**
    * Place cards from the hand on enemy cells, respecting all summon rules.
    * Uses multi-pass: normal cards first so they are available as materials
-   * for fusion / ritual / transformation in later passes.
+   * for fusion / heritage / transformation in later passes.
    * Graveyard units (neutralized last round, already off-board) are consumed
    * in-place when used as material.
    * @param {Board} board
@@ -231,7 +231,7 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       return unit;
     }
 
-    case 'rituel': {
+    case 'heritage': {
       const required = card.cost?.materials ?? [];
       const sacrifice = card.cost?.sacrifice ?? 0;
       if (sacrifice === 0 && required.length === 0) {
@@ -325,7 +325,7 @@ function _tryPlace(card, board, maxUnits, graveyard) {
 
 // Normal cards placed first so they are on board as materials for later passes
 function _summonPriority(card) {
-  const order = { normal: 0, transformation: 1, fusion: 2, rituel: 3, sacrifice: 4 };
+  const order = { normal: 0, transformation: 1, fusion: 2, heritage: 3, sacrifice: 4 };
   return order[card.summon_type] ?? 5;
 }
 

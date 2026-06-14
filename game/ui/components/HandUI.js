@@ -114,7 +114,7 @@ function _costHint(card) {
     return n > 0 ? `×${n}💀` : null;
   }
   if (card.summon_type === 'fusion') return '⚗';
-  if (card.summon_type === 'rituel') return '🔮';
+  if (card.summon_type === 'heritage') return '🔮';
   if (card.summon_type === 'transformation') return '🔄';
   return null;
 }

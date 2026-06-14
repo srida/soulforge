@@ -55,7 +55,7 @@ function _repositionFromRect(r) {
 
 // Builds tooltip HTML from a card data object
 export function cardHtml(card, powerDb = null, attributeDb = null, cardDb = null) {
-  const summonLabels = { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', rituel: 'Rituel', transformation: 'Transformation' };
+  const summonLabels = { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Heritage', transformation: 'Transformation' };
   const attributeNames = (card.attributes || []).map(id => attributeDb?.getAttribute(id)?.name ?? id);
   const power = card.power?.id && powerDb ? powerDb.getPower(card.power.id) : null;
   const costLines = [];

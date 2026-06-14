@@ -10,12 +10,12 @@ export class Unit {
     this.summon_type = card.summon_type;
     this.attributes = card.attributes || [];
 
-    // Card IDs this unit "counts as" for fusion/rituel material matching.
+    // Card IDs this unit "counts as" for fusion/heritage material matching.
     // Transformation results inherit the original monster's represented IDs.
     this.represented_ids = [card.id];
     // How many material "slots" this unit counts as when consumed as a
-    // sacrifice/rituel material (set by InvocationManager.summon for
-    // fusion/rituel/sacrifice results).
+    // sacrifice/heritage material (set by InvocationManager.summon for
+    // fusion/heritage/sacrifice results).
     this.material_value = 1;
     this.power_id = card.power?.id ?? null;
     this.power_speed = card.power?.power_speed ?? 9999;

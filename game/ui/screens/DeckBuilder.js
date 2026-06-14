@@ -6,7 +6,7 @@ import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as Tooltip from '../components/Tooltip.js';
 
 const TIER_COLOR = ['', 'tier1', 'tier2', 'tier3', 'tier4', 'tier5'];
-const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'rituel', 'transformation'];
+const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
 const DECK_MIN = 20; // minimum total cards across all tiers
 
 export async function mount(container, params = {}) {
@@ -310,7 +310,7 @@ function _costHint(card) {
     return n > 0 ? `×${n}💀` : null;
   }
   if (card.summon_type === 'fusion')         return '⚗';
-  if (card.summon_type === 'rituel')         return '🔮';
+  if (card.summon_type === 'heritage')         return '🔮';
   if (card.summon_type === 'transformation') return '🔄';
   return null;
 }

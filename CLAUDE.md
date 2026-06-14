@@ -244,7 +244,7 @@ Le pool dépend du tour :
 Les cartes non jouées sont défaussées à la fin de la phase de préparation.
 
 **Pioches garanties** (issues des effets d'attribut `guaranteed_draw`) :
-Ordre de priorité de résolution : Transformation > Rituel > Fusion > Pioche normale.
+Ordre de priorité de résolution : Transformation > Heritage > Fusion > Pioche normale.
 
 ---
 
@@ -299,7 +299,7 @@ _defuseFusion(fusionUnit)
    - **Cible une unité du board joueur** (`needsUnitTarget`) → highlight des unités valides + bandeau "Touchez une unité sur votre terrain", attente via `_shoppingUnitCallback`.
      - Cas `defuse_fusion` : ne cible que les unités Fusion vivantes ayant des matériaux (`card.summon_type === 'fusion' && cost.materials.length > 0`) → `_defuseFusion(unit)`.
    - **Cible le cimetière** (`needsGraveyardTarget`, effet `revive`) → ouverture de la zone cimetière, bandeau "Touchez une unité dans le cimetière", attente via `_shoppingGraveyardCallback`. L'unité réanimée revient à `initial_position` (ou première case vide côté joueur) et quitte le cimetière.
-   - **Effet global** (`draw_bonus`, `player_hp_bonus`, `board_slot_bonus`, `guaranteed_draw`, `reduce_sacrifice_cost`, `free_transformation`, `remove_ritual_material`) → `applyMagieEffect(magie, { gameState })` appliqué immédiatement, sans ciblage.
+   - **Effet global** (`draw_bonus`, `player_hp_bonus`, `board_slot_bonus`, `guaranteed_draw`, `reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`) → `applyMagieEffect(magie, { gameState })` appliqué immédiatement, sans ciblage.
 4. Une fois résolu → `gameState.nextRound()` puis `startPreparation()`.
 
 `_defuseFusion(fusionUnit)` retire l'unité Fusion du board, recrée chaque matériau de `card.cost.materials` comme nouvelle unité (placée sur une case vide côté joueur si un slot est disponible, sinon envoyée au cimetière, neutralisée).
@@ -358,14 +358,14 @@ MagieDatabase.getRandomMagies(count = 3) // tirage sans remise
 | `defuse_fusion` | — | No-op dans `applyEffect` ; géré par `GameScreen._defuseFusion()`. |
 | `reduce_sacrifice_cost` | `value` (déf. 1) | `gameState.player_hand_modifiers.push({ type: 'reduce_sacrifice_cost', value })` — réduit le coût en sacrifices d'une carte Sacrifice en main |
 | `free_transformation` | — | `gameState.player_hand_modifiers.push({ type: 'free_transformation' })` — invoque une Transformation sans son monstre cible |
-| `remove_ritual_material` | — | `gameState.player_hand_modifiers.push({ type: 'remove_ritual_material' })` — retire le matériel rituel obligatoire |
+| `remove_heritage_material` | — | `gameState.player_hand_modifiers.push({ type: 'remove_heritage_material' })` — retire le matériel Heritage obligatoire |
 
 **Helpers de routage** :
 - `needsUnitTarget(magie)` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion` (cible une unité du board joueur)
 - `needsGraveyardTarget(magie)` → `revive` uniquement (cible une unité du cimetière)
 - Tous les autres types sont des effets globaux appliqués immédiatement.
 
-Les `player_hand_modifiers` (`reduce_sacrifice_cost`, `free_transformation`, `remove_ritual_material`) sont consommés au tour suivant (différé).
+Les `player_hand_modifiers` (`reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`) sont consommés au tour suivant (différé).
 
 ### Admin panel
 
@@ -561,7 +561,7 @@ Survivants : retournent à `initial_position` après le combat.
 Les unités neutralisées entrent dans `graveyard[]` (joueur) ou `enemyGraveyard[]` (ennemi).
 
 Rôle pendant la phase de préparation :
-- Disponibles comme matériaux d'invocation (sacrifice, fusion, rituel, transformation)
+- Disponibles comme matériaux d'invocation (sacrifice, fusion, heritage, transformation)
 - Une unité venant du cimetière **ne consomme pas de slot de board** lors d'une transformation (elle est déjà hors jeu)
 - Supprimées définitivement au lancement du combat si non consommées
 
@@ -574,7 +574,7 @@ Rôle pendant la phase de préparation :
 Unités neutralisées :
 - Restent sur le board après le combat
 - Restent disponibles toute la phase de préparation suivante
-- Peuvent être utilisées comme matériaux d'invocation (sacrifice, fusion, rituel)
+- Peuvent être utilisées comme matériaux d'invocation (sacrifice, fusion, heritage)
 - Sont définitivement retirées au lancement du combat suivant si non consommées
 
 Survivantes :
@@ -631,10 +631,10 @@ Consomme les matériaux.
 
 ---
 
-### Ritual
+### Heritage
 
 Requiert :
-- Matériau rituel
+- Matériau Heritage
 - Tributs supplémentaires
 
 ---
@@ -647,7 +647,7 @@ La remplace. Conserve la position du monstre d'origine.
 
 ---
 
-**Chaînage :** une invocation peut être immédiatement suivie d'une autre (sacrifice, fusion, rituel, transformation) tant que les conditions sont remplies.
+**Chaînage :** une invocation peut être immédiatement suivie d'une autre (sacrifice, fusion, heritage, transformation) tant que les conditions sont remplies.
 
 `InvocationManager` expose :
 ```js
@@ -659,14 +659,14 @@ summon(cardId, pos, board, hand)    → Unit | null
 
 Chaque `Unit` porte deux propriétés utilisées par `_matchesMaterial` / `canSummon` :
 
-- **`represented_ids`** (`string[]`, init. `[card.id]`) — IDs de cartes que l'unité « représente » pour le matching de matériaux fusion/rituel/transformation. Une **Transformation** hérite des `represented_ids` du monstre d'origine remplacé (`[card.id, ...targetUnit.represented_ids]`) : elle compte donc comme le monstre d'origine pour une fusion/rituel ultérieure qui le requiert.
-- **`material_value`** (`number`, init. `1`) — nombre de « slots » de matériau que l'unité représente si elle est elle-même consommée par un sacrifice/rituel ultérieur. Fixé lors de `summon()` :
+- **`represented_ids`** (`string[]`, init. `[card.id]`) — IDs de cartes que l'unité « représente » pour le matching de matériaux fusion/heritage/transformation. Une **Transformation** hérite des `represented_ids` du monstre d'origine remplacé (`[card.id, ...targetUnit.represented_ids]`) : elle compte donc comme le monstre d'origine pour une fusion/heritage ultérieure qui le requiert.
+- **`material_value`** (`number`, init. `1`) — nombre de « slots » de matériau que l'unité représente si elle est elle-même consommée par un sacrifice/heritage ultérieur. Fixé lors de `summon()` :
   - Fusion → `card.cost.materials.length` (ou 1)
-  - Rituel → `card.cost.sacrifice` (ou 1)
+  - Heritage → `card.cost.sacrifice` (ou 1)
   - Sacrifice → `card.cost.sacrifice`
   - Normal / Transformation → reste à `1`
 
-Les coûts `sacrifice`/`rituel` (`canSummon`, `_isPlayable`, sélection de matériaux dans `GameScreen`) sont vérifiés via la **somme des `material_value`** des unités sélectionnées, pas via leur nombre.
+Les coûts `sacrifice`/`heritage` (`canSummon`, `_isPlayable`, sélection de matériaux dans `GameScreen`) sont vérifiés via la **somme des `material_value`** des unités sélectionnées, pas via leur nombre.
 
 ---
 

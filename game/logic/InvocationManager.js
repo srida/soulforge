@@ -38,7 +38,7 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       return ok();
     }
 
-    case 'rituel': {
+    case 'heritage': {
       const required = card.cost?.materials ?? [];
       const sacrifice = card.cost?.sacrifice ?? 0;
       const allUnits = [...board.getUnitsOnSide('player'), ...graveyard];
@@ -49,7 +49,7 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       const pool = [...allUnits];
       for (const matId of required) {
         const idx = pool.findIndex(u => _matchesMaterial(u, matId));
-        if (idx === -1) return fail(`Matériau rituel manquant : ${matId}`);
+        if (idx === -1) return fail(`Matériau Heritage manquant : ${matId}`);
         pool.splice(idx, 1);
       }
       return ok();
@@ -79,7 +79,7 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
  * @param {{col,row}} pos - target cell on player board
  * @param {Board} board
  * @param {Card[]} hand  - mutable hand array
- * @param {Card[][]} sacrificeTargets - for sacrifice/rituel: which board units to remove
+ * @param {Card[][]} sacrificeTargets - for sacrifice/heritage: which board units to remove
  *        (if null, removes the first N living player units)
  * @returns {Unit}
  */
@@ -118,7 +118,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
       break;
     }
 
-    case 'rituel': {
+    case 'heritage': {
       _removeFromHand(hand, card.id, handIdx);
       if (sacrificeTargets && sacrificeTargets.length > 0) {
         for (const u of sacrificeTargets) board.removeUnit(u);
