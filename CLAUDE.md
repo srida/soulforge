@@ -655,6 +655,19 @@ canSummon(cardId, pos, board, hand) → { ok: bool, reason: string }
 summon(cardId, pos, board, hand)    → Unit | null
 ```
 
+### Représentation des unités composites
+
+Chaque `Unit` porte deux propriétés utilisées par `_matchesMaterial` / `canSummon` :
+
+- **`represented_ids`** (`string[]`, init. `[card.id]`) — IDs de cartes que l'unité « représente » pour le matching de matériaux fusion/rituel/transformation. Une **Transformation** hérite des `represented_ids` du monstre d'origine remplacé (`[card.id, ...targetUnit.represented_ids]`) : elle compte donc comme le monstre d'origine pour une fusion/rituel ultérieure qui le requiert.
+- **`material_value`** (`number`, init. `1`) — nombre de « slots » de matériau que l'unité représente si elle est elle-même consommée par un sacrifice/rituel ultérieur. Fixé lors de `summon()` :
+  - Fusion → `card.cost.materials.length` (ou 1)
+  - Rituel → `card.cost.sacrifice` (ou 1)
+  - Sacrifice → `card.cost.sacrifice`
+  - Normal / Transformation → reste à `1`
+
+Les coûts `sacrifice`/`rituel` (`canSummon`, `_isPlayable`, sélection de matériaux dans `GameScreen`) sont vérifiés via la **somme des `material_value`** des unités sélectionnées, pas via leur nombre.
+
 ---
 
 ## Archetypes
@@ -691,6 +704,7 @@ Les effets `start_of_combat` sont recalculés au prochain combat en fonction des
 
 ### Détails d'implémentation
 
+- **Comptage des liens (thresholds)** : seules les unités **distinctes** (par `card_id`) sont comptées — deux exemplaires de la même carte ne comptent que pour 1 dans le décompte d'archetype (`_countArchetype`, et le décompte `end_of_combat`).
 - `stat_bonus` avec champ `value_per` : la valeur est multipliée par le nombre d'unités **ennemies** portant cet archetype (bonus contextuel)
 - `shield` : la valeur est multipliée par le nombre d'unités **alliées vivantes** au moment du déclenchement
 - Les seuils `during_combat` sont **verrouillés au début du combat** — les morts en cours de combat ne désactivent pas les effets déjà actifs

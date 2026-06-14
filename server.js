@@ -21,12 +21,13 @@ const ARCHETYPES_FILE = path.join(DATA_DIR, 'archetypes.json');
 const POWERS_FILE    = path.join(DATA_DIR, 'powers.json');
 const BOARDS_FILE    = path.join(DATA_DIR, 'boards.json');
 const MAGIES_FILE    = path.join(DATA_DIR, 'magies.json');
+const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
   fs.mkdirSync(DATA_DIR,  { recursive: true });
   fs.mkdirSync(ILLUS_DIR, { recursive: true });
-  for (const f of ['cards.json', 'archetypes.json', 'powers.json', 'boards.json', 'magies.json']) {
+  for (const f of ['cards.json', 'archetypes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -508,6 +509,47 @@ app.delete('/api/magies/:id/illustration', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Decks publics API ---
+app.get('/api/decks', (req, res) => {
+  try {
+    res.json(readJson(PUBLIC_DECKS_FILE));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/decks', requireAuth, (req, res) => {
+  try {
+    const decks = readJson(PUBLIC_DECKS_FILE);
+    const deck = req.body;
+    if (!deck.id) return res.status(400).json({ error: 'id required' });
+    if (decks.find(d => d.id === deck.id)) return res.status(400).json({ error: `ID ${deck.id} already exists` });
+    decks.push(deck);
+    writeJson(PUBLIC_DECKS_FILE, decks);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/decks/:id', requireAuth, (req, res) => {
+  try {
+    const decks = readJson(PUBLIC_DECKS_FILE);
+    const idx = decks.findIndex(d => d.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    decks[idx] = req.body;
+    writeJson(PUBLIC_DECKS_FILE, decks);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/decks/:id', requireAuth, (req, res) => {
+  try {
+    let decks = readJson(PUBLIC_DECKS_FILE);
+    const idx = decks.findIndex(d => d.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    decks.splice(idx, 1);
+    writeJson(PUBLIC_DECKS_FILE, decks);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // --- Export API (pour la future sync locale) ---
 app.get('/api/export', (req, res) => {
   try {
@@ -516,13 +558,14 @@ app.get('/api/export', (req, res) => {
     const powers     = readJson(POWERS_FILE);
     const boards     = readJson(BOARDS_FILE);
     const magies     = readJson(MAGIES_FILE);
+    const publicDecks = readJson(PUBLIC_DECKS_FILE);
     const illustrations = fs.readdirSync(ILLUS_DIR)
       .filter(f => f.endsWith('.png'))
       .map(f => {
         const id = f.replace('.png', '');
         return { id, checksum: illustrationChecksum(id) };
       });
-    res.json({ cards, archetypes, powers, boards, magies, illustrations });
+    res.json({ cards, archetypes, powers, boards, magies, publicDecks, illustrations });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

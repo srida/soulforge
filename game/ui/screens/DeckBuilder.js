@@ -12,8 +12,12 @@ const DECK_MIN = 20; // minimum total cards across all tiers
 export async function mount(container, params = {}) {
   await Promise.all([CardDatabase.init(), PowerDatabase.init(), ArchetypeDatabase.init()]);
 
+  // Mode "deck public" (admin) : édite un deck stocké côté serveur via /api/decks/:id
+  const publicDeckId = params.publicDeckId || null;
+  let publicDeck = null;
+
   // Edit mode: params.deckName has priority, then consumePendingEdit()
-  const pendingName = DeckRepository.consumePendingEdit();
+  const pendingName = publicDeckId ? null : DeckRepository.consumePendingEdit();
   const editName    = params.deckName || pendingName || null;
 
   // State
@@ -22,12 +26,22 @@ export async function mount(container, params = {}) {
   let searchQuery    = '';
   let summonFilter   = '';
   let archetypeFilter = '';
+  const deckMin      = publicDeckId ? 0 : DECK_MIN;
 
   // deckData[t] = Card[] (objects, duplicates allowed)
   const deckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
   // Load existing deck when editing
-  if (editName) {
+  if (publicDeckId) {
+    const decks = await fetch('/api/decks').then(r => r.json()).catch(() => []);
+    publicDeck = Array.isArray(decks) && decks.find(d => d.id === publicDeckId);
+    if (publicDeck) {
+      deckName = publicDeck.name || '';
+      for (let t = 1; t <= 5; t++) {
+        deckData[t] = (publicDeck.deck?.[String(t)] ?? []).map(id => CardDatabase.getCard(id)).filter(Boolean);
+      }
+    }
+  } else if (editName) {
     const saved = DeckRepository.loadDeck(editName);
     if (saved) {
       for (let t = 1; t <= 5; t++) {
@@ -53,7 +67,7 @@ export async function mount(container, params = {}) {
     </div>
     <div class="deck-builder-layout">
       <div class="deck-slots-panel">
-        <p class="tier-hint" id="deck-total-hint">0/20 cartes · max 8 par tier</p>
+        <p class="tier-hint" id="deck-total-hint">${publicDeckId ? '0 cartes · max 8 par tier' : '0/20 cartes · max 8 par tier'}</p>
         <div class="deck-tiers" id="deck-tiers"></div>
       </div>
       <div class="card-browser-panel">
@@ -203,13 +217,23 @@ export async function mount(container, params = {}) {
     const total     = [1, 2, 3, 4, 5].reduce((s, t) => s + deckData[t].length, 0);
     const tierValid = [1, 2, 3, 4, 5].every(t => deckData[t].length <= tierMax[t]);
     const hint = container.querySelector('#deck-total-hint');
-    if (hint) hint.textContent = `${total}/${DECK_MIN} cartes · max 8 par tier`;
-    btnSave.disabled = !(hasName && total >= DECK_MIN && tierValid);
+    if (hint) {
+      hint.textContent = publicDeckId
+        ? `${total} cartes · max 8 par tier`
+        : `${total}/${DECK_MIN} cartes · max 8 par tier`;
+    }
+    btnSave.disabled = !(hasName && total >= deckMin && tierValid);
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
 
-  container.querySelector('#btn-back').addEventListener('click', () => navigate('deck_selector'));
+  container.querySelector('#btn-back').addEventListener('click', () => {
+    if (publicDeckId && window.parent !== window) {
+      window.parent.postMessage({ type: 'soulforge-deckbuilder-close' }, '*');
+      return;
+    }
+    navigate('deck_selector');
+  });
 
   nameInput.addEventListener('input', () => {
     deckName = nameInput.value;
@@ -235,9 +259,29 @@ export async function mount(container, params = {}) {
     renderBrowser();
   });
 
-  btnSave.addEventListener('click', () => {
+  btnSave.addEventListener('click', async () => {
     const name = nameInput.value.trim();
     if (!name) return;
+
+    const toSave = {};
+    for (let t = 1; t <= 5; t++) {
+      toSave[String(t)] = deckData[t].map(c => c.id);
+    }
+
+    if (publicDeckId) {
+      const res = await fetch(`/api/decks/${publicDeckId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: publicDeckId, name, deck: toSave }),
+      }).then(r => r.json()).catch(e => ({ error: e.message }));
+      if (res.error) { alert(res.error); return; }
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'soulforge-deckbuilder-saved' }, '*');
+        return;
+      }
+      navigate('deck_selector');
+      return;
+    }
 
     // Warn if overwriting a different deck
     if (DeckRepository.deckExists(name) && name !== editName) {
@@ -249,10 +293,6 @@ export async function mount(container, params = {}) {
       DeckRepository.deleteDeck(editName);
     }
 
-    const toSave = {};
-    for (let t = 1; t <= 5; t++) {
-      toSave[String(t)] = deckData[t].map(c => c.id);
-    }
     DeckRepository.saveDeck(name, toSave);
     navigate('deck_selector');
   });

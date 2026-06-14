@@ -20,7 +20,7 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
     case 'sacrifice': {
       const needed = card.cost?.sacrifice ?? 0;
       if (needed === 0) return ok();
-      const total = board.getLivingUnitsOnSide('player').length + graveyard.length;
+      const total = _sumMaterialValue(board.getLivingUnitsOnSide('player')) + _sumMaterialValue(graveyard);
       if (total < needed) return fail(`Requiert ${needed} unité(s) sur le terrain ou au cimetière`);
       return ok();
     }
@@ -30,8 +30,8 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       if (materials.length === 0) return ok();
       const playerUnits = board.getUnitsOnSide('player');
       for (const matId of materials) {
-        const onBoard = playerUnits.find(u => u.card_id === matId && u.isAlive());
-        const inGrave = graveyard.find(u => u.card_id === matId);
+        const onBoard = playerUnits.find(u => _matchesMaterial(u, matId) && u.isAlive());
+        const inGrave = graveyard.find(u => _matchesMaterial(u, matId));
         if (!onBoard && !inGrave)
           return fail(`Matériau manquant sur le terrain ou au cimetière : ${matId}`);
       }
@@ -42,8 +42,8 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       const required = card.cost?.materials ?? [];
       const sacrifice = card.cost?.sacrifice ?? 0;
       const allUnits = [...board.getUnitsOnSide('player'), ...graveyard];
-      // sacrifice = total units to consume; materials = constraints among those units
-      if (allUnits.length < sacrifice)
+      // sacrifice = total material slots to consume; materials = constraints among those units
+      if (_sumMaterialValue(allUnits) < sacrifice)
         return fail(`Requiert ${sacrifice} unité(s) sur le terrain ou au cimetière`);
       // Check each material requirement can be matched by some available unit
       const pool = [...allUnits];
@@ -62,8 +62,8 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       }
       const targetId = card.cost?.materials?.[0];
       if (!targetId) return fail('Pas de cible de transformation définie');
-      const onBoard = board.getUnitsOnSide('player').find(u => u.card_id === targetId && u.isAlive());
-      const inGrave = graveyard.find(u => u.card_id === targetId);
+      const onBoard = board.getUnitsOnSide('player').find(u => _matchesMaterial(u, targetId) && u.isAlive());
+      const inGrave = graveyard.find(u => _matchesMaterial(u, targetId));
       if (!onBoard && !inGrave) return fail(`Requiert ${targetId} sur le terrain ou au cimetière`);
       return ok();
     }
@@ -95,9 +95,10 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
       _removeFromHand(hand, card.id, handIdx);
       const needed = card.cost?.sacrifice ?? 0;
       const toRemove = sacrificeTargets
-        ? sacrificeTargets.slice(0, needed)
-        : board.getLivingUnitsOnSide('player').slice(0, needed);
+        ? _takeByMaterialValue(sacrificeTargets, needed)
+        : _takeByMaterialValue(board.getLivingUnitsOnSide('player'), needed);
       for (const u of toRemove) board.removeUnit(u);
+      unit.material_value = needed;
       break;
     }
 
@@ -109,10 +110,11 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         // AI fallback: auto-select matching units
         const fusionUnits = board.getUnitsOnSide('player');
         for (const matId of (card.cost?.materials ?? [])) {
-          const mat = fusionUnits.find(u => u.card_id === matId && u.isAlive());
+          const mat = fusionUnits.find(u => _matchesMaterial(u, matId) && u.isAlive());
           if (mat) board.removeUnit(mat);
         }
       }
+      unit.material_value = (card.cost?.materials ?? []).length || 1;
       break;
     }
 
@@ -129,9 +131,15 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
           const idx = pool.findIndex(u => _matchesMaterial(u, matId));
           if (idx !== -1) { toConsume.push(pool[idx]); pool.splice(idx, 1); }
         }
-        for (const u of pool.slice(0, sacrifice - toConsume.length)) toConsume.push(u);
+        let remaining = sacrifice - toConsume.reduce((s, u) => s + (u.material_value ?? 1), 0);
+        for (const u of pool) {
+          if (remaining <= 0) break;
+          toConsume.push(u);
+          remaining -= (u.material_value ?? 1);
+        }
         for (const u of toConsume) board.removeUnit(u);
       }
+      unit.material_value = card.cost?.sacrifice || 1;
       break;
     }
 
@@ -140,10 +148,11 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
       if (!card._free_transformation) {
         const targetId = card.cost?.materials?.[0];
         // Prefer the explicitly-passed unit (fixes same-name ambiguity)
-        const targetUnit = sacrificeTargets?.find(u => u.card_id === targetId && u.isAlive())
-          ?? board.getUnitsOnSide('player').find(u => u.card_id === targetId && u.isAlive());
+        const targetUnit = sacrificeTargets?.find(u => _matchesMaterial(u, targetId) && u.isAlive())
+          ?? board.getUnitsOnSide('player').find(u => _matchesMaterial(u, targetId) && u.isAlive());
         if (targetUnit) {
           pos = { ...targetUnit.position };
+          unit.represented_ids = [...new Set([card.id, ...targetUnit.represented_ids])];
           board.removeUnit(targetUnit);
         }
       }
@@ -166,7 +175,25 @@ function ok()         { return { ok: true,  reason: '' }; }
 function fail(reason) { return { ok: false, reason }; }
 
 // A material requirement matches either a specific card ID or an archetype ID.
+// Transformation results count as the original monster (represented_ids).
 function _matchesMaterial(unit, matId) {
   if (matId.startsWith('ARCH_')) return unit.archetypes?.includes(matId) ?? false;
-  return unit.card_id === matId;
+  return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
+}
+
+// Total material "slots" represented by a list of units.
+function _sumMaterialValue(units) {
+  return units.reduce((sum, u) => sum + (u.material_value ?? 1), 0);
+}
+
+// Take units one by one until their combined material_value reaches `needed`.
+function _takeByMaterialValue(units, needed) {
+  const taken = [];
+  let total = 0;
+  for (const u of units) {
+    if (total >= needed) break;
+    taken.push(u);
+    total += (u.material_value ?? 1);
+  }
+  return taken;
 }

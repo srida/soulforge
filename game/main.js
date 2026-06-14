@@ -19,4 +19,11 @@ export async function navigate(screenName, params = {}) {
 }
 
 // Bootstrap
-navigate('main_menu');
+// Permet d'ouvrir un écran directement via l'URL, ex: /?screen=deck_builder&publicDeckId=PUBLIC_DECK_001
+const initialParams = new URLSearchParams(window.location.search);
+const initialScreen = initialParams.get('screen');
+if (initialScreen && SCREENS[initialScreen]) {
+  navigate(initialScreen, Object.fromEntries(initialParams));
+} else {
+  navigate('main_menu');
+}

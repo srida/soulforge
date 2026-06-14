@@ -50,6 +50,15 @@ export function deckExists(name) {
   return name in load();
 }
 
+// Trouve un nom de deck libre en partant de `baseName` (ajoute " (2)", " (3)", ... si besoin)
+export function findFreeName(baseName) {
+  const decks = load();
+  if (!(baseName in decks)) return baseName;
+  let i = 2;
+  while (`${baseName} (${i})` in decks) i++;
+  return `${baseName} (${i})`;
+}
+
 export function setActiveDeck(name) {
   localStorage.setItem(ACTIVE_KEY, name);
 }

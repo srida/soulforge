@@ -29,8 +29,14 @@ export class ArchetypeManager {
 
   // ── Counting ──
 
+  // Counts distinct units (by card_id) — duplicate copies of the same card
+  // only count once toward archetype thresholds.
   _countArchetype(archId, units) {
-    return units.filter(u => u.isAlive() && u.archetypes.includes(archId)).length;
+    const ids = new Set();
+    for (const u of units) {
+      if (u.isAlive() && u.archetypes.includes(archId)) ids.add(u.card_id);
+    }
+    return ids.size;
   }
 
   // Returns the active threshold for this archetype on the given side, or null
@@ -165,9 +171,11 @@ export class ArchetypeManager {
       const arch = this._archetypeMap[archId];
       if (!arch || arch.timing !== 'end_of_combat') continue;
 
-      // For end_of_combat, count ALL units that participated (alive + neutralized)
+      // For end_of_combat, count ALL distinct units that participated (alive + neutralized)
       // so the threshold is met even if some archetype units died during combat
-      const count = this.playerUnits.filter(u => u.archetypes.includes(archId)).length;
+      const count = new Set(
+        this.playerUnits.filter(u => u.archetypes.includes(archId)).map(u => u.card_id)
+      ).size;
       let best = null;
       for (const t of arch.thresholds) {
         if (count >= t.count) best = t;

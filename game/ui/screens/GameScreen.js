@@ -198,7 +198,7 @@ export async function mount(container, params = {}) {
     // Transformation: tapping the target unit triggers the summon directly
     if (selectedCard && selectedCard.summon_type === 'transformation' && !selectedCard._free_transformation) {
       const targetId = selectedCard.cost?.materials?.[0];
-      if (unit.card_id === targetId && unit.isAlive()) {
+      if (_matchesMaterial(unit, targetId) && unit.isAlive()) {
         // Pass the specific unit so InvocationManager uses the right one (fixes same-name ambiguity)
         selectedMaterials = [unit];
         _tryPlace(selectedCard, pos);
@@ -333,10 +333,10 @@ export async function mount(container, params = {}) {
     // For transformation:
     if (card.summon_type === 'transformation') {
       const targetId = card.cost?.materials?.[0];
-      const boardTarget = board.getLivingUnitsOnSide('player').find(u => u.card_id === targetId);
+      const boardTarget = board.getLivingUnitsOnSide('player').find(u => _matchesMaterial(u, targetId));
       if (boardTarget) return [{ ...boardTarget.position }];
       // Graveyard target selected → show all empty player cells
-      const graveTarget = selectedMaterials.find(u => u.card_id === targetId && graveyard.includes(u));
+      const graveTarget = selectedMaterials.find(u => _matchesMaterial(u, targetId) && graveyard.includes(u));
       if (graveTarget) {
         const cells = [];
         for (let r = 0; r <= 3; r++)
@@ -385,24 +385,24 @@ export async function mount(container, params = {}) {
 
     if (card.summon_type === 'sacrifice') {
       const needed = card.cost?.sacrifice ?? 0;
-      if (alreadySelected.length >= needed) return [];
+      if (_sumMaterialValue(alreadySelected) >= needed) return [];
       return avail;
     }
 
     if (card.summon_type === 'fusion') {
       const required = card.cost?.materials ?? [];
-      const coveredIds = alreadySelected.map(u => u.card_id);
+      const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
       const stillNeeded = required.filter(id => !coveredIds.includes(id));
       if (stillNeeded.length === 0) return [];
-      return avail.filter(u => stillNeeded.includes(u.card_id));
+      return avail.filter(u => stillNeeded.some(id => _matchesMaterial(u, id)));
     }
 
     if (card.summon_type === 'rituel') {
       const required = card.cost?.materials ?? [];
       const sacrifice = card.cost?.sacrifice ?? 0;
-      if (alreadySelected.length >= sacrifice) return [];
+      if (_sumMaterialValue(alreadySelected) >= sacrifice) return [];
       const uncovered = _getUncoveredRequirements(required, alreadySelected);
-      const remainingSlots = sacrifice - alreadySelected.length;
+      const remainingSlots = sacrifice - _sumMaterialValue(alreadySelected);
       if (uncovered.length > 0 && uncovered.length === remainingSlots)
         return avail.filter(u => uncovered.some(matId => _matchesMaterial(u, matId)));
       return avail;
@@ -412,8 +412,8 @@ export async function mount(container, params = {}) {
       const targetId = card.cost?.materials?.[0];
       if (!targetId) return [];
       // Only when there's no board target does the graveyard one become usable
-      if (board.getLivingUnitsOnSide('player').find(u => u.card_id === targetId)) return [];
-      return avail.filter(u => u.card_id === targetId);
+      if (board.getLivingUnitsOnSide('player').find(u => _matchesMaterial(u, targetId))) return [];
+      return avail.filter(u => _matchesMaterial(u, targetId));
     }
 
     return [];
@@ -1093,30 +1093,36 @@ function _needsMaterials(card, board = null, graveyard = []) {
     // Only needs explicit material selection when the target isn't alive on the board
     const targetId = card.cost?.materials?.[0];
     if (!targetId || !board) return false;
-    return !board.getLivingUnitsOnSide('player').find(u => u.card_id === targetId);
+    return !board.getLivingUnitsOnSide('player').find(u => _matchesMaterial(u, targetId));
   }
   return false;
 }
 
+// Total material "slots" represented by a list of units (fusion/rituel/sacrifice
+// results count as multiple materials).
+function _sumMaterialValue(units) {
+  return units.reduce((sum, u) => sum + (u.material_value ?? 1), 0);
+}
+
 function _materialsComplete(card, mats) {
   if (card.summon_type === 'sacrifice') {
-    return mats.length >= (card.cost?.sacrifice ?? 0);
+    return _sumMaterialValue(mats) >= (card.cost?.sacrifice ?? 0);
   }
   if (card.summon_type === 'fusion') {
     const required = card.cost?.materials ?? [];
-    const coveredIds = mats.map(u => u.card_id);
+    const coveredIds = mats.flatMap(u => u.represented_ids ?? [u.card_id]);
     return required.every(id => coveredIds.includes(id));
   }
   if (card.summon_type === 'rituel') {
     const required = card.cost?.materials ?? [];
     const sacrifice = card.cost?.sacrifice ?? 0;
-    // Need exactly `sacrifice` units total, all material constraints satisfied among them
-    return mats.length >= sacrifice && _getUncoveredRequirements(required, mats).length === 0;
+    // Need exactly `sacrifice` material slots total, all material constraints satisfied among them
+    return _sumMaterialValue(mats) >= sacrifice && _getUncoveredRequirements(required, mats).length === 0;
   }
   if (card.summon_type === 'transformation') {
     const targetId = card.cost?.materials?.[0];
     if (!targetId) return true;
-    return mats.some(u => u.card_id === targetId);
+    return mats.some(u => _matchesMaterial(u, targetId));
   }
   return true;
 }
@@ -1129,24 +1135,24 @@ function _materialCandidateCells(card, alreadySelected, board) {
 
   if (card.summon_type === 'sacrifice') {
     const needed = card.cost?.sacrifice ?? 0;
-    if (alreadySelected.length >= needed) return [];
+    if (_sumMaterialValue(alreadySelected) >= needed) return [];
     return units.filter(u => !selected.has(u)).map(u => ({ ...u.position }));
   }
 
   if (card.summon_type === 'fusion') {
     const required = card.cost?.materials ?? [];
-    const coveredIds = alreadySelected.map(u => u.card_id);
+    const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
     const stillNeeded = required.filter(id => !coveredIds.includes(id));
     if (stillNeeded.length === 0) return [];
-    return units.filter(u => stillNeeded.includes(u.card_id) && !selected.has(u)).map(u => ({ ...u.position }));
+    return units.filter(u => !selected.has(u) && stillNeeded.some(id => _matchesMaterial(u, id))).map(u => ({ ...u.position }));
   }
 
   if (card.summon_type === 'rituel') {
     const required = card.cost?.materials ?? [];
     const sacrifice = card.cost?.sacrifice ?? 0;
-    if (alreadySelected.length >= sacrifice) return [];
+    if (_sumMaterialValue(alreadySelected) >= sacrifice) return [];
     const uncovered = _getUncoveredRequirements(required, alreadySelected);
-    const remainingSlots = sacrifice - alreadySelected.length;
+    const remainingSlots = sacrifice - _sumMaterialValue(alreadySelected);
     // If remaining slots == uncovered requirements, only allow units matching those requirements
     if (uncovered.length > 0 && uncovered.length === remainingSlots) {
       return units
@@ -1171,38 +1177,39 @@ function _isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
   if (card.summon_type === 'sacrifice') {
     const needed = card.cost?.sacrifice ?? 0;
     if (needed === 0) return _hasEmptyPlayerCell(board);
-    return board.getLivingUnitsOnSide('player').length + graveyard.length >= needed;
+    return _sumMaterialValue(board.getLivingUnitsOnSide('player')) + _sumMaterialValue(graveyard) >= needed;
   }
   if (card.summon_type === 'fusion') {
     const materials = card.cost?.materials ?? [];
     if (materials.length === 0) return _hasEmptyPlayerCell(board);
     const units = board.getUnitsOnSide('player');
     return materials.every(id =>
-      units.find(u => u.card_id === id && u.isAlive()) ||
-      graveyard.find(u => u.card_id === id)
+      units.find(u => _matchesMaterial(u, id) && u.isAlive()) ||
+      graveyard.find(u => _matchesMaterial(u, id))
     );
   }
   if (card.summon_type === 'rituel') {
     const required = card.cost?.materials ?? [];
     const sacrifice = card.cost?.sacrifice ?? 0;
     const allUnits = [...board.getUnitsOnSide('player'), ...graveyard];
-    if (allUnits.length < sacrifice) return false;
+    if (_sumMaterialValue(allUnits) < sacrifice) return false;
     return _getUncoveredRequirements(required, allUnits).length === 0;
   }
   if (card.summon_type === 'transformation') {
     if (card._free_transformation) return _hasEmptyPlayerCell(board);
     const targetId = card.cost?.materials?.[0];
     if (!targetId) return false;
-    return !!board.getUnitsOnSide('player').find(u => u.card_id === targetId && u.isAlive()) ||
-           !!graveyard.find(u => u.card_id === targetId);
+    return !!board.getUnitsOnSide('player').find(u => _matchesMaterial(u, targetId) && u.isAlive()) ||
+           !!graveyard.find(u => _matchesMaterial(u, targetId));
   }
   return _hasEmptyPlayerCell(board);
 }
 
 // Material helpers — a requirement can be a card ID (CORE_*) or an archetype ID (ARCH_*).
+// Transformation results count as the original monster (represented_ids).
 function _matchesMaterial(unit, matId) {
   if (matId.startsWith('ARCH_')) return unit.archetypes?.includes(matId) ?? false;
-  return unit.card_id === matId;
+  return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
 
 // Returns the subset of `required` not yet covered by `selectedUnits` (greedy, order-stable).
