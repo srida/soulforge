@@ -528,6 +528,29 @@ app.post('/api/decks', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/decks/import', requireAuth, (req, res) => {
+  try {
+    const { items, mode = 'skip' } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
+    const decks = readJson(PUBLIC_DECKS_FILE);
+    let added = 0, replaced = 0, skipped = 0;
+    const errors = [];
+    for (const item of items) {
+      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
+      const idx = decks.findIndex(d => d.id === item.id);
+      if (idx !== -1) {
+        if (mode === 'replace') { decks[idx] = item; replaced++; }
+        else skipped++;
+      } else {
+        decks.push(item);
+        added++;
+      }
+    }
+    writeJson(PUBLIC_DECKS_FILE, decks);
+    res.json({ ok: true, added, replaced, skipped, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.put('/api/decks/:id', requireAuth, (req, res) => {
   try {
     const decks = readJson(PUBLIC_DECKS_FILE);

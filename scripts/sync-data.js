@@ -54,6 +54,7 @@ const ENTITIES = [
   { type: 'powers',     file: 'powers.json',     importPath: '/api/powers/import',     deletePath: id => `/api/powers/${id}` },
   { type: 'boards',     file: 'boards.json',     importPath: '/api/boards/import',     deletePath: id => `/api/boards/${id}` },
   { type: 'magies',     file: 'magies.json',     importPath: '/api/magies/import',     deletePath: id => `/api/magies/${id}` },
+  { type: 'publicDecks', file: 'public_decks.json', importPath: '/api/decks/import',   deletePath: id => `/api/decks/${id}` },
 ];
 
 function authHeader() {
