@@ -905,6 +905,54 @@ Différences avec `GameScreen` :
 
 ---
 
+## Mode 3D (dev)
+
+Variante expérimentale du board en Three.js (rendu WebGL + CSS3D), accessible uniquement depuis `MainMenu` (boutons "POC 3D (dev)" et "Jouer (3D — dev)"). Réservée au développement, non destinée aux joueurs.
+
+**Three.js** chargé via CDN (`jsdelivr`), déclaré dans une `importmap` (`index.html`) :
+
+```html
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+```
+
+`CSS3DRenderer` / `CSS3DObject` sont importés directement depuis le CDN (`examples/jsm/renderers/CSS3DRenderer.js`) dans `Board3D.js` et `Poc3D.js`.
+
+### Routes (`game/main.js`)
+
+```js
+poc3d:  () => import('./ui/screens/Poc3D.js'),
+game3d: () => import('./ui/screens/GameScreen3D.js'),
+```
+
+### `game/ui/screens/Poc3D.js`
+
+Proof of concept : board 5×8 vue du dessus, tuiles WebGL + cartes en CSS3D (réutilise `UnitCard.js` sans modification), main via `HandUI`. Sert de bac à sable indépendant de `GameScreen`.
+
+### `game/ui/components/Board3D.js`
+
+Équivalent 3D de `BoardGrid.js` — **même API publique** (`setBoard`, `setHighlight`, `refresh`, `enterCombatMode`, ...) + accesseurs additionnels consommés par `CombatAnimator3D`. Grille 5×11 (mêmes conventions que `Board.js` : joueur rangées 0–3, neutre 4–6, ennemi 7–10).
+
+- Tuiles = mesh WebGL (`THREE.Scene`), unités = `CSS3DObject` enveloppant les éléments DOM produits par `createUnitEl`/`updateUnitEl` (`UnitCard.js`) — donc le rendu des unités reste identique au mode 2D.
+- `createBoard3D(container, opts)` — factory async (charge Three.js + CSS3DRenderer), retourne une instance `Board3D`.
+- Surlignages (highlight, matériaux candidats/sélectionnés, cases bloquées) rendus via un anneau CSS (`box-shadow`) sur le wrapper CSS3D, mis à l'échelle (`CSS_SCALE = CELL / CARD_PX`) pour compenser le scaling du `CSS3DObject`.
+
+### `game/ui/components/CombatAnimator3D.js`
+
+Équivalent 3D de `CombatAnimator.js` — consomme `CombatManager.step()` au même rythme (`BASE_TICK_MS = 180 / speed`), pilote les animations sur `Board3D` au lieu du DOM 2D direct. Même contrat : pas de logique de combat ici, uniquement consommation d'événements.
+
+### `game/ui/screens/GameScreen3D.js`
+
+Variante 3D de `GameScreen.js` — même logique de jeu (`GameState`, `Board`, `CombatManager`, `InvocationManager`, `AttributeManager`, `EnemyAI`, Phase Shopping, etc.), mais utilise `Board3D` + `CombatAnimator3D` au lieu de `BoardGrid` + `CombatAnimator`. Doit être maintenu en parallèle de `GameScreen.js` pour toute évolution de la boucle de jeu — la logique (`logic/`) est partagée et ne change pas.
+
+### CSS (`index.html` / `game/game.css`)
+
+- `.game3d-3d .unit-card { pointer-events: none; cursor: default; }` — le board 3D gère tous les pointer events via le canvas WebGL ; les `.unit-card` (rendues en CSS3D) ne doivent pas intercepter les événements.
+- `.poc3d-wrap` / `.poc3d-3d` / `.poc3d-hint` (POC), `.game3d-wrap` / `.game3d-3d` (GameScreen3D) — conteneurs plein écran (`position: absolute; inset: 0`) pour les renderers WebGL + CSS3D.
+
+---
+
 ## CSS Rules
 
 - Variables CSS via `var(--*)` — toujours utiliser les variables définies dans `game.css`
