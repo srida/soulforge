@@ -184,3 +184,36 @@ html, body {
   .orientation-warning-title { font-size: 1.2rem; font-weight: 800; }
   .orientation-warning-text { color: var(--muted); font-size: 0.9rem; max-width: 320px; }
 }
+
+/* POC 3D (dev) */
+.poc3d-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+.poc3d-3d {
+  position: absolute;
+  inset: 0;
+}
+.poc3d-hint {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* GameScreen 3D (dev) */
+.game3d-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+.game3d-3d {
+  position: absolute;
+  inset: 0;
+}

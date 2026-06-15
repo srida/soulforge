@@ -359,6 +359,7 @@
 .board-cell.material-candidate { border-color: var(--yellow); background: rgba(240, 192, 64, 0.08); cursor: pointer; }
 .board-cell.material-selected-cell { border-color: var(--green); background: rgba(76, 175, 128, 0.2); }
 .unit-card.material-selected { outline: 3px solid var(--green); }
+.unit-card.material-candidate { outline: 3px solid var(--yellow); }
 .hand-card.dim { opacity: 0.35; }
 
 /* ── Unit card redesign ── */
@@ -916,6 +917,11 @@ img {
 .hand-card, .card-item, .unit-card, .deck-slot.filled, .graveyard-units .unit-card {
   pointer-events: auto;
 }
+/* Le board 3D gère tous les pointer events via le canvas WebGL */
+.game3d-3d .unit-card {
+  pointer-events: none;
+  cursor: default;
+}
 
 
 /* ── DeckBuilder browser: cards use hand-card style but are square ── */
@@ -1071,6 +1077,14 @@ img {
     <div class="orientation-warning-title">Veuillez pivoter votre appareil</div>
     <div class="orientation-warning-text">Soulforge est conçu pour une utilisation en mode portrait.</div>
   </div>
+  <!-- POC 3D (dev) : import map pour Three.js via CDN, requis par OrbitControls -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
   <script type="module" src="/game/main.js"></script>
 </body>
 </html>

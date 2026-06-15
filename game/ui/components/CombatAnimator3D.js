@@ -1,0 +1,203 @@
+import { updateUnitEl } from './UnitCard.js';
+
+const BASE_TICK_MS = 180;
+
+const POWER_NAMES = {
+  POWER_HEAL:         'Soin',
+  POWER_SHIELD:       'Bouclier',
+  POWER_SUPER_ATTACK: 'Super Attaque',
+  POWER_AOE_ATTACK:   'Attaque Zone',
+  POWER_POISON:       'Poison',
+  POWER_PARALYSIS:    'Paralysie',
+  POWER_PUSH:         'Poussée',
+  POWER_DEBUFF:       'Débuff',
+  POWER_BLOCK:        'Blocage',
+};
+
+const HIT_COLOR = 0xff6584;
+
+const POWER_COLORS = {
+  POWER_HEAL:      0x4caf80,
+  POWER_SHIELD:    0x6ab4e8,
+  POWER_POISON:    0xc878e0,
+  POWER_PARALYSIS: 0xf0c040,
+  POWER_PUSH:      0xf0a040,
+};
+
+export class CombatAnimator3D {
+  constructor(combatManager, board3D, { onFinished, onStep } = {}) {
+    this._cm = combatManager;
+    this._board = board3D;
+    this._onFinished = onFinished;
+    this._onStep = onStep;
+    this._speed = 1;
+    this._timer = null;
+    this._running = false;
+    this._paused = false;
+  }
+
+  setSpeed(s) { this._speed = s; }
+
+  pause() {
+    this._paused = true;
+  }
+
+  resume() {
+    if (!this._paused) return;
+    this._paused = false;
+    if (this._running) this._schedule();
+  }
+
+  start() {
+    this._running = true;
+    this._paused = false;
+    this._schedule();
+  }
+
+  stop() {
+    this._running = false;
+    this._paused = false;
+    if (this._timer) clearTimeout(this._timer);
+    this._timer = null;
+  }
+
+  _schedule() {
+    const interval = BASE_TICK_MS / this._speed;
+    this._timer = setTimeout(() => {
+      if (!this._running || this._paused) return;
+      const events = this._cm.step();
+      this._onStep?.(events);
+      for (const evt of events) this._apply(evt, interval);
+      this._refreshPowerGauges();
+      if (this._cm.isOver) {
+        this._running = false;
+        setTimeout(() => this._onFinished?.(), 500);
+        return;
+      }
+      this._schedule();
+    }, interval);
+  }
+
+  _refreshPowerGauges() {
+    for (const unit of [...this._cm.playerUnits, ...this._cm.enemyUnits]) {
+      if (!unit.isAlive()) continue;
+      const entry = this._board.getUnitEntry(unit.uid);
+      if (entry) updateUnitEl(entry.el, unit);
+    }
+  }
+
+  _apply(evt, interval) {
+    switch (evt.type) {
+      case 'move':   this._applyMove(evt, interval); break;
+      case 'attack': this._applyAttack(evt);  break;
+      case 'dot':    this._applyDot(evt);     break;
+      case 'power':  this._applyPower(evt);   break;
+      case 'death':  this._applyDeath(evt);   break;
+    }
+  }
+
+  _applyMove({ unit, to }) {
+    this._board.animateUnitMove(unit.uid, to);
+  }
+
+  _applyAttack({ attacker, target }) {
+    const atkEntry = this._board.getUnitEntry(attacker.uid);
+    if (atkEntry) this._flashClass(atkEntry.el, 'anim-shake');
+
+    if (attacker.range > 1) {
+      if (atkEntry && target.position) {
+        this._board.playProjectile(attacker.position, target.position, HIT_COLOR).then(() => {
+          this._hitTarget(target);
+        });
+      } else {
+        this._hitTarget(target);
+      }
+    } else {
+      if (atkEntry && target.position) this._board.playLunge(attacker.uid, target.position);
+      this._hitTarget(target);
+    }
+  }
+
+  _hitTarget(target) {
+    const entry = this._board.getUnitEntry(target.uid);
+    if (entry) {
+      this._flashClass(entry.el, 'anim-hit');
+      updateUnitEl(entry.el, target);
+    }
+    if (target.position) {
+      this._board.spawnBurst(target.position, HIT_COLOR, 50);
+      this._board.spawnRing(target.position, HIT_COLOR);
+    }
+  }
+
+  _applyDot({ unit }) {
+    const entry = this._board.getUnitEntry(unit.uid);
+    if (entry) {
+      this._flashClass(entry.el, 'anim-poison');
+      updateUnitEl(entry.el, unit);
+    }
+  }
+
+  _applyPower({ unit, targets, power_id }) {
+    const casterEntry = this._board.getUnitEntry(unit.uid);
+    if (casterEntry) {
+      this._flashClass(casterEntry.el, 'anim-power-cast');
+      updateUnitEl(casterEntry.el, unit);
+      if (unit.position) this._showPowerToast(unit.position, power_id);
+    }
+
+    const cls = _powerTargetClass(power_id);
+    const color = POWER_COLORS[power_id] ?? 0xf04050;
+
+    for (const t of targets) {
+      const entry = this._board.getUnitEntry(t.uid);
+      if (entry) {
+        this._flashClass(entry.el, cls);
+        updateUnitEl(entry.el, t);
+      }
+      if (t.position) {
+        this._board.spawnBurst(t.position, color, 50);
+        this._board.spawnRing(t.position, color);
+      }
+
+      // POWER_PUSH : la logique a déjà déplacé l'unité via board.moveUnit,
+      // mais aucun event 'move' n'est émis — on anime le déplacement ici.
+      if (power_id === 'POWER_PUSH' && entry && t.position) {
+        this._board.animateUnitMove(t.uid, t.position, 0.2);
+      }
+    }
+  }
+
+  _applyDeath({ unit }) {
+    this._board.removeUnitObj(unit.uid);
+  }
+
+  _showPowerToast(pos, power_id) {
+    const label = POWER_NAMES[power_id] ?? power_id.replace('POWER_', '').replace(/_/g, ' ');
+    const screen = this._board.worldToScreen(this._board.tilePosition(pos));
+    const toast = document.createElement('div');
+    toast.className = 'power-cast-label';
+    toast.textContent = label;
+    toast.style.left = screen.x + 'px';
+    toast.style.top  = (screen.y - 50) + 'px';
+    document.body.appendChild(toast);
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  }
+
+  _flashClass(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth; // force reflow pour redémarrer l'animation
+    el.classList.add(cls);
+    el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+  }
+}
+
+function _powerTargetClass(power_id) {
+  switch (power_id) {
+    case 'POWER_HEAL':      return 'anim-heal';
+    case 'POWER_SHIELD':    return 'anim-shield';
+    case 'POWER_POISON':    return 'anim-poison';
+    case 'POWER_PARALYSIS': return 'anim-paralysis';
+    default:                return 'anim-hit';
+  }
+}

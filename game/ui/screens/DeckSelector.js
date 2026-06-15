@@ -2,7 +2,8 @@ import { navigate } from '../../main.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
 import * as PublicDeckDatabase from '../../data/PublicDeckDatabase.js';
 
-export async function mount(container) {
+export async function mount(container, params = {}) {
+  const target = params.target || 'game';
   let selectedPlayer = null;       // nom du deck privé sélectionné
   let selectedPublic = null;       // deck public sélectionné { id, name, deck }
   let selectedEnemy  = null;
@@ -204,7 +205,7 @@ export async function mount(container) {
       const enemyDeckName = selectedEnemy === '__random__'
         ? names[Math.floor(Math.random() * names.length)]
         : selectedEnemy;
-      navigate('game', { deckName: selectedPlayer, enemyDeckName });
+      navigate(target, { deckName: selectedPlayer, enemyDeckName });
     });
   }
 
