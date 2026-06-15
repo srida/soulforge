@@ -369,6 +369,9 @@
   position: relative;
   cursor: pointer;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 /* Image fills the entire card as background */
 .unit-art {
@@ -535,6 +538,7 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  touch-action: pan-x;
 }
 .hand-ui::-webkit-scrollbar { display: none; }
 .hand-empty {
@@ -921,6 +925,12 @@ img {
 .game3d-3d .unit-card {
   pointer-events: none;
   cursor: default;
+}
+.game3d-wrap, .game3d-3d {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 

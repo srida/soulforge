@@ -42,7 +42,7 @@ function _inner(unit) {
   const stars = '★'.repeat(unit.tier);
 
   return `
-    <img class="unit-art" src="/illustrations/${unit.card_id}" alt="${esc(unit.name)}" loading="lazy">
+    <img class="unit-art" src="/illustrations/${unit.card_id}" alt="${esc(unit.name)}">
     <div class="unit-tier-badge badge-tier${unit.tier}">
       <span class="unit-tier-num">T${unit.tier}</span>
       <span class="unit-tier-stars">${stars}</span>
