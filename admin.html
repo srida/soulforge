@@ -824,7 +824,7 @@ function renderCardDetail() {
     <div class="section-title">Attributs</div>
     <div class="attr-chips" id="attr-chips">
       ${(c.attributes || []).map(aid => `
-        <span class="attr-chip" onclick="removeAttribute('${aid}')">
+        <span class="attr-chip" onclick="removeCardAttribute('${aid}')">
           ${getAttrName(aid)} <span class="remove">×</span>
         </span>
       `).join('')}
@@ -851,7 +851,7 @@ function togglePowerFields() {
   if (valWrap) valWrap.style.display = hasPower ? '' : 'none';
 }
 
-function removeAttribute(aid) {
+function removeCardAttribute(aid) {
   syncCardFromForm();
   selectedCard.attributes = (selectedCard.attributes || []).filter(a => a !== aid);
   renderCardDetail();
@@ -1352,7 +1352,7 @@ function renderAttrDetail() {
 
     <div class="actions">
       ${isNewAttr
-        ? `<button class="btn btn-success" onclick="createAttribute()">Créer l'attribut</button>
+        ? `<button class="btn btn-success" onclick="submitNewAttribute()">Créer l'attribut</button>
            <button class="btn btn-secondary" onclick="cancelNewAttr()">Annuler</button>`
         : `<button class="btn btn-primary" onclick="saveAttribute()">Enregistrer</button>
            <button class="btn btn-danger" onclick="deleteAttribute()">Supprimer</button>`}
@@ -1476,7 +1476,7 @@ function openNewAttribute() {
   showDetail();
 }
 
-async function createAttribute() {
+async function submitNewAttribute() {
   const attr = collectAttrFromForm();
   if (!attr.id || !attr.name) return toast('ID et nom requis', 'err');
   const res = await apiFetch('/api/attributes', { method: 'POST', body: attr });
@@ -2785,18 +2785,18 @@ async function applyMassEdit() {
   const value = document.getElementById('mass-value')?.value;
   closeModal();
   const ids = [...bulkSelected];
-  await Promise.all(ids.map(id => {
+  for (const id of ids) {
     const card = cards.find(c => c.id === id);
-    if (!card) return;
+    if (!card) continue;
     const updated = { ...card };
     delete updated._has_illustration;
     if (field === 'tier') updated.tier = parseInt(value);
     else if (field === 'summon_type') updated.summon_type = value;
     else if (field === 'power') updated.power = value ? { id: value, power_speed: updated.power?.power_speed || 0, value: updated.power?.value ?? null } : {};
-    return fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
-  }));
+    await fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+  }
   toast(`${ids.length} carte${ids.length>1?'s':''} modifiée${ids.length>1?'s':''}`, 'ok');
-  await loadData(); filterCards(); renderMassToolbar();
+  cards = await apiFetch('/api/cards'); filterCards(); renderMassToolbar();
 }
 
 function openMassAttrModal() {
@@ -2825,19 +2825,19 @@ async function applyMassAttribute() {
   if (!attrId) return;
   closeModal();
   const ids = [...bulkSelected];
-  await Promise.all(ids.map(id => {
+  for (const id of ids) {
     const card = cards.find(c => c.id === id);
-    if (!card) return;
+    if (!card) continue;
     const updated = { ...card };
     delete updated._has_illustration;
     const attrs = [...(updated.attributes || [])];
     if (action === 'add' && !attrs.includes(attrId)) attrs.push(attrId);
     else if (action === 'remove') { const i = attrs.indexOf(attrId); if (i !== -1) attrs.splice(i, 1); }
     updated.attributes = attrs;
-    return fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
-  }));
+    await fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+  }
   toast(`${ids.length} carte${ids.length>1?'s':''} mise${ids.length>1?'s':''} à jour`, 'ok');
-  await loadData(); filterCards(); renderMassToolbar();
+  cards = await apiFetch('/api/cards'); filterCards(); renderMassToolbar();
 }
 
 async function confirmMassDelete() {
@@ -2848,7 +2848,7 @@ async function confirmMassDelete() {
   bulkSelected.clear();
   if (selectedCard && ids.includes(selectedCard.id)) { selectedCard = null; document.getElementById('card-detail').innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span>Sélectionne une carte</span></div>`; }
   toast(`${ids.length} carte${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`, 'ok');
-  await loadData(); filterCards(); renderMassToolbar();
+  cards = await apiFetch('/api/cards'); filterCards(); renderMassToolbar();
 }
 
 let importType = null;
