@@ -67,7 +67,8 @@ export class CombatAnimator3D {
       if (!this._running || this._paused) return;
       const events = this._cm.step();
       this._onStep?.(events);
-      for (const evt of events) this._apply(evt, interval);
+      const dyingUids = new Set(events.filter(e => e.type === 'death').map(e => e.unit.uid));
+      for (const evt of events) this._apply(evt, interval, dyingUids);
       this._refreshPowerGauges();
       if (this._cm.isOver) {
         this._running = false;
@@ -86,10 +87,10 @@ export class CombatAnimator3D {
     }
   }
 
-  _apply(evt, interval) {
+  _apply(evt, interval, dyingUids = new Set()) {
     switch (evt.type) {
       case 'move':   this._applyMove(evt, interval); break;
-      case 'attack': this._applyAttack(evt);  break;
+      case 'attack': this._applyAttack(evt, dyingUids); break;
       case 'dot':    this._applyDot(evt);     break;
       case 'power':  this._applyPower(evt);   break;
       case 'death':  this._applyDeath(evt);   break;
@@ -100,33 +101,48 @@ export class CombatAnimator3D {
     this._board.animateUnitMove(unit.uid, to);
   }
 
-  _applyAttack({ attacker, target }) {
+  _applyAttack({ attacker, target }, dyingUids) {
+    const isFatal = dyingUids.has(target.uid);
     const atkEntry = this._board.getUnitEntry(attacker.uid);
     if (atkEntry) this._flashClass(atkEntry.el, 'anim-shake');
 
     if (attacker.range > 1) {
       if (atkEntry && target.position) {
         this._board.playProjectile(attacker.position, target.position, HIT_COLOR).then(() => {
-          this._hitTarget(target);
+          if (!isFatal) this._hitTarget(target, attacker);
         });
-      } else {
-        this._hitTarget(target);
+      } else if (!isFatal) {
+        this._hitTarget(target, attacker);
       }
     } else {
       if (atkEntry && target.position) this._board.playLunge(attacker.uid, target.position);
-      this._hitTarget(target);
+      if (!isFatal) this._hitTarget(target, attacker);
     }
   }
 
-  _hitTarget(target) {
+  _hitTarget(target, attacker) {
     const entry = this._board.getUnitEntry(target.uid);
     if (entry) {
       this._flashClass(entry.el, 'anim-hit');
       updateUnitEl(entry.el, target);
     }
     if (target.position) {
-      this._board.spawnBurst(target.position, HIT_COLOR, 50);
-      this._board.spawnRing(target.position, HIT_COLOR);
+      const atier = Math.max(1, Math.min(5, attacker?.tier ?? 1));
+      const ATK_CFG = [
+        { pc:  8, rS: 2 },
+        { pc: 20, rS: 3 },
+        { pc: 38, rS: 5 },
+        { pc: 55, rS: 6 },
+        { pc: 70, rS: 8 },
+      ][atier - 1];
+      this._board.spawnBurst(target.position, HIT_COLOR, ATK_CFG.pc, {
+        size: 0.04 + atier * 0.012,
+        speed: [0.4, 0.6 + atier * 0.3],
+        lift:  [0.3, 0.5 + atier * 0.2],
+        gravity: 8,
+        maxLife: 0.20 + atier * 0.04,
+      });
+      this._board.spawnRing(target.position, HIT_COLOR, 0.20 + atier * 0.04, ATK_CFG.rS);
     }
   }
 
@@ -169,7 +185,7 @@ export class CombatAnimator3D {
   }
 
   _applyDeath({ unit }) {
-    this._board.removeUnitObj(unit.uid);
+    this._board.killUnitObj(unit.uid);
   }
 
   _showPowerToast(pos, power_id) {

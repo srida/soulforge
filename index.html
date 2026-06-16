@@ -1078,6 +1078,115 @@ img {
 @media (max-width: 480px) {
   .tb-browser-col { width: 150px; }
 }
+
+/* ── Poc3D — cadres texturés par tier ───────────────────────────────────────
+   Technique "donut" CSS : le ::before a un padding (épaisseur du cadre) et
+   un masque qui rend l'intérieur (content-box) transparent → seule la zone
+   padding reste visible, affichant la texture dégradée.
+   Les valeurs px sont dans l'espace DOM pré-scale CSS3D (scale = CELL/CARD_PX).
+─────────────────────────────────────────────────────────────────────────────── */
+/* Les barres (z-index 2) et badges (z-index 3) restent au-dessus du cadre */
+.poc3d-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+/* Barre de vie et hexagone d'équipe dans les limites du cadre (POC et Jouer 3D) */
+.poc3d-card-wrap .unit-bars {
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+}
+
+/* Cadre texturé commun : le masque crée l'anneau de bordure */
+.poc3d-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+/* T1 — Jade (liseré 2px, texture pierre verte) */
+.poc3d-frame-t1::before {
+  padding: 2px;
+  background: linear-gradient(160deg,
+    #1a5040 0%, #4a9870 18%, #78c8a8 35%, #aaeacc 50%, #78c8a8 65%, #4a9870 82%, #1a5040 100%);
+}
+
+/* T2 — Saphir (cadre 3px + reflet lumineux) */
+.poc3d-frame-t2 {
+  box-shadow: 0 0 8px rgba(106, 180, 232, 0.28);
+}
+.poc3d-frame-t2::before {
+  padding: 3px;
+  background: linear-gradient(160deg,
+    #082030 0%, #1a5888 18%, #4898d0 36%, #6ab4e8 48%, #b8e4ff 54%, #6ab4e8 62%, #4898d0 76%, #1a5888 90%, #082030 100%);
+}
+
+/* T3 — Améthyste (cadre 3px + cristal violet) */
+.poc3d-frame-t3 {
+  box-shadow: 0 0 12px rgba(200, 120, 224, 0.35);
+}
+.poc3d-frame-t3::before {
+  padding: 3px;
+  background: linear-gradient(160deg,
+    #2a0848 0%, #7020a8 22%, #c060d8 40%, #c878e0 50%, #eab8ff 55%, #c878e0 62%, #7020a8 80%, #2a0848 100%);
+}
+
+/* T4 — Or battu (cadre 4px + shimmer animé) */
+.poc3d-frame-t4 {
+  box-shadow: 0 0 16px rgba(240, 160, 64, 0.40);
+  animation: poc3d-glow-t4 2.6s ease-in-out infinite;
+}
+@keyframes poc3d-glow-t4 {
+  0%, 100% { box-shadow: 0 0 16px rgba(240, 160, 64, 0.40); }
+  50%       { box-shadow: 0 0 26px rgba(255, 185, 80, 0.60); }
+}
+.poc3d-frame-t4::before {
+  padding: 4px;
+  background: linear-gradient(90deg,
+    #3c1a00 0%, #9a5010 10%, #d88820 22%, #f0a840 33%,
+    #ffe080 45%, #fff4b0 50%, #ffe080 55%,
+    #f0a840 67%, #d88820 78%, #9a5010 90%, #3c1a00 100%);
+  background-size: 300% 100%;
+  animation: poc3d-shimmer 3s linear infinite;
+}
+
+/* T5 — Dragon infernal (cadre 5px + shimmer rouge animé) */
+.poc3d-frame-t5 {
+  box-shadow: 0 0 18px rgba(240, 80, 80, 0.45), 0 0 36px rgba(240, 80, 80, 0.18);
+  animation: poc3d-glow-t5 1.9s ease-in-out infinite;
+}
+@keyframes poc3d-glow-t5 {
+  0%, 100% { box-shadow: 0 0 18px rgba(240, 80, 80, 0.45), 0 0 36px rgba(240, 80, 80, 0.18); }
+  50%       { box-shadow: 0 0 28px rgba(255, 90, 90, 0.65), 0 0 54px rgba(240, 80, 80, 0.28); }
+}
+.poc3d-frame-t5::before {
+  padding: 5px;
+  background: linear-gradient(90deg,
+    #280000 0%, #700000 10%, #b01010 22%, #e03030 33%,
+    #f87070 45%, #ffa8a8 50%, #f87070 55%,
+    #e03030 67%, #b01010 78%, #700000 90%, #280000 100%);
+  background-size: 300% 100%;
+  animation: poc3d-shimmer 2.2s linear infinite;
+}
+
+@keyframes poc3d-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 300% center; }
+}
+
 </style>
 </head>
 <body>

@@ -750,18 +750,6 @@ function renderCardDetail() {
           ${['normal','sacrifice','fusion','heritage','transformation'].map(s => `<option value="${s}" ${c.summon_type===s?'selected':''}>${summonLabel(s)}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Catégorie</label>
-        <div class="cat-picker-row">
-          <select id="f-cat" onchange="onCategoryChange()" style="flex:1">
-            <option value="__none__" ${!c.categorie ? 'selected' : ''}>— Aucune —</option>
-            ${getCategories().map(cat => `<option value="${cat}" ${c.categorie === cat ? 'selected' : ''}>${esc(cat)}</option>`).join('')}
-            <option value="__new__">+ Nouvelle catégorie…</option>
-          </select>
-          <div id="f-cat-new-wrap" style="display:none;flex:1">
-            <input id="f-cat-new" placeholder="Nom de la catégorie" style="width:100%">
-          </div>
-        </div>
-      </div>
     </div>
 
     <div class="section-title">Stats</div>
@@ -992,14 +980,12 @@ function collectCardFromForm() {
     ? { id: powId, ...(powSpeed !== '' ? { power_speed: parseFloat(powSpeed) } : {}), ...(powVal !== '' ? { value: parseFloat(powVal) } : {}) }
     : {};
 
-  const cat = getCategoryValue();
   return {
     id: document.getElementById('f-id').value.trim(),
     name: document.getElementById('f-name').value.trim(),
     type: 'monster',
     tier: parseFloat(document.getElementById('f-tier').value),
     summon_type: document.getElementById('f-summon').value,
-    ...(cat ? { categorie: cat } : {}),
     attributes: [...(selectedCard.attributes || [])],
     stats: {
       atk: parseFloat(document.getElementById('f-atk').value),
@@ -1056,27 +1042,27 @@ function getSets() {
   return [...sets].sort();
 }
 
-function getCategories() {
+function getAttrCategories() {
   const cats = new Set();
-  for (const c of cards) {
-    if (c.categorie) cats.add(c.categorie);
+  for (const a of attributes) {
+    if (a.categorie) cats.add(a.categorie);
   }
   return [...cats].sort();
 }
 
-function onCategoryChange() {
-  const sel = document.getElementById('f-cat');
-  const newWrap = document.getElementById('f-cat-new-wrap');
+function onAttrCategoryChange() {
+  const sel = document.getElementById('af-cat');
+  const newWrap = document.getElementById('af-cat-new-wrap');
   if (!sel || !newWrap) return;
   newWrap.style.display = sel.value === '__new__' ? '' : 'none';
-  if (sel.value === '__new__') document.getElementById('f-cat-new')?.focus();
+  if (sel.value === '__new__') document.getElementById('af-cat-new')?.focus();
 }
 
-function getCategoryValue() {
-  const sel = document.getElementById('f-cat');
+function getAttrCategoryValue() {
+  const sel = document.getElementById('af-cat');
   if (!sel) return '';
   return sel.value === '__new__'
-    ? (document.getElementById('f-cat-new')?.value.trim() || '')
+    ? (document.getElementById('af-cat-new')?.value.trim() || '')
     : (sel.value === '__none__' ? '' : sel.value);
 }
 
@@ -1382,6 +1368,18 @@ function renderAttrDetail() {
           ).join('')}
         </select>
       </div>
+      <div class="field"><label>Catégorie</label>
+        <div class="cat-picker-row">
+          <select id="af-cat" onchange="onAttrCategoryChange()" style="flex:1">
+            <option value="__none__" ${!a.categorie ? 'selected' : ''}>— Aucune —</option>
+            ${getAttrCategories().map(cat => `<option value="${cat}" ${a.categorie === cat ? 'selected' : ''}>${esc(cat)}</option>`).join('')}
+            <option value="__new__">+ Nouvelle catégorie…</option>
+          </select>
+          <div id="af-cat-new-wrap" style="display:none;flex:1">
+            <input id="af-cat-new" placeholder="Nom de la catégorie" style="width:100%">
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="section-title">Seuils <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="addThreshold()">+ Seuil</button></div>
@@ -1466,11 +1464,13 @@ function collectAttrFromForm() {
       effects,
     };
   });
+  const cat = getAttrCategoryValue();
   return {
     id: document.getElementById('af-id').value.trim(),
     name: document.getElementById('af-name').value.trim(),
     icon: document.getElementById('af-icon').value.trim(),
     timing: document.getElementById('af-timing').value,
+    ...(cat ? { categorie: cat } : {}),
     thresholds,
   };
 }

@@ -1,6 +1,21 @@
 import { createUnitEl, updateUnitEl } from './UnitCard.js';
 
 // Board3D — rendu Three.js du board (5 colonnes x 11 rangées) en remplacement de BoardGrid.
+
+const ELEMENT_STYLES = {
+  feu:    { color: 0xff6a3c, ringColor: 0xff8a3c, size: 0.08, speed: [1.5, 3.5], lift: [2, 4],     gravity: 2,  spin: 0, flash: false },
+  eau:    { color: 0x4fc3f7, ringColor: 0x4fc3f7, size: 0.06, speed: [0.8, 2],   lift: [0.5, 1.5], gravity: 10, spin: 0, flash: false },
+  foudre: { color: 0xfff066, ringColor: 0xfff9a8, size: 0.09, speed: [2, 5],     lift: [1, 4],     gravity: 6,  spin: 0, flash: true  },
+  vent:   { color: 0xb8ffd8, ringColor: 0xc8ffe0, size: 0.06, speed: [1, 2.5],   lift: [1, 2.5],   gravity: 1,  spin: 4, flash: false },
+};
+const ELEMENT_ORDER = ['feu', 'eau', 'foudre', 'vent'];
+
+function elementForCard(unit) {
+  const k = String(unit?.card_id ?? unit?.id ?? unit?.name ?? '');
+  let hash = 0;
+  for (let i = 0; i < k.length; i++) hash = (hash * 31 + k.charCodeAt(i)) >>> 0;
+  return ELEMENT_ORDER[hash % ELEMENT_ORDER.length];
+}
 // Tuiles WebGL + unités CSS3D (réutilise UnitCard.js sans modification).
 // API publique miroir de BoardGrid (setBoard, setHighlight, refresh, enterCombatMode, ...)
 // + accesseurs additionnels consommés par CombatAnimator3D.
@@ -311,9 +326,10 @@ export class Board3D {
     };
   }
 
-  spawnBurst(pos, color, count = 70) {
+  spawnBurst(pos, color, count = 70, opts = {}) {
     const THREE = this.THREE;
     const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const { speed: [speedMin, speedMax] = [1, 3], lift: [liftMin, liftMax] = [1.5, 3.5], size = 0.07, gravity = 6, spin = 0, maxLife = 0.6 } = opts;
     const positions = new Float32Array(count * 3);
     const velocities = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -321,23 +337,23 @@ export class Board3D {
       positions[i * 3 + 1] = center.y + 0.04;
       positions[i * 3 + 2] = center.z;
       const theta = Math.random() * Math.PI * 2;
-      const speed = 1 + Math.random() * 2;
+      const speed = speedMin + Math.random() * (speedMax - speedMin);
       velocities[i * 3] = Math.cos(theta) * speed;
-      velocities[i * 3 + 1] = 1.5 + Math.random() * 2;
+      velocities[i * 3 + 1] = liftMin + Math.random() * (liftMax - liftMin);
       velocities[i * 3 + 2] = Math.sin(theta) * speed;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const mat = new THREE.PointsMaterial({
-      color, size: 0.07, transparent: true, opacity: 1,
+      color, size, transparent: true, opacity: 1,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const points = new THREE.Points(geo, mat);
     this.scene.add(points);
-    this.bursts.push({ points, velocities, life: 0, maxLife: 0.6 });
+    this.bursts.push({ points, velocities, life: 0, maxLife, gravity, spin });
   }
 
-  spawnRing(pos, color) {
+  spawnRing(pos, color, maxLife = 0.5, maxScale = 6) {
     const THREE = this.THREE;
     const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
     const geo = new THREE.RingGeometry(0.05, 0.18, 32);
@@ -347,7 +363,53 @@ export class Board3D {
     ring.position.copy(center);
     ring.position.y = 0.06;
     this.scene.add(ring);
-    this.bursts.push({ ring, life: 0, maxLife: 0.5 });
+    this.bursts.push({ ring, life: 0, maxLife, maxScale });
+  }
+
+  spawnFlash(center, color, intensity = 4, range = 4, maxLife = 0.25) {
+    const THREE = this.THREE;
+    const light = new THREE.PointLight(color, intensity, range, 2);
+    light.position.set(center.x, 1.2, center.z);
+    this.scene.add(light);
+    this.bursts.push({ light, life: 0, maxLife, maxIntensity: intensity });
+  }
+
+  spawnHalo(center, color) {
+    const THREE = this.THREE;
+    this.spawnRing(new THREE.Vector3(center.x, 0, center.z), color, 0.7, 9);
+    const geo2 = new THREE.RingGeometry(0.05, 0.22, 48);
+    const mat2 = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, side: THREE.DoubleSide });
+    const ring2 = new THREE.Mesh(geo2, mat2);
+    ring2.rotation.x = -Math.PI / 2;
+    ring2.position.set(center.x, 0.04, center.z);
+    this.scene.add(ring2);
+    this.bursts.push({ ring: ring2, life: 0, maxLife: 1.0, maxScale: 13 });
+    this.spawnFlash(center, color, 5, 5, 0.55);
+  }
+
+  spawnElementImpact(position, element, tier = 1) {
+    const THREE = this.THREE;
+    const style = ELEMENT_STYLES[element] || ELEMENT_STYLES.feu;
+    const t = Math.max(1, Math.min(5, tier));
+    const CFG = [
+      { count:  2, sM: 0.12, szM: 0.15, lM: 0.10, rS: 1.5, rL: 0.14, fi: 0,   fR: 0, fL: 0    },
+      { count:  8, sM: 0.22, szM: 0.28, lM: 0.20, rS: 2.5, rL: 0.20, fi: 0,   fR: 0, fL: 0    },
+      { count: 18, sM: 0.36, szM: 0.42, lM: 0.30, rS: 3.5, rL: 0.28, fi: 1.5, fR: 2, fL: 0.12 },
+      { count: 32, sM: 0.52, szM: 0.58, lM: 0.42, rS: 5.0, rL: 0.36, fi: 3.0, fR: 3, fL: 0.16 },
+      { count: 50, sM: 0.68, szM: 0.72, lM: 0.55, rS: 7.0, rL: 0.45, fi: 5.0, fR: 4, fL: 0.20 },
+    ][t - 1];
+    if (CFG.count > 0) {
+      this.spawnBurst(position, style.color, CFG.count, {
+        ...style,
+        size:    style.size * CFG.szM,
+        speed:   style.speed.map(v => v * CFG.sM),
+        lift:    style.lift.map(v => v * CFG.sM),
+        maxLife: CFG.lM,
+      });
+    }
+    this.spawnRing(new THREE.Vector3(position.x, 0, position.z), style.ringColor, CFG.rL, CFG.rS);
+    if (CFG.fi > 0) this.spawnFlash(position, style.color, CFG.fi, CFG.fR, CFG.fL);
+    if (t === 5) this.spawnHalo(position, style.color);
   }
 
   playProjectile(fromPos, toPos, color = 0xffffff) {
@@ -407,16 +469,12 @@ export class Board3D {
     // CSS_SCALE transform — compensate by sizing the ring in pre-scale px, and
     // allow it to render outside the wrapper's bounds.
     if (isMatSelected) {
-      wrap.style.overflow = 'visible';
       wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px var(--green)`;
     } else if (isMatCandidate) {
-      wrap.style.overflow = 'visible';
       wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px var(--yellow)`;
     } else if (isSelected) {
-      wrap.style.overflow = 'visible';
       wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px var(--accent)`;
     } else {
-      wrap.style.overflow = 'hidden';
       wrap.style.boxShadow = '';
     }
   }
@@ -455,6 +513,12 @@ export class Board3D {
     return (this._combatMode || unit.side === 'player') ? 1 : 0;
   }
 
+  _createTierFrame(tier) {
+    const frame = document.createElement('div');
+    frame.className = `poc3d-frame poc3d-frame-t${Math.max(1, Math.min(5, tier))}`;
+    return frame;
+  }
+
   _spawnUnitObj(unit) {
     const THREE = this.THREE;
     const pos = unit.position;
@@ -462,11 +526,13 @@ export class Board3D {
     wrap.style.width = CARD_PX + 'px';
     wrap.style.height = CARD_PX + 'px';
     wrap.style.borderRadius = '6px';
-    wrap.style.overflow = 'hidden';
+    wrap.style.overflow = 'visible';
     wrap.style.pointerEvents = 'none';
     wrap.style.opacity = String(this._visibilityFor(unit));
+    wrap.className = 'poc3d-card-wrap';
     const el = createUnitEl(unit);
     wrap.appendChild(el);
+    wrap.appendChild(this._createTierFrame(unit.tier ?? 1));
 
     const obj = new this.CSS3DObject(wrap);
     // CSS3DObject force pointer-events: auto sur l'élément — on l'annule pour
@@ -479,7 +545,8 @@ export class Board3D {
     obj.scale.setScalar(CSS_SCALE);
     this.cssScene.add(obj);
 
-    const entry = { unit, obj, wrap, el, pos: { ...pos } };
+    const element = elementForCard(unit);
+    const entry = { unit, obj, wrap, el, pos: { ...pos }, element };
     this._applyUnitHighlightClasses(entry);
 
     let t = 0;
@@ -491,9 +558,7 @@ export class Board3D {
         const eased = 1 - Math.pow(1 - p, 3);
         obj.position.y = THREE.MathUtils.lerp(3, 0.06, eased);
         if (p >= 1) {
-          const color = unit.side === 'player' ? 0x6c63ff : 0xff6584;
-          this.spawnBurst(new THREE.Vector3(x, 0.1, z), color, 60);
-          this.spawnRing(new THREE.Vector3(x, 0, z), color);
+          this.spawnElementImpact(new THREE.Vector3(x, 0.1, z), element, unit.tier ?? 1);
           return false;
         }
         return true;
@@ -515,6 +580,114 @@ export class Board3D {
     if (!entry) return;
     this._removeUnitObj(entry);
     this.unitObjs.delete(uid);
+  }
+
+  killUnitObj(uid) {
+    const entry = this.unitObjs.get(uid);
+    if (!entry) return;
+    this.unitObjs.delete(uid);
+
+    const THREE = this.THREE;
+    const x = entry.obj.position.x;
+    const z = entry.obj.position.z;
+    if (x === undefined) { this.cssScene.remove(entry.obj); return; }
+    const style = ELEMENT_STYLES[entry.element] || ELEMENT_STYLES.feu;
+    const tier = Math.max(1, Math.min(5, entry.unit.tier ?? 1));
+
+    const KILL_CFG = [
+      { fc: 3, fr: 3, speed: 1.60, vy: 0.90, rot: 12, fi:  3.0, fR: 2.5, fL: 0.18, pc:  40, fS: 0.80, halo: false, spMax: 1.2, ltMax: 1.0, mLife: 0.38, grav: 7.0 },
+      { fc: 3, fr: 3, speed: 2.20, vy: 1.20, rot: 14, fi:  5.0, fR: 3.5, fL: 0.22, pc:  65, fS: 0.90, halo: false, spMax: 1.8, ltMax: 1.4, mLife: 0.44, grav: 6.5 },
+      { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
+      { fc: 4, fr: 4, speed: 3.80, vy: 2.00, rot: 22, fi: 12.0, fR: 7.0, fL: 0.30, pc: 140, fS: 1.00, halo: false, spMax: 3.2, ltMax: 2.2, mLife: 0.56, grav: 5.5 },
+      { fc: 6, fr: 5, speed: 6.00, vy: 3.00, rot: 30, fi: 28.0, fR:14.0, fL: 0.45, pc: 220, fS: 1.00, halo: true,  spMax: 2.5, ltMax: 2.0, mLife: 0.65, grav: 5.0 },
+    ][tier - 1];
+
+    // Gèle toutes les animations CSS de la carte avant de la masquer
+    entry.obj.visible = false;
+    entry.wrap.querySelectorAll('*').forEach(el => {
+      el.style.animation = 'none';
+      el.style.transition = 'none';
+    });
+    entry.wrap.style.animation = 'none';
+    entry.wrap.style.transition = 'none';
+
+    const FCOLS = KILL_CFG.fc;
+    const FROWS = KILL_CFG.fr;
+    const fragW = CARD_PX / FCOLS;
+    const fragH = CARD_PX / FROWS;
+    const frags = [];
+
+    for (let fc = 0; fc < FCOLS; fc++) {
+      for (let fr = 0; fr < FROWS; fr++) {
+        const clip = document.createElement('div');
+        clip.style.width = fragW + 'px';
+        clip.style.height = fragH + 'px';
+        clip.style.overflow = 'hidden';
+        clip.style.position = 'relative';
+        clip.style.borderRadius = '2px';
+
+        const inner = entry.wrap.cloneNode(true);
+        inner.style.position = 'absolute';
+        inner.style.left = (-fc * fragW) + 'px';
+        inner.style.top  = (-fr * fragH) + 'px';
+        inner.style.margin = '0';
+        inner.style.pointerEvents = 'none';
+        clip.appendChild(inner);
+
+        const fobj = new this.CSS3DObject(clip);
+        fobj.rotation.x = -Math.PI / 2;
+        fobj.position.set(x, 0.06, z);
+        fobj.scale.setScalar(CSS_SCALE * KILL_CFG.fS);
+        this.cssScene.add(fobj);
+
+        const dx = FCOLS > 1 ? fc / (FCOLS - 1) - 0.5 : 0;
+        const dz = FROWS > 1 ? fr / (FROWS - 1) - 0.5 : 0;
+        const angle = Math.atan2(dz, dx) + (Math.random() - 0.5) * 1.4;
+        const speed = KILL_CFG.speed + Math.random() * KILL_CFG.speed;
+
+        frags.push({
+          obj: fobj,
+          vx: Math.cos(angle) * speed,
+          vy: 0.15 + Math.random() * KILL_CFG.vy,
+          vz: Math.sin(angle) * speed,
+          ry: (Math.random() - 0.5) * KILL_CFG.rot,
+          rz: (Math.random() - 0.5) * KILL_CFG.rot * 0.7,
+        });
+      }
+    }
+
+    this.spawnFlash(new THREE.Vector3(x, 0.5, z), 0xffffff, KILL_CFG.fi, KILL_CFG.fR, KILL_CFG.fL);
+    this.spawnBurst(new THREE.Vector3(x, 0.3, z), style.color, KILL_CFG.pc, {
+      size:    style.size * KILL_CFG.fS * 1.1,
+      speed:   [0.1, KILL_CFG.spMax],
+      lift:    [0.1, KILL_CFG.ltMax],
+      gravity: KILL_CFG.grav,
+      maxLife: KILL_CFG.mLife,
+    });
+    if (KILL_CFG.halo) this.spawnHalo(new THREE.Vector3(x, 0, z), style.color);
+
+    const MAX_T = 1.2;
+    let t = 0;
+    this.anims.push({
+      update: (dt) => {
+        t += dt;
+        const p = Math.min(t / MAX_T, 1);
+        for (const f of frags) {
+          f.obj.position.x += f.vx * dt;
+          f.obj.position.y += (f.vy - 7 * t) * dt;
+          f.obj.position.z += f.vz * dt;
+          f.obj.rotation.y += f.ry * dt;
+          f.obj.rotation.z += f.rz * dt;
+          f.obj.element.style.opacity = Math.max(0, 1 - p * 1.3);
+        }
+        if (p >= 1) {
+          this.cssScene.remove(entry.obj);
+          for (const f of frags) this.cssScene.remove(f.obj);
+          return false;
+        }
+        return true;
+      },
+    });
   }
 
   playLunge(uid, towardPos) {
@@ -746,25 +919,41 @@ export class Board3D {
       b.life += dt;
       const p = Math.min(b.life / b.maxLife, 1);
       if (b.points) {
+        const gravity = b.gravity ?? 6;
+        const spin = b.spin ?? 0;
         const arr = b.points.geometry.attributes.position.array;
         for (let j = 0; j < arr.length; j += 3) {
-          arr[j] += b.velocities[j] * dt;
-          arr[j + 1] += (b.velocities[j + 1] - 6 * b.life) * dt;
+          if (spin) {
+            const angle = spin * dt;
+            const vx = b.velocities[j];
+            const vz = b.velocities[j + 2];
+            b.velocities[j]     = vx * Math.cos(angle) - vz * Math.sin(angle);
+            b.velocities[j + 2] = vx * Math.sin(angle) + vz * Math.cos(angle);
+          }
+          arr[j]     += b.velocities[j] * dt;
+          arr[j + 1] += (b.velocities[j + 1] - gravity * b.life) * dt;
           arr[j + 2] += b.velocities[j + 2] * dt;
         }
         b.points.geometry.attributes.position.needsUpdate = true;
         b.points.material.opacity = 1 - p;
       }
       if (b.ring) {
-        const scale = 1 + p * 6;
+        const scale = 1 + p * (b.maxScale ?? 6);
         b.ring.scale.set(scale, scale, scale);
         b.ring.material.opacity = 0.9 * (1 - p);
       }
+      if (b.light) {
+        b.light.intensity = (b.maxIntensity ?? 4) * (1 - p);
+      }
       if (p >= 1) {
-        const obj = b.points || b.ring;
-        this.scene.remove(obj);
-        obj.geometry.dispose();
-        obj.material.dispose();
+        if (b.light) {
+          this.scene.remove(b.light);
+        } else {
+          const obj = b.points || b.ring;
+          this.scene.remove(obj);
+          obj.geometry.dispose();
+          obj.material.dispose();
+        }
         this.bursts.splice(i, 1);
       }
     }
