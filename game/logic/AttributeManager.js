@@ -238,6 +238,7 @@ export class AttributeManager {
     for (const attrId of attrIds) {
       const attr = this._attributeMap[attrId];
       if (!attr) continue;
+      if (!attr.thresholds || attr.thresholds.length === 0) continue; // archétype sans effet : pas affiché
       const count = this._countAttribute(attrId, units);
       const result = this._activeThreshold(attrId, units);
       const activeThreshold = result?.threshold ?? null;
