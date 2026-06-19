@@ -106,7 +106,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         ? _takeByMaterialValue(sacrificeTargets, needed)
         : _takeByMaterialValue(board.getLivingUnitsOnSide('player'), needed);
       for (const u of toRemove) board.removeUnit(u);
-      unit.material_value = needed;
+      unit.material_value = card._original_sacrifice ?? needed;
       break;
     }
 

@@ -593,7 +593,10 @@ export async function mount(container, params = {}) {
       for (const mod of modifiers) {
         if (mod.type === 'reduce_sacrifice_cost') {
           const idx = hand.findIndex(c => c.summon_type === 'sacrifice' && (c.cost?.sacrifice ?? 0) > 0);
-          if (idx !== -1) hand[idx] = { ...hand[idx], cost: { ...hand[idx].cost, sacrifice: Math.max(0, (hand[idx].cost?.sacrifice ?? 0) - (mod.value || 1)) } };
+          if (idx !== -1) {
+          const original = hand[idx]._original_sacrifice ?? hand[idx].cost?.sacrifice ?? 0;
+          hand[idx] = { ...hand[idx], _original_sacrifice: original, cost: { ...hand[idx].cost, sacrifice: Math.max(0, original - (mod.value || 1)) } };
+        }
         } else if (mod.type === 'free_transformation') {
           const idx = hand.findIndex(c => c.summon_type === 'transformation');
           if (idx !== -1) hand[idx] = { ...hand[idx], _free_transformation: true };
