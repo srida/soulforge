@@ -11,8 +11,8 @@ import { createBoard3D } from '../components/Board3D.js';
 import { CombatAnimator3D } from '../components/CombatAnimator3D.js';
 import * as Tooltip from '../components/Tooltip.js';
 
-// Variante 3D de TestBench.js — même logique de jeu, rendu via Board3D + CombatAnimator3D
-// au lieu de BoardGrid + CombatAnimator (voir GameScreen3D.js pour le même principe).
+// Écran développeur : placement libre, rendu via Board3D + CombatAnimator3D
+// (voir GameScreen3D.js pour le même principe appliqué à la boucle de jeu complète).
 
 const TIERS = [1, 2, 3, 4, 5];
 const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];

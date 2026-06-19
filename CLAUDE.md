@@ -104,15 +104,17 @@ game/
     │   ├── MainMenu.js
     │   ├── DeckSelector.js
     │   ├── DeckBuilder.js
-    │   ├── GameScreen.js
-    │   └── TestBench.js      ← Mode développeur
+    │   ├── GameScreen3D.js    ← Boucle de jeu complète, rendu 3D (Three.js/CSS3D)
+    │   └── TestBench3D.js     ← Mode développeur, rendu 3D
     └── components/
-        ├── BoardGrid.js      ← CSS Grid 5×11, gestion des cases
-        ├── UnitCard.js       ← Affichage unité, HP bar, power gauge
-        ├── HandUI.js         ← Main du joueur, scroll horizontal
-        ├── Tooltip.js        ← Instance unique globale, tap-to-show
-        └── CombatAnimator.js ← requestAnimationFrame, consomme CombatManager.step()
+        ├── Board3D.js         ← Grille 5×11 en 3D (tuiles WebGL + unités CSS3D)
+        ├── UnitCard.js        ← Affichage unité, HP bar, power gauge
+        ├── HandUI.js          ← Main du joueur, scroll horizontal
+        ├── Tooltip.js         ← Instance unique globale, tap-to-show
+        └── CombatAnimator3D.js ← requestAnimationFrame, consomme CombatManager.step()
 ```
+
+Le rendu du jeu est en 3D (Three.js + CSS3D) — voir [Mode 3D](#mode-3d). Les anciens écrans 2D (`GameScreen.js`, `TestBench.js`, `BoardGrid.js`, `CombatAnimator.js`) ont été supprimés ; toute la logique (`logic/`) qu'ils consommaient reste partagée et inchangée.
 
 ---
 
@@ -137,7 +139,7 @@ PowerDatabase.getPower(id)
 await BoardDatabase.init()
 BoardDatabase.getBoard(id)
 BoardDatabase.getAllBoards()
-BoardDatabase.getRandomBoard()   // utilisé par GameScreen à chaque round de combat
+BoardDatabase.getRandomBoard()   // utilisé par GameScreen3D à chaque round de combat
 
 await MagieDatabase.init()
 MagieDatabase.getAllMagies()
@@ -179,9 +181,9 @@ DeckRepository.consumePendingEdit()      // lit ET efface le pendingEdit
 { type: 'combat_end',  winner }
 ```
 
-`CombatAnimator` consomme ces événements via `requestAnimationFrame` et applique les animations CSS.
+`CombatAnimator3D` consomme ces événements via `requestAnimationFrame` et applique les animations.
 
-Le timing est géré par `CombatAnimator`, jamais par `CombatManager`. Pas de `setTimeout` dans la logique.
+Le timing est géré par `CombatAnimator3D`, jamais par `CombatManager`. Pas de `setTimeout` dans la logique.
 
 **Timing :** `BASE_TICK_MS = 180` — intervalle de base entre les steps. Vitesse effective : `BASE_TICK_MS / speed` (speed = 1 | 2 | 4).
 
@@ -192,8 +194,8 @@ Le timing est géré par `CombatAnimator`, jamais par `CombatManager`. Pas de `s
 `main.js` gère le swap d'écrans via un routeur minimaliste :
 
 ```
-MainMenu → DeckSelector → DeckBuilder → GameScreen
-MainMenu → TestBench (dev)
+MainMenu → DeckSelector → DeckBuilder → GameScreen3D
+MainMenu → TestBench3D (dev)
 ```
 
 Les écrans sont des classes JS qui exposent `mount(container)` et `unmount()`.
@@ -269,7 +271,7 @@ gameState.player_multiplier
 gameState.enemy_multiplier
 ```
 
-Calculé dans `GameScreen.js` (`runCombat()`, via `board.getLivingUnitsOnSide()`) et `EnemyAI.computeMultiplier()`.
+Calculé dans `GameScreen3D.js` (`runCombat()`, via `board.getLivingUnitsOnSide()`) et `EnemyAI.computeMultiplier()`.
 
 ---
 
@@ -281,7 +283,7 @@ Après la phase de combat (et l'écran de résultat de fin de round), le joueur 
 - Sur le dernier tour / fin de partie (`gameState.isGameOver()`)
 - Si aucune magie n'est disponible (`MagieDatabase.getAllMagies()` vide)
 
-Implémentée entièrement dans `GameScreen.js` (pas d'écran/composant séparé) :
+Implémentée entièrement dans `GameScreen3D.js` (pas d'écran/composant séparé) :
 
 ```js
 _showEndRound(winner)        // affiche le résultat du round, bouton "Tour suivant" / "Résultat final"
@@ -355,7 +357,7 @@ MagieDatabase.getRandomMagies(count = 3) // tirage sans remise
 | `board_slot_bonus` | `value` | `gameState.player_board_slots += (value \|\| 1)` — slots permanents |
 | `draw_bonus` | `value` | `gameState.player_extra_draws += (value \|\| 1)` — pioches supplémentaires ce tour |
 | `guaranteed_draw` | `tier` | `gameState.player_guaranteed_draws.push({ tier })` |
-| `defuse_fusion` | — | No-op dans `applyEffect` ; géré par `GameScreen._defuseFusion()`. |
+| `defuse_fusion` | — | No-op dans `applyEffect` ; géré par `GameScreen3D._defuseFusion()`. |
 | `reduce_sacrifice_cost` | `value` (déf. 1) | `gameState.player_hand_modifiers.push({ type: 'reduce_sacrifice_cost', value })` — réduit le coût en sacrifices d'une carte Sacrifice en main |
 | `free_transformation` | — | `gameState.player_hand_modifiers.push({ type: 'free_transformation' })` — invoque une Transformation sans son monstre cible |
 | `remove_heritage_material` | — | `gameState.player_hand_modifiers.push({ type: 'remove_heritage_material' })` — retire le matériel Heritage obligatoire |
@@ -433,7 +435,7 @@ board.isBlocked(pos)           // → bool
 
 `getNeighbors(pos)` exclut automatiquement les cases bloquées — le BFS les contourne donc sans modification.
 
-Les cases bloquées sont réinitialisées entre deux combats (`startPreparation()` dans GameScreen).
+Les cases bloquées sont réinitialisées entre deux combats (`startPreparation()` dans GameScreen3D).
 
 ---
 
@@ -467,7 +469,7 @@ Chaque combat tire aléatoirement un terrain depuis `BoardDatabase`. Le terrain 
 | `stat_bonus` | Bonus additif permanent sur une stat (`stat`, `value`) |
 | `stat_modifier` | Multiplicateur de stat — converti en additif via `unit._base[stat] × (value - 1)` |
 | `shield` | Bouclier initial (`value`) |
-| `draw_bonus` | Pioche supplémentaire (`value` cartes) — GameScreen uniquement |
+| `draw_bonus` | Pioche supplémentaire (`value` cartes) — GameScreen3D uniquement |
 
 Les effets sont appliqués via `applyStatBonus()` / `applyShield()`, donc nettoyés automatiquement par `resetCombatStats()` en fin de combat.
 
@@ -486,7 +488,7 @@ findAttackTarget(unit, enemies, board)   // préfère les cibles avec LOS
 - Une case bloquée sur la ligne entre attaquant et cible → LOS `false`
 - Une unité sans LOS sur sa cible **continue à se déplacer** vers elle (le check `canAttack` dans la boucle de mouvement force la progression)
 
-### Flux dans GameScreen
+### Flux dans GameScreen3D
 
 ```
 runCombat()
@@ -507,7 +509,7 @@ startPreparation()
 Pendant le combat, un chip compact s'affiche **à droite des chips d'attribut** sur la même rangée (`game-header-row`). Il montre la miniature d'illustration et le nom du terrain. Un tap ouvre le tooltip complet (effet + attributs ciblés par nom).
 
 ```js
-// GameScreen.js
+// GameScreen3D.js
 _showBoardIndicator(boardData)   // stocke dans _currentBoardData, affiche le chip
 _hideBoardIndicator()
 
@@ -666,7 +668,7 @@ Chaque `Unit` porte deux propriétés utilisées par `_matchesMaterial` / `canSu
   - Sacrifice → `card.cost.sacrifice`
   - Normal / Transformation → reste à `1`
 
-Les coûts `sacrifice`/`heritage` (`canSummon`, `_isPlayable`, sélection de matériaux dans `GameScreen`) sont vérifiés via la **somme des `material_value`** des unités sélectionnées, pas via leur nombre.
+Les coûts `sacrifice`/`heritage` (`canSummon`, `_isPlayable`, sélection de matériaux dans `GameScreen3D`) sont vérifiés via la **somme des `material_value`** des unités sélectionnées, pas via leur nombre.
 
 ---
 
@@ -891,9 +893,9 @@ Mode édition : déclenché via `DeckRepository.setPendingEdit(deckName)` avant 
 
 ## TestBench
 
-Écran développeur accessible depuis `MainMenu` (bouton TestBench).
+Écran développeur (`game/ui/screens/TestBench3D.js`) accessible depuis `MainMenu` (bouton "TestBench 3D (dev)").
 
-Différences avec `GameScreen` :
+Différences avec `GameScreen3D` :
 - Placement libre pour les deux équipes (pas de règles d'invocation, pas de main, pas de deck)
 - Filtre par `summon_type` dans le browser de cartes
 - Suppression d'une unité par clic droit (ou long press mobile)
@@ -905,9 +907,9 @@ Différences avec `GameScreen` :
 
 ---
 
-## Mode 3D (dev)
+## Mode 3D
 
-Variante expérimentale du board en Three.js (rendu WebGL + CSS3D), accessible uniquement depuis `MainMenu` (bouton "Jouer (3D — dev)"). Réservée au développement, non destinée aux joueurs.
+Rendu du board en Three.js (WebGL + CSS3D), accessible depuis `MainMenu` (bouton "Jouer (3D — dev)"). C'est l'unique mode de rendu du jeu — les écrans 2D (`GameScreen.js`, `TestBench.js`, `BoardGrid.js`, `CombatAnimator.js`) ont été supprimés.
 
 **Three.js** chargé via CDN (`jsdelivr`), déclaré dans une `importmap` (`index.html`) :
 
@@ -922,29 +924,30 @@ Variante expérimentale du board en Three.js (rendu WebGL + CSS3D), accessible u
 ### Routes (`game/main.js`)
 
 ```js
-game3d: () => import('./ui/screens/GameScreen3D.js'),
+game3d:      () => import('./ui/screens/GameScreen3D.js'),
+testbench3d: () => import('./ui/screens/TestBench3D.js'),
 ```
 
 ### `game/ui/components/Board3D.js`
 
-Équivalent 3D de `BoardGrid.js` — **même API publique** (`setBoard`, `setHighlight`, `refresh`, `enterCombatMode`, ...) + accesseurs additionnels consommés par `CombatAnimator3D`. Grille 5×11 (mêmes conventions que `Board.js` : joueur rangées 0–3, neutre 4–6, ennemi 7–10).
+Grille 5×11 (mêmes conventions que `Board.js` : joueur rangées 0–3, neutre 4–6, ennemi 7–10) — **API publique** : `setBoard`, `setHighlight`, `refresh`, `enterCombatMode`, ... + accesseurs additionnels consommés par `CombatAnimator3D`.
 
-- Tuiles = mesh WebGL (`THREE.Scene`), unités = `CSS3DObject` enveloppant les éléments DOM produits par `createUnitEl`/`updateUnitEl` (`UnitCard.js`) — donc le rendu des unités reste identique au mode 2D.
+- Tuiles = mesh WebGL (`THREE.Scene`), unités = `CSS3DObject` enveloppant les éléments DOM produits par `createUnitEl`/`updateUnitEl` (`UnitCard.js`).
 - `createBoard3D(container, opts)` — factory async (charge Three.js + CSS3DRenderer), retourne une instance `Board3D`.
 - Surlignages (highlight, matériaux candidats/sélectionnés, cases bloquées) rendus via un anneau CSS (`box-shadow`) sur le wrapper CSS3D, mis à l'échelle (`CSS_SCALE = CELL / CARD_PX`) pour compenser le scaling du `CSS3DObject`.
 
 ### `game/ui/components/CombatAnimator3D.js`
 
-Équivalent 3D de `CombatAnimator.js` — consomme `CombatManager.step()` au même rythme (`BASE_TICK_MS = 180 / speed`), pilote les animations sur `Board3D` au lieu du DOM 2D direct. Même contrat : pas de logique de combat ici, uniquement consommation d'événements.
+Consomme `CombatManager.step()` au même rythme (`BASE_TICK_MS = 180 / speed`), pilote les animations sur `Board3D`. Même contrat que la logique : pas de logique de combat ici, uniquement consommation d'événements.
 
 ### `game/ui/screens/GameScreen3D.js`
 
-Variante 3D de `GameScreen.js` — même logique de jeu (`GameState`, `Board`, `CombatManager`, `InvocationManager`, `AttributeManager`, `EnemyAI`, Phase Shopping, etc.), mais utilise `Board3D` + `CombatAnimator3D` au lieu de `BoardGrid` + `CombatAnimator`. Doit être maintenu en parallèle de `GameScreen.js` pour toute évolution de la boucle de jeu — la logique (`logic/`) est partagée et ne change pas.
+Boucle de jeu complète (`GameState`, `Board`, `CombatManager`, `InvocationManager`, `AttributeManager`, `EnemyAI`, Phase Shopping, etc.) pilotant `Board3D` + `CombatAnimator3D`.
 
 ### CSS (`index.html` / `game/game.css`)
 
 - `.game3d-3d .unit-card { pointer-events: none; cursor: default; }` — le board 3D gère tous les pointer events via le canvas WebGL ; les `.unit-card` (rendues en CSS3D) ne doivent pas intercepter les événements.
-- `.game3d-wrap` / `.game3d-3d` (GameScreen3D) — conteneurs plein écran (`position: absolute; inset: 0`) pour les renderers WebGL + CSS3D.
+- `.game3d-wrap` / `.game3d-3d` (GameScreen3D, TestBench3D) — conteneurs plein écran (`position: absolute; inset: 0`) pour les renderers WebGL + CSS3D.
 
 ---
 

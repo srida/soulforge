@@ -3,7 +3,7 @@ import * as DeckRepository from '../../data/DeckRepository.js';
 import * as PublicDeckDatabase from '../../data/PublicDeckDatabase.js';
 
 export async function mount(container, params = {}) {
-  const target = params.target || 'game';
+  const target = params.target || 'game3d';
   let selectedPlayer = null;       // nom du deck privé sélectionné
   let selectedPublic = null;       // deck public sélectionné { id, name, deck }
   let selectedEnemy  = null;

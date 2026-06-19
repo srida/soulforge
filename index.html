@@ -327,37 +327,6 @@
 .hud-hp.enemy { color: var(--red); }
 .hud-mult { font-size: 11px; font-weight: 700; color: var(--accent); opacity: 0.9; }
 
-/* Board grid — largeur contrainte pour que les cases soient carrées sans dépasser la hauteur dispo */
-.board-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-  width: 100%;
-  max-width: min(100%, calc(50vh * 5 / var(--board-rows, 4)));
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.board-cell {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
-  aspect-ratio: 1;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.board-cell:hover { border-color: var(--muted); }
-.board-cell.highlighted { border-color: var(--accent); background: #1c1840; }
-.board-cell.selected-cell { border-color: var(--accent); background: #1c1840; outline: 2px solid var(--accent); }
-.board-cell.occupied { background: var(--surface2); }
-.board-cell.material-candidate { border-color: var(--yellow); background: rgba(240, 192, 64, 0.08); cursor: pointer; }
-.board-cell.material-selected-cell { border-color: var(--green); background: rgba(76, 175, 128, 0.2); }
 .unit-card.material-selected { outline: 3px solid var(--green); }
 .unit-card.material-candidate { outline: 3px solid var(--yellow); }
 .hand-card.dim { opacity: 0.35; }
@@ -688,19 +657,6 @@
 .graveyard-units .unit-team-hex { width: 9px; }
 .graveyard-units .unit-team-hex::before { width: 6px; height: 7px; }
 
-/* ── Combat projectile ──────────────────────────────────────────── */
-.combat-projectile {
-  position: fixed;
-  pointer-events: none;
-  z-index: 60;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--yellow);
-  box-shadow: 0 0 8px 3px rgba(240, 192, 64, 0.85);
-  transform: translate(-50%, -50%);
-}
-
 /* ── Combat animations ──────────────────────────────────────────── */
 @keyframes anim-shake {
   0%,100% { transform: translateX(0); }
@@ -734,10 +690,6 @@
   0%,100% { transform: scale(1); }
   50%     { transform: scale(1.18); }
 }
-@keyframes anim-death {
-  0%   { opacity: 1; filter: grayscale(0); }
-  100% { opacity: 0; filter: grayscale(1) brightness(0.5); }
-}
 .anim-shake      { animation: anim-shake      0.28s ease; }
 .anim-hit        { animation: anim-hit        0.25s ease; }
 .anim-heal       { animation: anim-heal       0.35s ease; }
@@ -745,13 +697,6 @@
 .anim-poison     { animation: anim-poison     0.32s ease; }
 .anim-paralysis  { animation: anim-paralysis  0.35s ease; }
 .anim-power-cast { animation: anim-power-cast 0.3s  ease; }
-.anim-death      { animation: anim-death      0.42s ease forwards; pointer-events: none; }
-
-@keyframes anim-target-cell {
-  0%,100% { box-shadow: none; }
-  40%     { box-shadow: inset 0 0 0 2px var(--red), 0 0 6px rgba(240,64,80,0.35); }
-}
-.attack-target-cell { animation: anim-target-cell 0.22s ease; }
 
 /* ── Speed controls ─────────────────────────────────────────────── */
 .combat-speed-controls {
@@ -775,13 +720,6 @@
   font-weight: 700;
   color: var(--muted);
   padding-bottom: 6px;
-}
-
-/* ── Board combat mode ──────────────────────────────────────────── */
-/* --available-h is set by ResizeObserver on #board-area in GameScreen.js.
-   gap_h = 10 row-gaps(40) + 2 separators(18) = 58px; gap_w = 4 × 4px = 16px */
-.board-grid.combat-mode {
-  max-width: min(100%, calc((var(--available-h, 500px) - 58px) * 5 / 11 + 16px));
 }
 
 /* End-of-round overlay */
@@ -886,38 +824,6 @@
   z-index: 1;
 }
 
-/* ── Separators between zones in combat mode ── */
-.combat-separator {
-  grid-column: 1 / -1;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--muted) 15%, var(--accent) 50%, var(--muted) 85%, transparent 100%);
-  margin: 4px 0 3px;
-  pointer-events: none;
-  opacity: 0.6;
-}
-/* Neutral zone cells (rows 4–6) — slightly dimmed to distinguish them */
-.board-cell.neutral-zone {
-  background: rgba(255, 255, 255, 0.02);
-  border-color: rgba(136, 146, 176, 0.3);
-}
-
-/* Blocked cells — impassable terrain */
-.board-cell.blocked-cell {
-  background: rgba(100, 30, 30, 0.55) !important;
-  border-color: rgba(200, 70, 70, 0.5) !important;
-  cursor: not-allowed;
-  position: relative;
-}
-.board-cell.blocked-cell::after {
-  content: '✕';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 14px;
-  color: rgba(255, 100, 100, 0.75);
-  pointer-events: none;
-  line-height: 1;
-}
 
 
 /* ── Mobile: prevent iOS long-press from saving images ── */
@@ -1043,11 +949,6 @@ img {
 .tb-side-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: #1c1840; }
 /* Keep attribute panel always in layout to avoid board shift when first unit is placed */
 .tb-board-col .attribute-panel:empty { display: flex; min-height: 44px; }
-.tb-board-col .board-area { flex: 1; min-height: 0; padding: 4px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center; }
-/* --available-h is set by ResizeObserver on #tb-board-area in TestBench.js (prep + combat). */
-.tb-board-col .board-grid {
-  max-width: min(100%, calc((var(--available-h, 500px) - 58px) * 5 / 11 + 16px));
-}
 
 /* Terrain selector row (TestBench) */
 .tb-terrain-row {
