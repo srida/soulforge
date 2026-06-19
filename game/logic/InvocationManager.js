@@ -8,8 +8,9 @@ import { Unit } from './Unit.js';
  */
 
 // Transformation is always 1-for-1 (replaces its target in place), so it never counts against the slot limit.
+// A free_transformation (no target consumed) takes a brand new cell, so it must count like a normal summon.
 export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots) {
-  if (card.summon_type === 'transformation') return false;
+  if (card.summon_type === 'transformation' && !card._free_transformation) return false;
   const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
   const afterPlace = board.getLivingUnitsOnSide('player').length - materialsOnBoard + 1;
   return afterPlace > playerBoardSlots;

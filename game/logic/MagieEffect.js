@@ -69,7 +69,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null } = {})
       if (gameState) gameState.player_hp = Math.min(gameState.player_hp + e.value, 1000);
       break;
     case 'board_slot_bonus':
-      if (gameState) gameState.player_board_slots += (e.value || 1);
+      if (gameState) gameState.grantLimitedBoardSlotBonus(e.value || 1);
       break;
     case 'draw_bonus':
       if (gameState) gameState.player_extra_draws += (e.value || 1);

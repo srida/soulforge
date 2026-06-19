@@ -23,6 +23,8 @@ export class GameState {
     // Expanded by board_slot_bonus attribute effect
     this.player_board_slots = DEFAULT_BOARD_SLOTS;
     this.enemy_board_slots  = DEFAULT_BOARD_SLOTS;
+    // Yeux bleus / Réaction en chaîne / Fission share a single +1 slot cap (non cumulable)
+    this._limitedBoardSlotBonusUsed = 0;
 
     // Carry-over from previous rounds
     this.player_extra_draws = 0;   // accumulated draw_bonus
@@ -69,7 +71,7 @@ export class GameState {
 
     // Accumulate end-of-combat attribute bonuses
     if (attributeResult.board_slot_bonus) {
-      this.player_board_slots += attributeResult.board_slot_bonus;
+      this.grantLimitedBoardSlotBonus(attributeResult.board_slot_bonus);
     }
     if (attributeResult.draw_bonus) {
       this.player_extra_draws += attributeResult.draw_bonus;
@@ -77,6 +79,18 @@ export class GameState {
     if (attributeResult.guaranteed_draws?.length) {
       this.player_guaranteed_draws.push(...attributeResult.guaranteed_draws);
     }
+  }
+
+  /**
+   * Grants board slot bonus from the shared, non-stackable +1 pool
+   * (Yeux bleus attribute, magies Réaction en chaîne / Fission).
+   * Returns the amount actually granted (0 once the cap is reached).
+   */
+  grantLimitedBoardSlotBonus(value, cap = 1) {
+    const grant = Math.max(0, Math.min(value, cap - this._limitedBoardSlotBonusUsed));
+    this.player_board_slots += grant;
+    this._limitedBoardSlotBonusUsed += grant;
+    return grant;
   }
 
   /**
