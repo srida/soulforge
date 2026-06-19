@@ -208,7 +208,7 @@ Chaque partie dure 5 tours.
 
 Pour chaque tour :
 
-1. Préparation (30 secondes — placement des cartes)
+1. Préparation (60 secondes — placement des cartes — timer affiché dans `.phase-controls`, déclenche `runCombat()` automatiquement à 0)
 2. Combat (auto-résolu, animé)
 3. Fin de combat (dégâts aux HP, nettoyage)
 4. Phase Shopping (sauf dernier tour) — choix d'une magie parmi 3

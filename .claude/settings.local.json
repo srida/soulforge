@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/list-code-tickets.mjs)",
+      "Bash(env)",
+      "mcp__claude_ai_Notion__notion-search",
+      "mcp__claude_ai_Notion__notion-fetch",
+      "Bash(NOTION_API_KEY=\"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\" NOTION_DB_ID=\"56e7d6db04e04abbb808dc71456c0d17\" node scripts/list-code-tickets.mjs)",
+      "Bash(NOTION_API_KEY=\"abc\" NOTION_DB_ID=\"def\" node -e \"console.log\\(process.env.NOTION_API_KEY, process.env.NOTION_DB_ID\\)\")"
+    ]
+  }
+}

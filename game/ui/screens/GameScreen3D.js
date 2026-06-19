@@ -82,6 +82,7 @@ export async function mount(container, params = {}) {
       </div>
       <div class="hand-area" id="hand-area"></div>
       <div class="phase-controls">
+        <div class="prep-timer" id="prep-timer" style="display:none"></div>
         <button class="btn btn-primary btn-full" id="btn-combat">Lancer le combat</button>
         <div class="combat-speed-controls" id="speed-controls" style="display:none">
           <span class="speed-label">Vitesse</span>
@@ -98,6 +99,32 @@ export async function mount(container, params = {}) {
   const handArea   = container.querySelector('#hand-area');
   const btnCombat  = container.querySelector('#btn-combat');
   const phaseLabel = container.querySelector('#phase-label');
+  const prepTimerEl = container.querySelector('#prep-timer');
+
+  const PREP_DURATION_S = 60;
+  let _prepInterval = null;
+
+  function _stopPrepTimer() {
+    if (_prepInterval) clearInterval(_prepInterval);
+    _prepInterval = null;
+    prepTimerEl.style.display = 'none';
+  }
+
+  function _startPrepTimer() {
+    _stopPrepTimer();
+    let remaining = PREP_DURATION_S;
+    prepTimerEl.style.display = '';
+    prepTimerEl.textContent = `⏱ ${remaining}s`;
+    _prepInterval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        _stopPrepTimer();
+        if (gameState.phase === Phase.PREPARATION) runCombat();
+        return;
+      }
+      prepTimerEl.textContent = `⏱ ${remaining}s`;
+    }, 1000);
+  }
 
   // ── Components ───────────────────────────────────────────────────────────
 
@@ -114,6 +141,7 @@ export async function mount(container, params = {}) {
 
   container.querySelector('#btn-back').addEventListener('click', () => {
     board3D.destroy();
+    _stopPrepTimer();
     navigate('main_menu');
   }, { once: true });
 
@@ -685,11 +713,13 @@ export async function mount(container, params = {}) {
     _updateHUD();
     _refreshGraveyard();
     _refreshAttributePanel();
+    _startPrepTimer();
   }
 
   // ── Combat ───────────────────────────────────────────────────────────────
 
   function runCombat() {
+    _stopPrepTimer();
     graveyard = [];
     enemyGraveyard = [];
     btnCombat.disabled = true;
