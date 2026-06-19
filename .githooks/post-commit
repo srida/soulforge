@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# post-commit hook : lance la synchro GDD en arrière-plan
+# pour ne jamais bloquer ou ralentir un commit.
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+nohup "$REPO_ROOT/scripts/gdd-sync.sh" >> "$REPO_ROOT/.gdd-sync.log" 2>&1 &
+disown
