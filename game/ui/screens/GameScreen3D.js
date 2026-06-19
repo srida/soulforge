@@ -888,6 +888,8 @@ export async function mount(container, params = {}) {
 
   // ── Shopping phase ───────────────────────────────────────────────────────
 
+  const SHOPPING_DURATION_S = 15;
+
   function _startShopping(winner) {
     const offered = MagieDatabase.getRandomMagies(3);
     if (!offered.length) { gameState.nextRound(); startPreparation(); return; }
@@ -897,6 +899,7 @@ export async function mount(container, params = {}) {
     overlay.innerHTML = `
       <div class="shopping-title">✨ Phase Shopping</div>
       <div class="shopping-subtitle">Choisissez une magie</div>
+      <div class="shopping-timer" id="shopping-timer">⏱ ${SHOPPING_DURATION_S}s</div>
       <div class="shopping-magies-row">
         ${offered.map((m, i) => `
           <div class="shopping-magie-card" data-idx="${i}">
@@ -913,9 +916,25 @@ export async function mount(container, params = {}) {
     `;
     container.appendChild(overlay);
 
+    const timerEl = overlay.querySelector('#shopping-timer');
+    let remaining = SHOPPING_DURATION_S;
+    const shoppingInterval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(shoppingInterval);
+        if (!overlay.isConnected) return;
+        const chosen = offered[Math.floor(Math.random() * offered.length)];
+        overlay.remove();
+        _applyChosenMagie(chosen, winner);
+        return;
+      }
+      timerEl.textContent = `⏱ ${remaining}s`;
+    }, 1000);
+
     overlay.querySelectorAll('.shopping-magie-card').forEach(card => {
       card.addEventListener('pointerdown', e => {
         e.stopPropagation();
+        clearInterval(shoppingInterval);
         const chosen = offered[+card.dataset.idx];
         overlay.remove();
         _applyChosenMagie(chosen, winner);
