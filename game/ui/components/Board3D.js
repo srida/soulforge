@@ -166,9 +166,10 @@ export class Board3D {
 
   _cameraFraming(combatMode) {
     const THREE = this.THREE;
+    const showFullBoard = combatMode || this.showEnemySide;
     const minRow = 0;
-    const maxRow = combatMode ? TOTAL_ROWS - 1 : PLAYER_ROWS - 1;
-    const rowsVisible = (combatMode ? TOTAL_ROWS : PLAYER_ROWS) + 1.5;
+    const maxRow = showFullBoard ? TOTAL_ROWS - 1 : PLAYER_ROWS - 1;
+    const rowsVisible = (showFullBoard ? TOTAL_ROWS : PLAYER_ROWS) + 1.5;
     const centerZ = (zForRow(minRow) + zForRow(maxRow)) / 2;
     const vFov = THREE.MathUtils.degToRad(FOV);
     const aspect = this._aspect();
