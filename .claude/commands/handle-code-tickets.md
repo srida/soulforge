@@ -24,10 +24,9 @@ Pour chaque ticket, dans l'ordre :
    le contexte technique lié à la demande.
 3. Évalue la complexité :
    - **Simple** (bug clair, petite feature bien cadrée, changement localisé) :
-     - Implémente la solution.
-     - Crée une branche `code/<slug-du-titre>`.
+     - Implémente la solution directement sur la branche `master`.
      - Commit avec un message clair référençant le ticket.
-     - Si `gh` est configuré, ouvre une pull request en mode draft.
+     - Ne pousse pas (`git push`). Reste local pour l'instant. Pas de branche, pas de PR.
    - **Complexe / ambigu** (besoin de clarification, choix d'architecture,
      impact transverse, risque élevé) :
      - N'écris PAS de code.
@@ -35,7 +34,7 @@ Pour chaque ticket, dans l'ordre :
        questions ouvertes, recommandation.
 4. Rédige un commentaire de synthèse (5-10 lignes max) qui sera posté sur le
    ticket :
-   - Cas simple : ce qui a été fait, lien de la branche/PR, comment tester.
+   - Cas simple : ce qui a été fait, le commit (hash/message) sur `master` (non poussé), comment tester.
    - Cas complexe : l'analyse + les questions à trancher.
 5. Mets à jour le ticket :
 ```
@@ -48,5 +47,5 @@ node scripts/update-ticket.mjs "<page_id>" "<commentaire>" "<nouveau statut>"
 ## Étape 3 — Récapitulatif
 
 Une fois tous les tickets traités, affiche un résumé : combien traités en
-mode "code direct", combien en mode "analyse", avec les liens de PR et de
-tickets correspondants.
+mode "code direct" (avec les commits locaux sur `master`, non poussés),
+combien en mode "analyse", avec les liens des tickets correspondants.
