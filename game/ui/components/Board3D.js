@@ -65,6 +65,7 @@ export class Board3D {
     this.onUnitLongPress = opts.onUnitLongPress || null;
     this.powerDb = opts.powerDb || null;
     this.attributeDb = opts.attributeDb || null;
+    this.showEnemySide = opts.showEnemySide || false;
 
     this.board = null;
     this.unitObjs = new Map(); // uid -> { unit, obj, wrap, el, pos }
@@ -510,7 +511,7 @@ export class Board3D {
   // ── Unités CSS3D ──────────────────────────────────────────────────────────
 
   _visibilityFor(unit) {
-    return (this._combatMode || unit.side === 'player') ? 1 : 0;
+    return (this._combatMode || this.showEnemySide || unit.side === 'player') ? 1 : 0;
   }
 
   _createTierFrame(tier) {
