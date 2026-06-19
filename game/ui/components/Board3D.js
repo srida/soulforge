@@ -22,12 +22,16 @@ function elementForCard(unit) {
 
 const CSS3D_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/renderers/CSS3DRenderer.js';
 
+// Low-end devices (few cores) get fewer shatter fragments per kill — deep-cloning the
+// full unit-card DOM (image + badges) per fragment is the dominant cost during AOE wipes.
+const LOW_END_DEVICE = (navigator.hardwareConcurrency || 8) <= 4;
+
 export const COLS = 5;
 export const TOTAL_ROWS = 11;
 const PLAYER_ROWS = 4;   // rangées 0-3
 const ENEMY_START = 7;   // rangées 7-10
 const CELL = 1;
-const CARD_PX = 90;
+export const CARD_PX = 90;
 const CSS_SCALE = CELL / CARD_PX;
 const FOV = 40;
 // CSS3DObject scales the unit-card DOM by CSS_SCALE, so a screen-visible Npx ring
@@ -124,6 +128,7 @@ export class Board3D {
   _buildTiles() {
     const THREE = this.THREE;
     const tileGeo = new THREE.BoxGeometry(CELL * 0.94, 0.1, CELL * 0.94);
+    this.tileGeometry = tileGeo;
     this.tileMeshes = [];
     this.tilesByKey = new Map();
     for (let row = 0; row < TOTAL_ROWS; row++) {
@@ -603,6 +608,10 @@ export class Board3D {
       { fc: 4, fr: 4, speed: 3.80, vy: 2.00, rot: 22, fi: 12.0, fR: 7.0, fL: 0.30, pc: 140, fS: 1.00, halo: false, spMax: 3.2, ltMax: 2.2, mLife: 0.56, grav: 5.5 },
       { fc: 6, fr: 5, speed: 6.00, vy: 3.00, rot: 30, fi: 28.0, fR:14.0, fL: 0.45, pc: 220, fS: 1.00, halo: true,  spMax: 2.5, ltMax: 2.0, mLife: 0.65, grav: 5.0 },
     ][tier - 1];
+    if (LOW_END_DEVICE) {
+      KILL_CFG.fc = Math.max(2, Math.ceil(KILL_CFG.fc / 2));
+      KILL_CFG.fr = Math.max(2, Math.ceil(KILL_CFG.fr / 2));
+    }
 
     // Gèle toutes les animations CSS de la carte avant de la masquer
     entry.obj.visible = false;
@@ -812,7 +821,7 @@ export class Board3D {
     const el = this.renderer.domElement;
     this._pointerState = null;
 
-    el.addEventListener('pointerdown', (e) => {
+    this._onPointerDown = (e) => {
       let cell = this._cellFromEvent(e);
       const entry = (cell && this._entryAt(cell)) || this._unitNear(e.clientX, e.clientY);
       if (entry) cell = { ...entry.unit.position };
@@ -836,9 +845,9 @@ export class Board3D {
         }, 500);
       }
       this._pointerState = state;
-    });
+    };
 
-    window.addEventListener('pointermove', (e) => {
+    this._onPointerMove = (e) => {
       const state = this._pointerState;
       if (!state) return;
       const dx = e.clientX - state.startX;
@@ -855,9 +864,9 @@ export class Board3D {
           state.entry.obj.position.set(t.x, 0.3, t.z);
         }
       }
-    });
+    };
 
-    window.addEventListener('pointerup', (e) => {
+    this._onPointerUp = (e) => {
       const state = this._pointerState;
       if (!state) return;
       this._pointerState = null;
@@ -873,7 +882,11 @@ export class Board3D {
         return;
       }
       this.onCellTap(state.cell);
-    });
+    };
+
+    el.addEventListener('pointerdown', this._onPointerDown);
+    window.addEventListener('pointermove', this._onPointerMove);
+    window.addEventListener('pointerup', this._onPointerUp);
   }
 
   // ── Boucle de rendu / resize ─────────────────────────────────────────────
@@ -966,8 +979,26 @@ export class Board3D {
 
   destroy() {
     this._running = false;
+    if (this._pointerState?.longPressTimer) clearTimeout(this._pointerState.longPressTimer);
+    this._pointerState = null;
+
+    this.renderer.domElement.removeEventListener('pointerdown', this._onPointerDown);
+    window.removeEventListener('pointermove', this._onPointerMove);
+    window.removeEventListener('pointerup', this._onPointerUp);
     window.removeEventListener('resize', this._resizeHandler);
     if (this._resizeObserver) this._resizeObserver.disconnect();
+
+    for (const tile of this.tileMeshes) tile.material.dispose();
+    this.tileGeometry.dispose();
+    for (const sep of this._separators) {
+      sep.geometry.dispose();
+      sep.material.dispose();
+    }
+    for (const b of this.bursts) {
+      if (b.points) { b.points.geometry.dispose(); b.points.material.dispose(); }
+      if (b.ring) { b.ring.geometry.dispose(); b.ring.material.dispose(); }
+    }
+
     this.renderer.dispose();
   }
 }

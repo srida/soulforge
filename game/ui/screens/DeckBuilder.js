@@ -304,16 +304,7 @@ export async function mount(container, params = {}) {
   updateSave();
 }
 
-function _costHint(card) {
-  if (card.summon_type === 'sacrifice') {
-    const n = card.cost?.sacrifice ?? 0;
-    return n > 0 ? `×${n}💀` : null;
-  }
-  if (card.summon_type === 'fusion')         return '⚗';
-  if (card.summon_type === 'heritage')         return '🔮';
-  if (card.summon_type === 'transformation') return '🔄';
-  return null;
-}
+const _costHint = CardDatabase.costHint;
 
 function esc(str) {
   return String(str)

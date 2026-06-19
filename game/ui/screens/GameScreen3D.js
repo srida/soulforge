@@ -6,6 +6,7 @@ import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import * as MagieDatabase from '../../data/MagieDatabase.js';
 import { applyEffect as applyMagieEffect, needsUnitTarget, needsGraveyardTarget, effectLabel as magieEffectLabel } from '../../logic/MagieEffect.js';
+import { applyEffect as applyBoardEffect } from '../../logic/BoardEffect.js';
 import { Unit } from '../../logic/Unit.js';
 import { Board } from '../../logic/Board.js';
 import { GameState, Phase } from '../../logic/GameState.js';
@@ -13,6 +14,17 @@ import { EnemyAI } from '../../logic/EnemyAI.js';
 import { AttributeManager } from '../../logic/AttributeManager.js';
 import { CombatManager } from '../../logic/CombatManager.js';
 import * as InvocationManager from '../../logic/InvocationManager.js';
+import { matchesMaterial as _matchesMaterial } from '../../logic/InvocationManager.js';
+import {
+  needsMaterials as _needsMaterials,
+  materialsComplete as _materialsComplete,
+  transformTargetCells as _transformTargetCells,
+  materialCandidateCells as _materialCandidateCells,
+  materialCandidateGraveyard as _materialCandidateGraveyardRule,
+  isPlayable as _isPlayable,
+  validCells as _validCellsRule,
+} from '../../logic/InvocationRules.js';
+import { tiersForRound as _tiersForRound, drawHand as _drawHand } from '../../logic/Draw.js';
 import { createBoard3D } from '../components/Board3D.js';
 import { HandUI } from '../components/HandUI.js';
 import { CombatAnimator3D } from '../components/CombatAnimator3D.js';
@@ -20,6 +32,13 @@ import { createUnitEl } from '../components/UnitCard.js';
 import * as Tooltip from '../components/Tooltip.js';
 
 const HAND_SIZE = 5;
+
+let _activeUnmount = null;
+
+export function unmount() {
+  if (_activeUnmount) _activeUnmount();
+  _activeUnmount = null;
+}
 
 export async function mount(container, params = {}) {
   await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init(), BoardDatabase.init(), MagieDatabase.init()]);
@@ -140,10 +159,13 @@ export async function mount(container, params = {}) {
   window.__b3 = board3D;
 
   container.querySelector('#btn-back').addEventListener('click', () => {
-    board3D.destroy();
-    _stopPrepTimer();
     navigate('main_menu');
   }, { once: true });
+
+  _activeUnmount = () => {
+    board3D.destroy();
+    _stopPrepTimer();
+  };
 
   // Board indicator tap → tooltip
   container.querySelector('#board-indicator').addEventListener('pointerdown', e => {
@@ -261,14 +283,9 @@ export async function mount(container, params = {}) {
     const result = InvocationManager.canSummon(card, pos, board, hand, graveyard);
     if (!result.ok) { _flashError(result.reason); return; }
 
-    // Board slot limit (transformation is always 1-for-1, skip)
-    if (card.summon_type !== 'transformation') {
-      const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
-      const afterPlace = board.getLivingUnitsOnSide('player').length - materialsOnBoard + 1;
-      if (afterPlace > gameState.player_board_slots) {
-        _flashError(`Maximum ${gameState.player_board_slots} unités sur le terrain`);
-        return;
-      }
+    if (InvocationManager.exceedsBoardSlots(card, selectedMaterials, board, graveyard, gameState.player_board_slots)) {
+      _flashError(`Maximum ${gameState.player_board_slots} unités sur le terrain`);
+      return;
     }
     const selIdx = handUI.getSelectedIdx();
     InvocationManager.summon(card, pos, board, hand, selectedMaterials.length > 0 ? selectedMaterials : null, selIdx);
@@ -336,60 +353,7 @@ export async function mount(container, params = {}) {
   }
 
   function _validCells(card) {
-    // Don't show placement cells until required materials are selected
-    if (_needsMaterials(card, board, graveyard) && !_materialsComplete(card, selectedMaterials)) return [];
-
-    // Board slot limit (transformation is always 1-for-1, skip)
-    if (card.summon_type !== 'transformation') {
-      const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
-      const afterPlace = board.getLivingUnitsOnSide('player').length - materialsOnBoard + 1;
-      if (afterPlace > gameState.player_board_slots) return [];
-    }
-
-    // For transformation with free flag → any empty player cell
-    if (card.summon_type === 'transformation' && card._free_transformation) {
-      const cells = [];
-      for (let r = 0; r <= 3; r++)
-        for (let c = 0; c < 5; c++)
-          if (!board.isOccupied({ col: c, row: r })) cells.push({ col: c, row: r });
-      return cells;
-    }
-
-    // For transformation:
-    if (card.summon_type === 'transformation') {
-      const targetId = card.cost?.materials?.[0];
-      const boardTarget = board.getLivingUnitsOnSide('player').find(u => _matchesMaterial(u, targetId));
-      if (boardTarget) return [{ ...boardTarget.position }];
-      // Graveyard target selected → show all empty player cells
-      const graveTarget = selectedMaterials.find(u => _matchesMaterial(u, targetId) && graveyard.includes(u));
-      if (graveTarget) {
-        const cells = [];
-        for (let r = 0; r <= 3; r++)
-          for (let c = 0; c < 5; c++)
-            if (!board.isOccupied({ col: c, row: r })) cells.push({ col: c, row: r });
-        return cells;
-      }
-      return [];
-    }
-
-    // Only board materials free cells (graveyard units have no board position)
-    const willBeFreed = new Set(
-      selectedMaterials
-        .filter(u => !graveyard.includes(u))
-        .map(u => `${u.position.col},${u.position.row}`)
-    );
-
-    const cells = [];
-    for (let r = 0; r <= 3; r++)
-      for (let c = 0; c < 5; c++) {
-        const pos = { col: c, row: r };
-        if (willBeFreed.has(`${c},${r}`)) {
-          cells.push(pos);  // freed by material consumption
-        } else if (InvocationManager.canSummon(card, pos, board, hand, graveyard).ok) {
-          cells.push(pos);
-        }
-      }
-    return cells;
+    return _validCellsRule(card, { board, hand, graveyard, selectedMaterials, playerBoardSlots: gameState.player_board_slots });
   }
 
   function _refreshMaterialHighlight() {
@@ -404,44 +368,7 @@ export async function mount(container, params = {}) {
 
   // Returns graveyard units that are valid material candidates for the card
   function _materialCandidateGraveyard(card, alreadySelected) {
-    if (!graveyard.length) return [];
-    const selected = new Set(alreadySelected);
-    const avail = graveyard.filter(u => !selected.has(u));
-
-    if (card.summon_type === 'sacrifice') {
-      const needed = card.cost?.sacrifice ?? 0;
-      if (_sumMaterialValue(alreadySelected) >= needed) return [];
-      return avail;
-    }
-
-    if (card.summon_type === 'fusion') {
-      const required = card.cost?.materials ?? [];
-      const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
-      const stillNeeded = required.filter(id => !coveredIds.includes(id));
-      if (stillNeeded.length === 0) return [];
-      return avail.filter(u => stillNeeded.some(id => _matchesMaterial(u, id)));
-    }
-
-    if (card.summon_type === 'heritage') {
-      const required = card.cost?.materials ?? [];
-      const sacrifice = card.cost?.sacrifice ?? 0;
-      if (_sumMaterialValue(alreadySelected) >= sacrifice) return [];
-      const uncovered = _getUncoveredRequirements(required, alreadySelected);
-      const remainingSlots = sacrifice - _sumMaterialValue(alreadySelected);
-      if (uncovered.length > 0 && uncovered.length === remainingSlots)
-        return avail.filter(u => uncovered.some(matId => _matchesMaterial(u, matId)));
-      return avail;
-    }
-
-    if (card.summon_type === 'transformation') {
-      const targetId = card.cost?.materials?.[0];
-      if (!targetId) return [];
-      // Only when there's no board target does the graveyard one become usable
-      if (board.getLivingUnitsOnSide('player').find(u => _matchesMaterial(u, targetId))) return [];
-      return avail.filter(u => _matchesMaterial(u, targetId));
-    }
-
-    return [];
+    return _materialCandidateGraveyardRule(card, alreadySelected, graveyard, board);
   }
 
   function _refreshAttributePanel() {
@@ -615,25 +542,7 @@ export async function mount(container, params = {}) {
   }
 
   function _applyBoardEffect(effect, playerUnits, enemyUnits) {
-    const allUnits = [...playerUnits, ...enemyUnits];
-    const targets = effect.target_attributes?.length
-      ? allUnits.filter(u => u.attributes.some(a => effect.target_attributes.includes(a)))
-      : allUnits;
-    switch (effect.type) {
-      case 'stat_bonus':
-        for (const u of targets) u.applyStatBonus(effect.stat, effect.value);
-        break;
-      case 'stat_modifier':
-        // Convert multiplicative to additive equivalent so resetCombatStats() cleans it up
-        for (const u of targets) u.applyStatBonus(effect.stat, Math.round(u._base[effect.stat] * (effect.value - 1)));
-        break;
-      case 'shield':
-        for (const u of targets) u.applyShield(effect.value);
-        break;
-      case 'draw_bonus':
-        gameState.player_extra_draws = (gameState.player_extra_draws || 0) + effect.value;
-        break;
-    }
+    applyBoardEffect(effect, { playerUnits, enemyUnits, gameState });
   }
 
   // ── Preparation ──────────────────────────────────────────────────────────
@@ -1126,183 +1035,4 @@ export async function mount(container, params = {}) {
   // ── Start ────────────────────────────────────────────────────────────────
 
   startPreparation();
-}
-
-// ── Material selection helpers ────────────────────────────────────────────────
-
-function _needsMaterials(card, board = null, graveyard = []) {
-  if (card.summon_type === 'sacrifice') return (card.cost?.sacrifice ?? 0) > 0;
-  if (card.summon_type === 'fusion')   return (card.cost?.materials?.length ?? 0) > 0;
-  if (card.summon_type === 'heritage')   return (card.cost?.materials?.length ?? 0) > 0 || (card.cost?.sacrifice ?? 0) > 0;
-  if (card.summon_type === 'transformation') {
-    if (card._free_transformation) return false;
-    // Only needs explicit material selection when the target isn't alive on the board
-    const targetId = card.cost?.materials?.[0];
-    if (!targetId || !board) return false;
-    return !board.getLivingUnitsOnSide('player').find(u => _matchesMaterial(u, targetId));
-  }
-  return false;
-}
-
-// Total material "slots" represented by a list of units (fusion/heritage/sacrifice
-// results count as multiple materials).
-function _sumMaterialValue(units) {
-  return units.reduce((sum, u) => sum + (u.material_value ?? 1), 0);
-}
-
-function _materialsComplete(card, mats) {
-  if (card.summon_type === 'sacrifice') {
-    return _sumMaterialValue(mats) >= (card.cost?.sacrifice ?? 0);
-  }
-  if (card.summon_type === 'fusion') {
-    const required = card.cost?.materials ?? [];
-    const coveredIds = mats.flatMap(u => u.represented_ids ?? [u.card_id]);
-    return required.every(id => coveredIds.includes(id));
-  }
-  if (card.summon_type === 'heritage') {
-    const required = card.cost?.materials ?? [];
-    const sacrifice = card.cost?.sacrifice ?? 0;
-    // Need exactly `sacrifice` material slots total, all material constraints satisfied among them
-    return _sumMaterialValue(mats) >= sacrifice && _getUncoveredRequirements(required, mats).length === 0;
-  }
-  if (card.summon_type === 'transformation') {
-    const targetId = card.cost?.materials?.[0];
-    if (!targetId) return true;
-    return mats.some(u => _matchesMaterial(u, targetId));
-  }
-  return true;
-}
-
-// Returns the position of the on-board unit a transformation will replace (tap-to-transform target).
-function _transformTargetCells(card, board) {
-  if (card.summon_type !== 'transformation' || card._free_transformation) return [];
-  const targetId = card.cost?.materials?.[0];
-  if (!targetId) return [];
-  const target = board.getLivingUnitsOnSide('player').find(u => _matchesMaterial(u, targetId));
-  return target ? [{ ...target.position }] : [];
-}
-
-// Returns positions of units that can still be selected as material for the given card.
-function _materialCandidateCells(card, alreadySelected, board) {
-  if (!_needsMaterials(card)) return [];
-  const units = board.getLivingUnitsOnSide('player');
-  const selected = new Set(alreadySelected);
-
-  if (card.summon_type === 'sacrifice') {
-    const needed = card.cost?.sacrifice ?? 0;
-    if (_sumMaterialValue(alreadySelected) >= needed) return [];
-    return units.filter(u => !selected.has(u)).map(u => ({ ...u.position }));
-  }
-
-  if (card.summon_type === 'fusion') {
-    const required = card.cost?.materials ?? [];
-    const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
-    const stillNeeded = required.filter(id => !coveredIds.includes(id));
-    if (stillNeeded.length === 0) return [];
-    return units.filter(u => !selected.has(u) && stillNeeded.some(id => _matchesMaterial(u, id))).map(u => ({ ...u.position }));
-  }
-
-  if (card.summon_type === 'heritage') {
-    const required = card.cost?.materials ?? [];
-    const sacrifice = card.cost?.sacrifice ?? 0;
-    if (_sumMaterialValue(alreadySelected) >= sacrifice) return [];
-    const uncovered = _getUncoveredRequirements(required, alreadySelected);
-    const remainingSlots = sacrifice - _sumMaterialValue(alreadySelected);
-    // If remaining slots == uncovered requirements, only allow units matching those requirements
-    if (uncovered.length > 0 && uncovered.length === remainingSlots) {
-      return units
-        .filter(u => !selected.has(u) && uncovered.some(matId => _matchesMaterial(u, matId)))
-        .map(u => ({ ...u.position }));
-    }
-    // Free slots available — any unit is acceptable
-    return units.filter(u => !selected.has(u)).map(u => ({ ...u.position }));
-  }
-
-  return [];
-}
-
-// Returns true if the card can potentially be played given the current board state.
-// Used to grey out unplayable cards in hand. Intentionally lenient: doesn't check
-// for empty cells when materials will be freed by the summon itself.
-function _isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
-  if (card.summon_type === 'normal') {
-    if (board.getLivingUnitsOnSide('player').length >= maxSlots) return false;
-    return _hasEmptyPlayerCell(board);
-  }
-  if (card.summon_type === 'sacrifice') {
-    const needed = card.cost?.sacrifice ?? 0;
-    if (needed === 0) return _hasEmptyPlayerCell(board);
-    return _sumMaterialValue(board.getLivingUnitsOnSide('player')) + _sumMaterialValue(graveyard) >= needed;
-  }
-  if (card.summon_type === 'fusion') {
-    const materials = card.cost?.materials ?? [];
-    if (materials.length === 0) return _hasEmptyPlayerCell(board);
-    const units = board.getUnitsOnSide('player');
-    return materials.every(id =>
-      units.find(u => _matchesMaterial(u, id) && u.isAlive()) ||
-      graveyard.find(u => _matchesMaterial(u, id))
-    );
-  }
-  if (card.summon_type === 'heritage') {
-    const required = card.cost?.materials ?? [];
-    const sacrifice = card.cost?.sacrifice ?? 0;
-    const allUnits = [...board.getUnitsOnSide('player'), ...graveyard];
-    if (_sumMaterialValue(allUnits) < sacrifice) return false;
-    return _getUncoveredRequirements(required, allUnits).length === 0;
-  }
-  if (card.summon_type === 'transformation') {
-    if (card._free_transformation) return _hasEmptyPlayerCell(board);
-    const targetId = card.cost?.materials?.[0];
-    if (!targetId) return false;
-    return !!board.getUnitsOnSide('player').find(u => _matchesMaterial(u, targetId) && u.isAlive()) ||
-           !!graveyard.find(u => _matchesMaterial(u, targetId));
-  }
-  return _hasEmptyPlayerCell(board);
-}
-
-// Material helpers — a requirement can be a card ID (CORE_*) or an attribute ID (ARCH_*).
-// Transformation results count as the original monster (represented_ids).
-function _matchesMaterial(unit, matId) {
-  if (matId.startsWith('ARCH_')) return unit.attributes?.includes(matId) ?? false;
-  return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
-}
-
-// Returns the subset of `required` not yet covered by `selectedUnits` (greedy, order-stable).
-function _getUncoveredRequirements(required, selectedUnits) {
-  const pool = [...selectedUnits];
-  return required.filter(matId => {
-    const idx = pool.findIndex(u => _matchesMaterial(u, matId));
-    if (idx !== -1) { pool.splice(idx, 1); return false; }
-    return true;
-  });
-}
-
-
-function _hasEmptyPlayerCell(board) {
-  for (let r = 0; r <= 3; r++)
-    for (let c = 0; c < 5; c++)
-      if (!board.isOccupied({ col: c, row: r })) return true;
-  return false;
-}
-
-// Tiers available per round:
-// T1: R1  T2: R1+  T3: R3+  T4: R4+  T5: R5+
-// R1:[1]  R2:[1,2]  R3:[1,2,3]  R4:[2,3,4]  R5+:[3,4,5]
-function _tiersForRound(round) {
-  if (round <= 1) return [1];
-  if (round === 2) return [1, 2];
-  if (round === 3) return [1, 2, 3];
-  if (round === 4) return [2, 3, 4];
-  return [3, 4, 5];
-}
-
-// Draw `count` cards randomly from the eligible tiers (duplicates allowed)
-function _drawHand(cardsByTier, round, count) {
-  const pool = _tiersForRound(round).flatMap(t => cardsByTier[t] ?? []);
-  if (pool.length === 0) return [];
-  const hand = [];
-  for (let i = 0; i < count; i++) {
-    hand.push(pool[Math.floor(Math.random() * pool.length)]);
-  }
-  return hand;
 }

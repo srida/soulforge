@@ -7,7 +7,8 @@ import { Board } from '../../logic/Board.js';
 import { Unit } from '../../logic/Unit.js';
 import { AttributeManager } from '../../logic/AttributeManager.js';
 import { CombatManager } from '../../logic/CombatManager.js';
-import { createBoard3D } from '../components/Board3D.js';
+import { applyEffect as applyBoardEffect } from '../../logic/BoardEffect.js';
+import { createBoard3D, CARD_PX } from '../components/Board3D.js';
 import { CombatAnimator3D } from '../components/CombatAnimator3D.js';
 import * as Tooltip from '../components/Tooltip.js';
 
@@ -16,7 +17,13 @@ import * as Tooltip from '../components/Tooltip.js';
 
 const TIERS = [1, 2, 3, 4, 5];
 const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
-const CARD_PX = 90;
+
+let _activeUnmount = null;
+
+export function unmount() {
+  if (_activeUnmount) _activeUnmount();
+  _activeUnmount = null;
+}
 
 export async function mount(container) {
   await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init(), BoardDatabase.init()]);
@@ -268,21 +275,7 @@ export async function mount(container) {
   }
 
   function _applyBoardEffect(effect, playerUnits, enemyUnits) {
-    const all = [...playerUnits, ...enemyUnits];
-    const targets = effect.target_attributes?.length
-      ? all.filter(u => u.attributes.some(a => effect.target_attributes.includes(a)))
-      : all;
-    switch (effect.type) {
-      case 'stat_bonus':
-        for (const u of targets) u.applyStatBonus(effect.stat, effect.value);
-        break;
-      case 'stat_modifier':
-        for (const u of targets) u.applyStatBonus(effect.stat, Math.round(u._base[effect.stat] * (effect.value - 1)));
-        break;
-      case 'shield':
-        for (const u of targets) u.applyShield(effect.value);
-        break;
-    }
+    applyBoardEffect(effect, { playerUnits, enemyUnits });
   }
 
   function _refreshAttributePanel() {
@@ -431,26 +424,20 @@ export async function mount(container) {
   // ── Back ──────────────────────────────────────────────────────────────────
 
   container.querySelector('#tb-back').addEventListener('click', () => {
-    if (phase === 'combat') stopCombat();
-    board3D.destroy();
     navigate('main_menu');
   });
+
+  _activeUnmount = () => {
+    if (phase === 'combat') stopCombat();
+    board3D.destroy();
+  };
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
   renderBrowser();
 }
 
-function _costHint(card) {
-  if (card.summon_type === 'sacrifice') {
-    const n = card.cost?.sacrifice ?? 0;
-    return n > 0 ? `×${n}💀` : null;
-  }
-  if (card.summon_type === 'fusion')         return '⚗';
-  if (card.summon_type === 'heritage')         return '🔮';
-  if (card.summon_type === 'transformation') return '🔄';
-  return null;
-}
+const _costHint = CardDatabase.costHint;
 
 function _esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

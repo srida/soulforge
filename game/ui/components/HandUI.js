@@ -1,4 +1,5 @@
 import * as Tooltip from './Tooltip.js';
+import { costHint as _costHint } from '../../data/CardDatabase.js';
 
 export class HandUI {
   constructor(container, { onSelect, powerDb = null, attributeDb = null, cardDb = null, isPlayable = null } = {}) {
@@ -106,17 +107,6 @@ export class HandUI {
       this._container.appendChild(el);
     });
   }
-}
-
-function _costHint(card) {
-  if (card.summon_type === 'sacrifice') {
-    const n = card.cost?.sacrifice ?? 0;
-    return n > 0 ? `×${n}💀` : null;
-  }
-  if (card.summon_type === 'fusion') return '⚗';
-  if (card.summon_type === 'heritage') return '🔮';
-  if (card.summon_type === 'transformation') return '🔄';
-  return null;
 }
 
 function esc(s) {

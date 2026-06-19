@@ -7,6 +7,14 @@ import { Unit } from './Unit.js';
  * board: Board
  */
 
+// Transformation is always 1-for-1 (replaces its target in place), so it never counts against the slot limit.
+export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots) {
+  if (card.summon_type === 'transformation') return false;
+  const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
+  const afterPlace = board.getLivingUnitsOnSide('player').length - materialsOnBoard + 1;
+  return afterPlace > playerBoardSlots;
+}
+
 export function canSummon(card, pos, board, hand, graveyard = []) {
   if (!board.isInBounds(pos)) return fail('Position hors limites');
   if (!board.isPlayerCell(pos)) return fail('Placement uniquement sur le côté joueur (rangées 0–3)');
@@ -176,15 +184,17 @@ function fail(reason) { return { ok: false, reason }; }
 
 // A material requirement matches either a specific card ID or an attribute ID.
 // Transformation results count as the original monster (represented_ids).
-function _matchesMaterial(unit, matId) {
+export function matchesMaterial(unit, matId) {
   if (matId.startsWith('ARCH_')) return unit.attributes?.includes(matId) ?? false;
   return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
+const _matchesMaterial = matchesMaterial;
 
 // Total material "slots" represented by a list of units.
-function _sumMaterialValue(units) {
+export function sumMaterialValue(units) {
   return units.reduce((sum, u) => sum + (u.material_value ?? 1), 0);
 }
+const _sumMaterialValue = sumMaterialValue;
 
 // Take units one by one until their combined material_value reaches `needed`.
 function _takeByMaterialValue(units, needed) {

@@ -47,3 +47,14 @@ export function buildDeckFromIds(idsByTier) {
 export function illustrationUrl(id) {
   return `/illustrations/${id}`;
 }
+
+export function costHint(card) {
+  if (card.summon_type === 'sacrifice') {
+    const n = card.cost?.sacrifice ?? 0;
+    return n > 0 ? `×${n}💀` : null;
+  }
+  if (card.summon_type === 'fusion') return '⚗';
+  if (card.summon_type === 'heritage') return '🔮';
+  if (card.summon_type === 'transformation') return '🔄';
+  return null;
+}

@@ -9,12 +9,15 @@ const SCREENS = {
 
 const container = document.getElementById('screen');
 let currentScreen = null;
+let currentModule = null;
 
 export async function navigate(screenName, params = {}) {
   if (!SCREENS[screenName]) throw new Error(`Unknown screen: ${screenName}`);
+  currentModule?.unmount?.();
   container.innerHTML = '';
   currentScreen = screenName;
   const mod = await SCREENS[screenName]();
+  currentModule = mod;
   await mod.mount(container, params);
 }
 

@@ -1,4 +1,6 @@
 import { Unit } from './Unit.js';
+import { tiersForRound } from './Draw.js';
+import { matchesMaterial } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
 
@@ -27,7 +29,7 @@ export class EnemyAI {
    * @returns {Object[]} drawn cards
    */
   drawHand(round) {
-    const tiers = _tiersForRound(round);
+    const tiers = tiersForRound(round);
     const pool = [];
     for (const t of tiers) {
       for (const id of (this._deck[String(t)] ?? [])) {
@@ -251,12 +253,12 @@ function _tryPlace(card, board, maxUnits, graveyard) {
 
       // Satisfy explicit material constraints first (board priority, then graveyard)
       for (const matId of required) {
-        let idx = boardPool.findIndex(u => _matchesMaterial(u, matId));
+        let idx = boardPool.findIndex(u => matchesMaterial(u, matId));
         if (idx !== -1) {
           toConsumeBoard.push(boardPool[idx]);
           boardPool.splice(idx, 1);
         } else {
-          idx = gravePool.findIndex(u => _matchesMaterial(u, matId));
+          idx = gravePool.findIndex(u => matchesMaterial(u, matId));
           if (idx !== -1) {
             toConsumeGrave.push(gravePool[idx]);
             gravePool.splice(idx, 1);
@@ -337,16 +339,3 @@ function _freeCells(board) {
   return cells;
 }
 
-// A material ID matches either a specific card or an attribute tag.
-function _matchesMaterial(unit, matId) {
-  if (matId.startsWith('ARCH_')) return unit.attributes?.includes(matId) ?? false;
-  return unit.card_id === matId;
-}
-
-function _tiersForRound(round) {
-  if (round <= 1) return [1];
-  if (round === 2) return [1, 2];
-  if (round === 3) return [1, 2, 3];
-  if (round === 4) return [2, 3, 4];
-  return [3, 4, 5];
-}
