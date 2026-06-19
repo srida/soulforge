@@ -6,7 +6,6 @@ const SCREENS = {
   game:          () => import('./ui/screens/GameScreen.js'),
   testbench:     () => import('./ui/screens/TestBench.js'),
   testbench3d:   () => import('./ui/screens/TestBench3D.js'),
-  poc3d:         () => import('./ui/screens/Poc3D.js'),
   game3d:        () => import('./ui/screens/GameScreen3D.js'),
 };
 

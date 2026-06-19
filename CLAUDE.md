@@ -907,7 +907,7 @@ Différences avec `GameScreen` :
 
 ## Mode 3D (dev)
 
-Variante expérimentale du board en Three.js (rendu WebGL + CSS3D), accessible uniquement depuis `MainMenu` (boutons "POC 3D (dev)" et "Jouer (3D — dev)"). Réservée au développement, non destinée aux joueurs.
+Variante expérimentale du board en Three.js (rendu WebGL + CSS3D), accessible uniquement depuis `MainMenu` (bouton "Jouer (3D — dev)"). Réservée au développement, non destinée aux joueurs.
 
 **Three.js** chargé via CDN (`jsdelivr`), déclaré dans une `importmap` (`index.html`) :
 
@@ -917,18 +917,13 @@ Variante expérimentale du board en Three.js (rendu WebGL + CSS3D), accessible u
 </script>
 ```
 
-`CSS3DRenderer` / `CSS3DObject` sont importés directement depuis le CDN (`examples/jsm/renderers/CSS3DRenderer.js`) dans `Board3D.js` et `Poc3D.js`.
+`CSS3DRenderer` / `CSS3DObject` sont importés directement depuis le CDN (`examples/jsm/renderers/CSS3DRenderer.js`) dans `Board3D.js`.
 
 ### Routes (`game/main.js`)
 
 ```js
-poc3d:  () => import('./ui/screens/Poc3D.js'),
 game3d: () => import('./ui/screens/GameScreen3D.js'),
 ```
-
-### `game/ui/screens/Poc3D.js`
-
-Proof of concept : board 5×8 vue du dessus, tuiles WebGL + cartes en CSS3D (réutilise `UnitCard.js` sans modification), main via `HandUI`. Sert de bac à sable indépendant de `GameScreen`.
 
 ### `game/ui/components/Board3D.js`
 
@@ -949,7 +944,7 @@ Variante 3D de `GameScreen.js` — même logique de jeu (`GameState`, `Board`, `
 ### CSS (`index.html` / `game/game.css`)
 
 - `.game3d-3d .unit-card { pointer-events: none; cursor: default; }` — le board 3D gère tous les pointer events via le canvas WebGL ; les `.unit-card` (rendues en CSS3D) ne doivent pas intercepter les événements.
-- `.poc3d-wrap` / `.poc3d-3d` / `.poc3d-hint` (POC), `.game3d-wrap` / `.game3d-3d` (GameScreen3D) — conteneurs plein écran (`position: absolute; inset: 0`) pour les renderers WebGL + CSS3D.
+- `.game3d-wrap` / `.game3d-3d` (GameScreen3D) — conteneurs plein écran (`position: absolute; inset: 0`) pour les renderers WebGL + CSS3D.
 
 ---
 
