@@ -61,6 +61,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null } = {})
     case 'revive':
       if (targetUnit) {
         targetUnit.is_neutralized = false;
+        targetUnit._deathEmitted = false;
         targetUnit.current_hp = Math.max(1, Math.round(targetUnit.max_hp * (e.value / 100)));
       }
       break;
