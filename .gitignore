@@ -4,3 +4,4 @@ node_modules/
 /resources/
 .gdd-sync.log
 .gdd-last-sync
+.claude/settings.local.json
