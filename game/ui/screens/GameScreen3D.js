@@ -66,6 +66,7 @@ export async function mount(container, params = {}) {
   let enemyUnits    = [];
   let enemyHand     = [];
   let enemyGraveyard = [];
+  let combatSpeed = 1; // persists across rounds (Tour suivant ne doit pas réinitialiser la vitesse choisie)
   let _graveyardElMap = new Map(); // uid → DOM element (smart diff to avoid img rebuilds)
   let selectedCard = null;
   let selectedBoardPos = null;
@@ -670,14 +671,16 @@ export async function mount(container, params = {}) {
     const speedControls = container.querySelector('#speed-controls');
     speedControls.style.display = '';
 
-    // Wire speed buttons (once per combat)
-    let currentSpeed = 1;
+    // Wire speed buttons (once per combat) — réutilise la vitesse choisie au tour précédent
     const animator = new CombatAnimator3D(combat, board3D, {
       onFinished: () => _finishCombat(combat, playerUnits, attributeManager),
       onStep: (events) => {
         if (events.some(e => e.type === 'stat_change')) _flashAttributeChips();
       },
     });
+    animator.setSpeed(combatSpeed);
+    speedControls.querySelectorAll('.speed-btn[data-speed]')
+      .forEach(b => b.classList.toggle('active', +b.dataset.speed === combatSpeed));
 
     const btnPause = speedControls.querySelector('#btn-pause');
     let isPaused = false;
@@ -696,8 +699,8 @@ export async function mount(container, params = {}) {
 
     speedControls.querySelectorAll('.speed-btn[data-speed]').forEach(btn => {
       btn.addEventListener('click', () => {
-        currentSpeed = +btn.dataset.speed;
-        animator.setSpeed(currentSpeed);
+        combatSpeed = +btn.dataset.speed;
+        animator.setSpeed(combatSpeed);
         speedControls.querySelectorAll('.speed-btn[data-speed]')
           .forEach(b => b.classList.toggle('active', b === btn));
       }, { once: false });
