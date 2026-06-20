@@ -45,15 +45,19 @@ Ticket d'origine : <url du ticket>
 - Idée 2 — ...
 - (2 à 4 idées, pas plus — privilégier la qualité à la quantité)
 
-## ⚖️ Pour / Contre
+## 🤖 Proposition d'un prompt Claude Code
+
+Pour chaque idée, rédige un prompt prêt à copier-coller dans Claude Code pour l'implémenter :
+concret, ancré dans l'architecture réelle (fichiers, classes, conventions logic/ vs ui/ du
+projet), décrivant le comportement attendu et les cas limites à gérer. Pas de bloc de code
+(```) — le convertisseur Notion ne les supporte pas et afficherait les backticks tels quels ;
+rédige le prompt en texte simple, comme un paragraphe.
 
 ### Idée 1
-- Pour : ...
-- Contre : ...
+Prompt proposé : <prompt rédigé, prêt à être donné à Claude Code>
 
 ### Idée 2
-- Pour : ...
-- Contre : ...
+Prompt proposé : <prompt rédigé, prêt à être donné à Claude Code>
 
 ## 📋 Proposition d'ajout au GDD
 
