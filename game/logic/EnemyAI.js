@@ -160,6 +160,8 @@ function _tryPlace(card, board, maxUnits, graveyard) {
   switch (card.summon_type) {
     case 'normal': {
       if (onBoard >= maxUnits) return null;
+      // Pas de doublon (même card_id) sur le terrain, comme pour le joueur
+      if (board.getLivingUnitsOnSide('enemy').some(u => u.card_id === card.id)) return null;
       const cells = _freeCells(board);
       if (cells.length === 0) return null;
       const unit = new Unit(card, 'enemy');
