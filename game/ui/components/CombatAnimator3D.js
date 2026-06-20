@@ -1,4 +1,5 @@
 import { updateUnitEl } from './UnitCard.js';
+import { ELEMENT_STYLES, elementsForUnit } from './Board3D.js';
 
 const BASE_TICK_MS = 180;
 
@@ -13,8 +14,6 @@ const POWER_NAMES = {
   POWER_DEBUFF:       'Débuff',
   POWER_BLOCK:        'Blocage',
 };
-
-const HIT_COLOR = 0xff6584;
 
 const POWER_COLORS = {
   POWER_HEAL:      0x4caf80,
@@ -105,10 +104,11 @@ export class CombatAnimator3D {
     const isFatal = dyingUids.has(target.uid);
     const atkEntry = this._board.getUnitEntry(attacker.uid);
     if (atkEntry) this._flashClass(atkEntry.el, 'anim-shake');
+    const projColor = (ELEMENT_STYLES[elementsForUnit(attacker)[0]] || ELEMENT_STYLES.neutral).color;
 
     if (attacker.range > 1) {
       if (atkEntry && target.position) {
-        this._board.playProjectile(attacker.position, target.position, HIT_COLOR).then(() => {
+        this._board.playProjectile(attacker.position, target.position, projColor).then(() => {
           if (!isFatal) this._hitTarget(target, attacker);
         });
       } else if (!isFatal) {
@@ -135,14 +135,19 @@ export class CombatAnimator3D {
         { pc: 55, rS: 6 },
         { pc: 70, rS: 8 },
       ][atier - 1];
-      this._board.spawnBurst(target.position, HIT_COLOR, ATK_CFG.pc, {
-        size: 0.04 + atier * 0.012,
-        speed: [0.4, 0.6 + atier * 0.3],
-        lift:  [0.3, 0.5 + atier * 0.2],
-        gravity: 8,
-        maxLife: 0.20 + atier * 0.04,
-      });
-      this._board.spawnRing(target.position, HIT_COLOR, 0.20 + atier * 0.04, ATK_CFG.rS);
+      const elements = elementsForUnit(attacker);
+      const perPc = Math.max(1, Math.round(ATK_CFG.pc / elements.length));
+      for (const element of elements) {
+        const style = ELEMENT_STYLES[element] || ELEMENT_STYLES.neutral;
+        this._board.spawnBurst(target.position, style.color, perPc, {
+          size: 0.04 + atier * 0.012,
+          speed: [0.4, 0.6 + atier * 0.3],
+          lift:  [0.3, 0.5 + atier * 0.2],
+          gravity: 8,
+          maxLife: 0.20 + atier * 0.04,
+        });
+        this._board.spawnRing(target.position, style.ringColor, 0.20 + atier * 0.04, ATK_CFG.rS);
+      }
     }
   }
 

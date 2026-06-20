@@ -2,19 +2,41 @@ import { createUnitEl, updateUnitEl } from './UnitCard.js';
 
 // Board3D — rendu Three.js du board (5 colonnes x 11 rangées) en remplacement de BoardGrid.
 
-const ELEMENT_STYLES = {
-  feu:    { color: 0xff6a3c, ringColor: 0xff8a3c, size: 0.08, speed: [1.5, 3.5], lift: [2, 4],     gravity: 2,  spin: 0, flash: false },
-  eau:    { color: 0x4fc3f7, ringColor: 0x4fc3f7, size: 0.06, speed: [0.8, 2],   lift: [0.5, 1.5], gravity: 10, spin: 0, flash: false },
-  foudre: { color: 0xfff066, ringColor: 0xfff9a8, size: 0.09, speed: [2, 5],     lift: [1, 4],     gravity: 6,  spin: 0, flash: true  },
-  vent:   { color: 0xb8ffd8, ringColor: 0xc8ffe0, size: 0.06, speed: [1, 2.5],   lift: [1, 2.5],   gravity: 1,  spin: 4, flash: false },
+export const ELEMENT_STYLES = {
+  feu:         { color: 0xff6a3c, ringColor: 0xff8a3c, size: 0.08, speed: [1.5, 3.5], lift: [2, 4],     gravity: 2,  spin: 0, flash: false },
+  eau:         { color: 0x4fc3f7, ringColor: 0x4fc3f7, size: 0.06, speed: [0.8, 2],   lift: [0.5, 1.5], gravity: 10, spin: 0, flash: false },
+  terre:       { color: 0xa0743c, ringColor: 0xc09058, size: 0.09, speed: [0.6, 1.6], lift: [0.4, 1.2], gravity: 14, spin: 0, flash: false },
+  air:         { color: 0xb8ffd8, ringColor: 0xc8ffe0, size: 0.06, speed: [1, 2.5],   lift: [1, 2.5],   gravity: 1,  spin: 4, flash: false },
+  foudre:      { color: 0xfff066, ringColor: 0xfff9a8, size: 0.09, speed: [2, 5],     lift: [1, 4],     gravity: 6,  spin: 0, flash: true  },
+  glace:       { color: 0xa8e8ff, ringColor: 0xc8f4ff, size: 0.07, speed: [0.6, 1.6], lift: [0.6, 1.6], gravity: 6,  spin: 1, flash: false },
+  sorcellerie: { color: 0xb86ae8, ringColor: 0xd8a0f8, size: 0.07, speed: [1, 2.4],   lift: [1.2, 2.8], gravity: 3,  spin: 3, flash: true  },
+  energie:     { color: 0x68f0e0, ringColor: 0x9cf8ec, size: 0.07, speed: [1.4, 3.2], lift: [1.4, 3.2], gravity: 2,  spin: 2, flash: true  },
+  metal:       { color: 0xc0c8d0, ringColor: 0xe0e6ec, size: 0.08, speed: [1, 2.6],   lift: [0.6, 1.8], gravity: 8,  spin: 0, flash: false },
+  sable:       { color: 0xe0c878, ringColor: 0xf0dca0, size: 0.07, speed: [0.8, 2],   lift: [0.6, 1.6], gravity: 5,  spin: 2, flash: false },
+  plante:      { color: 0x70c850, ringColor: 0x9ce078, size: 0.07, speed: [0.7, 1.8], lift: [0.8, 2],   gravity: 5,  spin: 1, flash: false },
+  neutral:     { color: 0xd8d8e0, ringColor: 0xe8e8f0, size: 0.06, speed: [0.8, 2],   lift: [0.5, 1.5], gravity: 8,  spin: 0, flash: false },
 };
-const ELEMENT_ORDER = ['feu', 'eau', 'foudre', 'vent'];
 
-function elementForCard(unit) {
-  const k = String(unit?.card_id ?? unit?.id ?? unit?.name ?? '');
-  let hash = 0;
-  for (let i = 0; i < k.length; i++) hash = (hash * 31 + k.charCodeAt(i)) >>> 0;
-  return ELEMENT_ORDER[hash % ELEMENT_ORDER.length];
+// Attribut "Élément" (ARCH_048..ARCH_058, voir data/attributes.json) -> clé de style visuel.
+const ELEMENT_ATTR_MAP = {
+  ARCH_048: 'feu',
+  ARCH_049: 'eau',
+  ARCH_050: 'terre',
+  ARCH_051: 'air',
+  ARCH_052: 'foudre',
+  ARCH_053: 'glace',
+  ARCH_054: 'sorcellerie',
+  ARCH_055: 'energie',
+  ARCH_056: 'metal',
+  ARCH_057: 'sable',
+  ARCH_058: 'plante',
+};
+
+// Une unité peut porter plusieurs attributs Élément ; les effets de toutes les unités
+// sans élément retombent sur le style 'neutral'.
+export function elementsForUnit(unit) {
+  const found = (unit?.attributes || []).map((id) => ELEMENT_ATTR_MAP[id]).filter(Boolean);
+  return found.length ? found : ['neutral'];
 }
 // Tuiles WebGL + unités CSS3D (réutilise UnitCard.js sans modification).
 // API publique miroir de BoardGrid (setBoard, setHighlight, refresh, enterCombatMode, ...)
@@ -394,9 +416,9 @@ export class Board3D {
     this.spawnFlash(center, color, 5, 5, 0.55);
   }
 
-  spawnElementImpact(position, element, tier = 1) {
+  spawnElementImpact(position, elements, tier = 1) {
     const THREE = this.THREE;
-    const style = ELEMENT_STYLES[element] || ELEMENT_STYLES.feu;
+    const list = elements && elements.length ? elements : ['neutral'];
     const t = Math.max(1, Math.min(5, tier));
     const CFG = [
       { count:  2, sM: 0.12, szM: 0.15, lM: 0.10, rS: 1.5, rL: 0.14, fi: 0,   fR: 0, fL: 0    },
@@ -405,18 +427,23 @@ export class Board3D {
       { count: 32, sM: 0.52, szM: 0.58, lM: 0.42, rS: 5.0, rL: 0.36, fi: 3.0, fR: 3, fL: 0.16 },
       { count: 50, sM: 0.68, szM: 0.72, lM: 0.55, rS: 7.0, rL: 0.45, fi: 5.0, fR: 4, fL: 0.20 },
     ][t - 1];
-    if (CFG.count > 0) {
-      this.spawnBurst(position, style.color, CFG.count, {
-        ...style,
-        size:    style.size * CFG.szM,
-        speed:   style.speed.map(v => v * CFG.sM),
-        lift:    style.lift.map(v => v * CFG.sM),
-        maxLife: CFG.lM,
-      });
+    // Plusieurs éléments -> un burst par élément, budget de particules réparti entre eux.
+    const perCount = Math.max(1, Math.round(CFG.count / list.length));
+    for (const element of list) {
+      const style = ELEMENT_STYLES[element] || ELEMENT_STYLES.neutral;
+      if (CFG.count > 0) {
+        this.spawnBurst(position, style.color, perCount, {
+          ...style,
+          size:    style.size * CFG.szM,
+          speed:   style.speed.map(v => v * CFG.sM),
+          lift:    style.lift.map(v => v * CFG.sM),
+          maxLife: CFG.lM,
+        });
+      }
+      this.spawnRing(new THREE.Vector3(position.x, 0, position.z), style.ringColor, CFG.rL, CFG.rS);
+      if (CFG.fi > 0) this.spawnFlash(position, style.color, CFG.fi / list.length, CFG.fR, CFG.fL);
     }
-    this.spawnRing(new THREE.Vector3(position.x, 0, position.z), style.ringColor, CFG.rL, CFG.rS);
-    if (CFG.fi > 0) this.spawnFlash(position, style.color, CFG.fi, CFG.fR, CFG.fL);
-    if (t === 5) this.spawnHalo(position, style.color);
+    if (t === 5) this.spawnHalo(position, (ELEMENT_STYLES[list[0]] || ELEMENT_STYLES.neutral).color);
   }
 
   playProjectile(fromPos, toPos, color = 0xffffff) {
@@ -552,8 +579,8 @@ export class Board3D {
     obj.scale.setScalar(CSS_SCALE);
     this.cssScene.add(obj);
 
-    const element = elementForCard(unit);
-    const entry = { unit, obj, wrap, el, pos: { ...pos }, element };
+    const elements = elementsForUnit(unit);
+    const entry = { unit, obj, wrap, el, pos: { ...pos }, elements };
     this._applyUnitHighlightClasses(entry);
 
     let t = 0;
@@ -565,7 +592,7 @@ export class Board3D {
         const eased = 1 - Math.pow(1 - p, 3);
         obj.position.y = THREE.MathUtils.lerp(3, 0.06, eased);
         if (p >= 1) {
-          this.spawnElementImpact(new THREE.Vector3(x, 0.1, z), element, unit.tier ?? 1);
+          this.spawnElementImpact(new THREE.Vector3(x, 0.1, z), elements, unit.tier ?? 1);
           return false;
         }
         return true;
@@ -598,7 +625,7 @@ export class Board3D {
     const x = entry.obj.position.x;
     const z = entry.obj.position.z;
     if (x === undefined) { this.cssScene.remove(entry.obj); return; }
-    const style = ELEMENT_STYLES[entry.element] || ELEMENT_STYLES.feu;
+    const elements = entry.elements && entry.elements.length ? entry.elements : ['neutral'];
     const tier = Math.max(1, Math.min(5, entry.unit.tier ?? 1));
 
     const KILL_CFG = [
@@ -668,14 +695,18 @@ export class Board3D {
     }
 
     this.spawnFlash(new THREE.Vector3(x, 0.5, z), 0xffffff, KILL_CFG.fi, KILL_CFG.fR, KILL_CFG.fL);
-    this.spawnBurst(new THREE.Vector3(x, 0.3, z), style.color, KILL_CFG.pc, {
-      size:    style.size * KILL_CFG.fS * 1.1,
-      speed:   [0.1, KILL_CFG.spMax],
-      lift:    [0.1, KILL_CFG.ltMax],
-      gravity: KILL_CFG.grav,
-      maxLife: KILL_CFG.mLife,
-    });
-    if (KILL_CFG.halo) this.spawnHalo(new THREE.Vector3(x, 0, z), style.color);
+    const perPc = Math.max(1, Math.round(KILL_CFG.pc / elements.length));
+    for (const element of elements) {
+      const style = ELEMENT_STYLES[element] || ELEMENT_STYLES.neutral;
+      this.spawnBurst(new THREE.Vector3(x, 0.3, z), style.color, perPc, {
+        size:    style.size * KILL_CFG.fS * 1.1,
+        speed:   [0.1, KILL_CFG.spMax],
+        lift:    [0.1, KILL_CFG.ltMax],
+        gravity: KILL_CFG.grav,
+        maxLife: KILL_CFG.mLife,
+      });
+    }
+    if (KILL_CFG.halo) this.spawnHalo(new THREE.Vector3(x, 0, z), (ELEMENT_STYLES[elements[0]] || ELEMENT_STYLES.neutral).color);
 
     const MAX_T = 1.2;
     let t = 0;
