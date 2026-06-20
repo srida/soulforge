@@ -1,4 +1,4 @@
-import { matchesMaterial, sumMaterialValue, canSummon, exceedsBoardSlots } from './InvocationManager.js';
+import { matchesMaterial, fusionMaterialLegit, sumMaterialValue, canSummon, exceedsBoardSlots } from './InvocationManager.js';
 
 export function needsMaterials(card, board = null, graveyard = []) {
   if (card.summon_type === 'sacrifice') return (card.cost?.sacrifice ?? 0) > 0;
@@ -20,6 +20,7 @@ export function materialsComplete(card, mats) {
   }
   if (card.summon_type === 'fusion') {
     const required = card.cost?.materials ?? [];
+    if (!mats.every(u => fusionMaterialLegit(u, required))) return false;
     const coveredIds = mats.flatMap(u => u.represented_ids ?? [u.card_id]);
     return required.every(id => coveredIds.includes(id));
   }
@@ -63,7 +64,7 @@ export function materialCandidateCells(card, alreadySelected, board) {
     const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
     const stillNeeded = required.filter(id => !coveredIds.includes(id));
     if (stillNeeded.length === 0) return [];
-    return units.filter(u => !selected.has(u) && stillNeeded.some(id => matchesMaterial(u, id))).map(u => ({ ...u.position }));
+    return units.filter(u => !selected.has(u) && fusionMaterialLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id))).map(u => ({ ...u.position }));
   }
 
   if (card.summon_type === 'heritage') {
@@ -102,7 +103,7 @@ export function materialCandidateGraveyard(card, alreadySelected, graveyard, boa
     const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
     const stillNeeded = required.filter(id => !coveredIds.includes(id));
     if (stillNeeded.length === 0) return [];
-    return avail.filter(u => stillNeeded.some(id => matchesMaterial(u, id)));
+    return avail.filter(u => fusionMaterialLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id)));
   }
 
   if (card.summon_type === 'heritage') {
@@ -146,8 +147,8 @@ export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
     if (materials.length === 0) return hasEmptyPlayerCell(board);
     const units = board.getUnitsOnSide('player');
     return materials.every(id =>
-      units.find(u => matchesMaterial(u, id) && u.isAlive()) ||
-      graveyard.find(u => matchesMaterial(u, id))
+      units.find(u => matchesMaterial(u, id) && u.isAlive() && fusionMaterialLegit(u, materials)) ||
+      graveyard.find(u => matchesMaterial(u, id) && fusionMaterialLegit(u, materials))
     );
   }
   if (card.summon_type === 'heritage') {

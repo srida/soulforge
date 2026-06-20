@@ -45,8 +45,8 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       if (materials.length === 0) return ok();
       const playerUnits = board.getUnitsOnSide('player');
       for (const matId of materials) {
-        const onBoard = playerUnits.find(u => _matchesMaterial(u, matId) && u.isAlive());
-        const inGrave = graveyard.find(u => _matchesMaterial(u, matId));
+        const onBoard = playerUnits.find(u => _fusionMaterialMatches(u, matId, materials) && u.isAlive());
+        const inGrave = graveyard.find(u => _fusionMaterialMatches(u, matId, materials));
         if (!onBoard && !inGrave)
           return fail(`Matériau manquant sur le terrain ou au cimetière : ${matId}`);
       }
@@ -125,14 +125,15 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         for (const u of sacrificeTargets) { board.removeUnit(u); consumed.push(u); }
       } else {
         // AI fallback: auto-select matching units
+        const fusionMaterials = card.cost?.materials ?? [];
         const fusionUnits = board.getUnitsOnSide('player');
-        for (const matId of (card.cost?.materials ?? [])) {
-          const mat = fusionUnits.find(u => _matchesMaterial(u, matId) && u.isAlive());
+        for (const matId of fusionMaterials) {
+          const mat = fusionUnits.find(u => _fusionMaterialMatches(u, matId, fusionMaterials) && u.isAlive() && !consumed.includes(u));
           if (mat) { board.removeUnit(mat); consumed.push(mat); }
         }
       }
       unit.material_value = (card.cost?.materials ?? []).length || 1;
-      unit.represented_ids = _inheritedRepresentedIds(card, consumed);
+      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -162,7 +163,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         consumed = toConsume;
       }
       unit.material_value = card.cost?.sacrifice || 1;
-      unit.represented_ids = _inheritedRepresentedIds(card, consumed);
+      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -220,16 +221,6 @@ function _removeFromHand(hand, cardId, atIdx = null) {
 function ok()         { return { ok: true,  reason: '' }; }
 function fail(reason) { return { ok: false, reason }; }
 
-// Fusion/Heritage results only inherit a single consumed material's lineage — a unit
-// built from several distinct materials can't stand in for any one of them individually
-// (e.g. Aile de feu, fusionné à partir d'Avian + un autre matériel, ne doit pas pouvoir
-// remplacer Avian pour une fusion ultérieure : sa lignée est diluée entre plusieurs origines).
-function _inheritedRepresentedIds(card, consumed) {
-  return consumed.length === 1
-    ? [...new Set([card.id, ...consumed[0].represented_ids])]
-    : [card.id];
-}
-
 // A material requirement matches either a specific card ID or an attribute ID.
 // Transformation results count as the original monster (represented_ids).
 export function matchesMaterial(unit, matId) {
@@ -237,6 +228,24 @@ export function matchesMaterial(unit, matId) {
   return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
 const _matchesMaterial = matchesMaterial;
+
+// A composite unit (built via a previous fusion/heritage/transformation) can only stand in for a
+// fusion material slot if every id it itself was built from is also required by THIS fusion.
+// Ex: "Aile de feu" (fusion d'Avian+Burstinatrix) ne peut pas remplacer Avian seul pour Marin
+// (qui ne requiert pas Burstinatrix), mais peut remplacer Avian+Burstinatrix à la fois pour
+// Electrum (qui requiert les deux) puisqu'elle ne "représente" rien hors de ce qui est demandé.
+export function fusionMaterialLegit(unit, requiredMaterials) {
+  const inherited = (unit.represented_ids ?? [unit.card_id]).filter(id => id !== unit.card_id);
+  return inherited.every(id => requiredMaterials.includes(id));
+}
+
+// matchesMaterial + fusionMaterialLegit combined — the check to use for fusion material candidates.
+export function fusionMaterialMatches(unit, matId, requiredMaterials) {
+  if (!matchesMaterial(unit, matId)) return false;
+  if (matId.startsWith('ARCH_')) return true;
+  return fusionMaterialLegit(unit, requiredMaterials);
+}
+const _fusionMaterialMatches = fusionMaterialMatches;
 
 // Total material "slots" represented by a list of units.
 export function sumMaterialValue(units) {
