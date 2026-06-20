@@ -126,6 +126,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         }
       }
       unit.material_value = (card.cost?.materials ?? []).length || 1;
+      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -155,6 +156,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         consumed = toConsume;
       }
       unit.material_value = card.cost?.sacrifice || 1;
+      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
     }
