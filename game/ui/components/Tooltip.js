@@ -1,3 +1,5 @@
+import { STAT_NAMES } from '../../logic/MagieEffect.js';
+
 let _el = null;
 
 function _ensure() {
@@ -109,7 +111,20 @@ export function unitHtml(unit, powerDb = null, attributeDb = null) {
     ${attributeNames.length ? `<div class="tip-attributes">${attributeNames.map(n => `<span class="badge">${esc(n)}</span>`).join('')}</div>` : ''}
     ${unit.shield > 0 ? `<div class="tip-power">🛡 Shield : ${unit.shield}</div>` : ''}
     ${powerName ? `<div class="tip-power">✨ ${esc(powerName)} ${unit.power_gauge}/${unit.power_speed}</div>` : ''}
+    ${_shoppingBonusHtml(unit)}
   `;
+}
+
+// Shopping Phase magies grant permanent stat bonuses that carry over through fusion/heritage/
+// transformation chains (see _shopping_bonus tracking in MagieEffect.js / InvocationManager.js).
+function _shoppingBonusHtml(unit) {
+  const bonus = unit._shopping_bonus;
+  if (!bonus) return '';
+  const parts = Object.entries(bonus)
+    .filter(([, value]) => value)
+    .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${STAT_NAMES[stat] || stat}`);
+  if (!parts.length) return '';
+  return `<div class="tip-power">🎁 Bonus Shopping : ${parts.map(esc).join(', ')}</div>`;
 }
 
 // Builds tooltip HTML for an attribute synergy chip

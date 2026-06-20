@@ -1,4 +1,4 @@
-const STAT_NAMES = {
+export const STAT_NAMES = {
   atk: 'ATK', hp: 'HP', attack_speed: 'Vit. attaque',
   movement_speed: 'Vit. déplacement', range: 'Portée', initiative: 'Initiative',
 };
