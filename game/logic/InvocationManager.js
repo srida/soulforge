@@ -108,28 +108,33 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         : _takeByMaterialValue(board.getLivingUnitsOnSide('player'), needed);
       for (const u of toRemove) board.removeUnit(u);
       unit.material_value = card._original_sacrifice ?? needed;
+      _transferShoppingBonuses(unit, toRemove);
       break;
     }
 
     case 'fusion': {
       _removeFromHand(hand, card.id, handIdx);
+      const consumed = [];
       if (sacrificeTargets && sacrificeTargets.length > 0) {
-        for (const u of sacrificeTargets) board.removeUnit(u);
+        for (const u of sacrificeTargets) { board.removeUnit(u); consumed.push(u); }
       } else {
         // AI fallback: auto-select matching units
         const fusionUnits = board.getUnitsOnSide('player');
         for (const matId of (card.cost?.materials ?? [])) {
           const mat = fusionUnits.find(u => _matchesMaterial(u, matId) && u.isAlive());
-          if (mat) board.removeUnit(mat);
+          if (mat) { board.removeUnit(mat); consumed.push(mat); }
         }
       }
       unit.material_value = (card.cost?.materials ?? []).length || 1;
+      _transferShoppingBonuses(unit, consumed);
       break;
     }
 
     case 'heritage': {
       _removeFromHand(hand, card.id, handIdx);
+      let consumed;
       if (sacrificeTargets && sacrificeTargets.length > 0) {
+        consumed = sacrificeTargets;
         for (const u of sacrificeTargets) board.removeUnit(u);
       } else {
         // AI fallback: pick required materials first, fill remaining slots with any unit
@@ -147,8 +152,10 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
           remaining -= (u.material_value ?? 1);
         }
         for (const u of toConsume) board.removeUnit(u);
+        consumed = toConsume;
       }
       unit.material_value = card.cost?.sacrifice || 1;
+      _transferShoppingBonuses(unit, consumed);
       break;
     }
 
@@ -163,6 +170,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
           pos = { ...targetUnit.position };
           unit.represented_ids = [...new Set([card.id, ...targetUnit.represented_ids])];
           board.removeUnit(targetUnit);
+          _transferShoppingBonuses(unit, [targetUnit]);
         }
       }
       break;
@@ -171,6 +179,27 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
 
   board.placeUnit(unit, pos);
   return unit;
+}
+
+// Carries permanent Shopping Phase stat bonuses (stat_bonus/stat_modifier magies) from
+// consumed/replaced units onto the resulting composite unit, summing positive contributions only.
+function _transferShoppingBonuses(unit, consumedUnits) {
+  const summed = {};
+  for (const u of consumedUnits) {
+    const bonus = u._shopping_bonus;
+    if (!bonus) continue;
+    for (const [stat, value] of Object.entries(bonus)) {
+      if (value > 0) summed[stat] = (summed[stat] || 0) + value;
+    }
+  }
+  const entries = Object.entries(summed);
+  if (entries.length === 0) return;
+  unit._shopping_bonus = unit._shopping_bonus || {};
+  for (const [stat, value] of entries) {
+    unit._base[stat] = (unit._base[stat] ?? 0) + value;
+    unit._shopping_bonus[stat] = (unit._shopping_bonus[stat] || 0) + value;
+  }
+  unit._recomputeStats();
 }
 
 function _removeFromHand(hand, cardId, atIdx = null) {

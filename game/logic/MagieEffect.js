@@ -3,6 +3,15 @@ const STAT_NAMES = {
   movement_speed: 'Vit. déplacement', range: 'Portée', initiative: 'Initiative',
 };
 
+// Records the actual permanent _base delta granted by a Shopping Phase magie, so that
+// InvocationManager can transfer it onto a composite unit if this unit is later consumed
+// as material (sacrifice/fusion/heritage) or replaced (transformation).
+function _trackShoppingBonus(unit, stat, delta) {
+  if (!delta) return;
+  unit._shopping_bonus = unit._shopping_bonus || {};
+  unit._shopping_bonus[stat] = (unit._shopping_bonus[stat] || 0) + delta;
+}
+
 export function needsUnitTarget(magie) {
   return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit'].includes(magie?.effect?.type);
 }
@@ -40,7 +49,9 @@ export function applyEffect(magie, { gameState = null, targetUnit = null } = {})
     case 'stat_bonus':
       if (targetUnit) {
         // Modify _base for permanence (survives resetCombatStats between rounds)
-        targetUnit._base[e.stat] = Math.max(1, (targetUnit._base[e.stat] ?? 0) + e.value);
+        const before = targetUnit._base[e.stat] ?? 0;
+        targetUnit._base[e.stat] = Math.max(1, before + e.value);
+        _trackShoppingBonus(targetUnit, e.stat, targetUnit._base[e.stat] - before);
         targetUnit._recomputeStats();
         if (e.stat === 'hp') targetUnit.current_hp = Math.min(targetUnit.max_hp, targetUnit.current_hp + e.value);
       }
@@ -49,6 +60,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null } = {})
       if (targetUnit) {
         const base = targetUnit._base[e.stat] ?? 0;
         targetUnit._base[e.stat] = Math.max(1, base + Math.round(base * (e.value - 1)));
+        _trackShoppingBonus(targetUnit, e.stat, targetUnit._base[e.stat] - base);
         targetUnit._recomputeStats();
       }
       break;
