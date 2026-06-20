@@ -91,6 +91,7 @@ export async function mount(container, params = {}) {
     <div class="game-layout">
       <div class="game-header-row">
         <div class="attribute-panel" id="attribute-panel"></div>
+        <div id="slot-indicator" class="board-ind" style="display:none"></div>
         <div id="board-indicator" class="board-ind" style="display:none"></div>
       </div>
       <div class="game3d-wrap" id="board-area">
@@ -372,11 +373,24 @@ export async function mount(container, params = {}) {
     return _materialCandidateGraveyardRule(card, alreadySelected, graveyard, board);
   }
 
+  function _updateSlotIndicator() {
+    const el = container.querySelector('#slot-indicator');
+    if (!el) return;
+    const occupied = board.getLivingUnitsOnSide('player').length;
+    el.innerHTML = `<span style="font-size:18px;flex-shrink:0;line-height:1">🧩</span><span class="board-ind-name">${occupied}/${gameState.player_board_slots}</span>`;
+    el.style.display = 'flex';
+  }
+
+  function _hideSlotIndicator() {
+    const el = container.querySelector('#slot-indicator');
+    if (el) el.style.display = 'none';
+  }
+
   function _refreshAttributePanel() {
     const panel = container.querySelector('#attribute-panel');
     if (!panel) return;
     const units = board.getLivingUnitsOnSide('player');
-    if (units.length === 0) { panel.innerHTML = ''; return; }
+    if (units.length === 0) { panel.innerHTML = ''; _updateSlotIndicator(); return; }
     const attributeList = AttributeDatabase.getAllAttributes();
     const mgr = new AttributeManager(attributeList, units, []);
     const synergies = mgr.getActiveSynergies(units);
@@ -397,6 +411,7 @@ export async function mount(container, params = {}) {
         Tooltip.toggle(Tooltip.attributeHtml(s.attr, s.count, s.activeThreshold, CardDatabase), chip);
       });
     });
+    _updateSlotIndicator();
   }
 
   function _flashAttributeChips() {
@@ -644,6 +659,7 @@ export async function mount(container, params = {}) {
     const boardData = BoardDatabase.getRandomBoard();
     board.setBlockedCells(boardData?.blocked_cells || []);
     board3D.setBlockedCells(boardData?.blocked_cells || []);
+    _hideSlotIndicator();
     _showBoardIndicator(boardData);
 
     // Player units + attributes
