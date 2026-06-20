@@ -243,7 +243,9 @@ Le pool dépend du tour :
 | 4 | Tier 2, 3, 4 |
 | 5+ | Tier 3, 4, 5 |
 
-Les cartes non jouées sont défaussées à la fin de la phase de préparation.
+La main est conservée entre les tours (taille illimitée) — les cartes non jouées s'accumulent avec la nouvelle pioche au tour suivant, sans impact sur le pool de tiers disponible.
+
+Pas de doublon (même `card_id`) sur le terrain joueur : `InvocationManager.canSummon` refuse l'invocation d'une carte déjà présente vivante sur le board joueur, sauf si l'exemplaire existant est lui-même consommé comme matériau de l'invocation en cours. Limité au côté joueur (l'IA ennemie n'est pas concernée).
 
 **Pioches garanties** (issues des effets d'attribut `guaranteed_draw`) :
 Ordre de priorité de résolution : Transformation > Heritage > Fusion > Pioche normale.

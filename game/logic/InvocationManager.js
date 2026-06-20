@@ -16,11 +16,15 @@ export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, pla
   return afterPlace > playerBoardSlots;
 }
 
-export function canSummon(card, pos, board, hand, graveyard = []) {
+export function canSummon(card, pos, board, hand, graveyard = [], consumedMaterials = []) {
   if (!board.isInBounds(pos)) return fail('Position hors limites');
   if (!board.isPlayerCell(pos)) return fail('Placement uniquement sur le côté joueur (rangées 0–3)');
   // La transformation place la carte sur la case de la cible (déjà occupée)
   if (card.summon_type !== 'transformation' && board.isOccupied(pos)) return fail('Case occupée');
+  // Pas de doublon (même card_id) sur le terrain joueur, sauf si l'exemplaire existant est lui-même consommé
+  const duplicate = board.getLivingUnitsOnSide('player')
+    .some(u => u.card_id === card.id && !consumedMaterials.includes(u));
+  if (duplicate) return fail('Cette carte est déjà présente sur le terrain');
 
   switch (card.summon_type) {
     case 'normal':

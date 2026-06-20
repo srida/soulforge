@@ -281,7 +281,7 @@ export async function mount(container, params = {}) {
   }
 
   function _tryPlace(card, pos) {
-    const result = InvocationManager.canSummon(card, pos, board, hand, graveyard);
+    const result = InvocationManager.canSummon(card, pos, board, hand, graveyard, selectedMaterials);
     if (!result.ok) { _flashError(result.reason); return; }
 
     if (InvocationManager.exceedsBoardSlots(card, selectedMaterials, board, graveyard, gameState.player_board_slots)) {
@@ -563,8 +563,9 @@ export async function mount(container, params = {}) {
     const guaranteedDraws = gameState.player_guaranteed_draws.splice(0);
     const extraDraws = gameState.player_extra_draws;
     gameState.player_extra_draws = 0; // consumed — re-earned each round from attributes
+    // La main est conservée entre les tours (taille illimitée) — on ajoute la pioche du tour
     const randomCount = Math.max(0, HAND_SIZE + extraDraws - guaranteedDraws.length);
-    hand = _drawHand(cardsByTier, gameState.round, randomCount);
+    hand = [...hand, ..._drawHand(cardsByTier, gameState.round, randomCount)];
 
     // Guaranteed draws bypass round-tier restrictions — search the full deck (all tiers),
     // matching the requested e.tier exactly when specified (magie guaranteed_draw)
