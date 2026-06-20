@@ -132,7 +132,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         }
       }
       unit.material_value = (card.cost?.materials ?? []).length || 1;
-      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
+      unit.represented_ids = _inheritedRepresentedIds(card, consumed);
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -162,7 +162,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         consumed = toConsume;
       }
       unit.material_value = card.cost?.sacrifice || 1;
-      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
+      unit.represented_ids = _inheritedRepresentedIds(card, consumed);
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -219,6 +219,16 @@ function _removeFromHand(hand, cardId, atIdx = null) {
 
 function ok()         { return { ok: true,  reason: '' }; }
 function fail(reason) { return { ok: false, reason }; }
+
+// Fusion/Heritage results only inherit a single consumed material's lineage — a unit
+// built from several distinct materials can't stand in for any one of them individually
+// (e.g. Aile de feu, fusionné à partir d'Avian + un autre matériel, ne doit pas pouvoir
+// remplacer Avian pour une fusion ultérieure : sa lignée est diluée entre plusieurs origines).
+function _inheritedRepresentedIds(card, consumed) {
+  return consumed.length === 1
+    ? [...new Set([card.id, ...consumed[0].represented_ids])]
+    : [card.id];
+}
 
 // A material requirement matches either a specific card ID or an attribute ID.
 // Transformation results count as the original monster (represented_ids).
