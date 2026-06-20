@@ -234,7 +234,12 @@ const _matchesMaterial = matchesMaterial;
 // Ex: "Aile de feu" (fusion d'Avian+Burstinatrix) ne peut pas remplacer Avian seul pour Marin
 // (qui ne requiert pas Burstinatrix), mais peut remplacer Avian+Burstinatrix à la fois pour
 // Electrum (qui requiert les deux) puisqu'elle ne "représente" rien hors de ce qui est demandé.
+// Exception : si la carte elle-même (son propre card_id) est un des matériaux requis, elle est
+// utilisée comme elle-même (pas comme substitut) — sa lignée d'origine n'a alors pas d'importance.
+// Ex: "Géant du tonnerre" (lui-même issu d'une Fusion) reste un matériel valide pour la
+// Transformation "Géant du Tonnerre Voltaïques" qui le requiert nommément.
 export function materialLineageLegit(unit, requiredMaterials) {
+  if (requiredMaterials.includes(unit.card_id)) return true;
   const inherited = (unit.represented_ids ?? [unit.card_id]).filter(id => id !== unit.card_id);
   return inherited.every(id => requiredMaterials.includes(id));
 }
