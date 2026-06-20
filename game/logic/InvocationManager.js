@@ -16,7 +16,7 @@ export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, pla
   return afterPlace > playerBoardSlots;
 }
 
-export function canSummon(card, pos, board, hand, graveyard = []) {
+export function canSummon(card, pos, board, hand, graveyard = [], selectedMaterials = []) {
   if (!board.isInBounds(pos)) return fail('Position hors limites');
   if (!board.isPlayerCell(pos)) return fail('Placement uniquement sur le côté joueur (rangées 0–3)');
   // La transformation place la carte sur la case de la cible (déjà occupée)
@@ -27,7 +27,6 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
     const duplicate = board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id);
     if (duplicate) return fail('Cette carte est déjà présente sur le terrain');
   }
-
   switch (card.summon_type) {
     case 'normal':
       return ok();
@@ -35,6 +34,12 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
     case 'sacrifice': {
       const needed = card.cost?.sacrifice ?? 0;
       if (needed === 0) return ok();
+      // Si un doublon de la carte invoquée est déjà vivant sur le terrain, il doit être
+      // sélectionné comme matériau (sinon on se retrouverait avec deux exemplaires vivants).
+      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
+      if (duplicate && !selectedMaterials.includes(duplicate)) {
+        return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
+      }
       const total = _sumMaterialValue(board.getLivingUnitsOnSide('player')) + _sumMaterialValue(graveyard);
       if (total < needed) return fail(`Requiert ${needed} unité(s) sur le terrain ou au cimetière`);
       return ok();

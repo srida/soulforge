@@ -234,7 +234,7 @@ export function validCells(card, { board, hand, graveyard, selectedMaterials, pl
       const pos = { col: c, row: r };
       if (willBeFreed.has(`${c},${r}`)) {
         cells.push(pos);  // freed by material consumption
-      } else if (canSummon(card, pos, board, hand, graveyard).ok) {
+      } else if (canSummon(card, pos, board, hand, graveyard, selectedMaterials).ok) {
         cells.push(pos);
       }
     }

@@ -282,7 +282,7 @@ export async function mount(container, params = {}) {
   }
 
   function _tryPlace(card, pos) {
-    const result = InvocationManager.canSummon(card, pos, board, hand, graveyard);
+    const result = InvocationManager.canSummon(card, pos, board, hand, graveyard, selectedMaterials);
     if (!result.ok) { _flashError(result.reason); return; }
 
     if (InvocationManager.exceedsBoardSlots(card, selectedMaterials, board, graveyard, gameState.player_board_slots)) {
