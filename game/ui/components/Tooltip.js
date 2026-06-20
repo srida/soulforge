@@ -90,7 +90,7 @@ export function cardHtml(card, powerDb = null, attributeDb = null, cardDb = null
 }
 
 // Builds tooltip HTML from a live Unit object
-export function unitHtml(unit, powerDb = null, attributeDb = null) {
+export function unitHtml(unit, powerDb = null, attributeDb = null, cardDb = null) {
   const attributeNames = (unit.attributes || []).map(id => attributeDb?.getAttribute(id)?.name ?? id);
   const powerName = unit.power_id
     ? (powerDb?.getPower(unit.power_id)?.name ?? unit.power_id)
@@ -111,8 +111,18 @@ export function unitHtml(unit, powerDb = null, attributeDb = null) {
     ${attributeNames.length ? `<div class="tip-attributes">${attributeNames.map(n => `<span class="badge">${esc(n)}</span>`).join('')}</div>` : ''}
     ${unit.shield > 0 ? `<div class="tip-power">🛡 Shield : ${unit.shield}</div>` : ''}
     ${powerName ? `<div class="tip-power">✨ ${esc(powerName)} ${unit.power_gauge}/${unit.power_speed}</div>` : ''}
+    ${_lineageHtml(unit, cardDb)}
     ${_shoppingBonusHtml(unit)}
   `;
+}
+
+// represented_ids tracks the lineage of fusion/heritage/transformation materials this
+// unit also counts as. Shown only when it goes beyond the unit's own card.
+function _lineageHtml(unit, cardDb) {
+  const ids = (unit.represented_ids || []).filter(id => id !== unit.card_id);
+  if (!ids.length) return '';
+  const names = ids.map(id => cardDb?.getCard(id)?.name ?? id);
+  return `<div class="tip-power" title="Compte aussi comme ces cartes pour les invocations fusion/heritage">🧬 ${names.map(esc).join(', ')}</div>`;
 }
 
 // Shopping Phase magies grant permanent stat bonuses that carry over through fusion/heritage/

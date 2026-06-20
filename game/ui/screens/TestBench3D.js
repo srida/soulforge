@@ -102,7 +102,7 @@ export async function mount(container) {
     onUnitDrag: handleUnitDrag,
     onUnitLongPress: (unit, pos, rect) => {
       if (phase !== 'prep') {
-        Tooltip.showAtRect(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase), rect);
+        Tooltip.showAtRect(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase, CardDatabase), rect);
         return;
       }
       board.removeUnit(unit);
@@ -163,7 +163,7 @@ export async function mount(container) {
     const screen = board3D.worldToScreen(board3D.tilePosition(pos));
     const top = screen.y - CARD_PX / 2;
     const rect = { left: screen.x - CARD_PX / 2, top, bottom: top + CARD_PX, width: CARD_PX, height: CARD_PX };
-    Tooltip.showAtRect(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase), rect);
+    Tooltip.showAtRect(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase, CardDatabase), rect);
   }
 
   function handleUnitDrag(unit, fromPos, toPos) {

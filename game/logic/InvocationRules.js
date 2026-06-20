@@ -133,6 +133,7 @@ export function materialCandidateGraveyard(card, alreadySelected, graveyard, boa
 export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
   if (card.summon_type === 'normal') {
     if (board.getLivingUnitsOnSide('player').length >= maxSlots) return false;
+    if (board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id)) return false; // doublon
     return hasEmptyPlayerCell(board);
   }
   if (card.summon_type === 'sacrifice') {

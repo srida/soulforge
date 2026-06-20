@@ -152,7 +152,7 @@ export async function mount(container, params = {}) {
     onCellTap: handleCellTap,
     onUnitTap: handleUnitTap,
     onUnitDrag: handleUnitDrag,
-    onUnitLongPress: (unit, pos, rect) => Tooltip.showAtRect(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase), rect),
+    onUnitLongPress: (unit, pos, rect) => Tooltip.showAtRect(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase, CardDatabase), rect),
     powerDb: PowerDatabase,
     attributeDb: AttributeDatabase,
   });
@@ -281,7 +281,7 @@ export async function mount(container, params = {}) {
   }
 
   function _tryPlace(card, pos) {
-    const result = InvocationManager.canSummon(card, pos, board, hand, graveyard, selectedMaterials);
+    const result = InvocationManager.canSummon(card, pos, board, hand, graveyard);
     if (!result.ok) { _flashError(result.reason); return; }
 
     if (InvocationManager.exceedsBoardSlots(card, selectedMaterials, board, graveyard, gameState.player_board_slots)) {
@@ -445,7 +445,7 @@ export async function mount(container, params = {}) {
         el.addEventListener('pointerdown', e => {
           e.stopPropagation();
           startX = e.clientX; startY = e.clientY; moved = false;
-          longPressTimer = setTimeout(() => Tooltip.show(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase), el), 500);
+          longPressTimer = setTimeout(() => Tooltip.show(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase, CardDatabase), el), 500);
           const onMove = ev => {
             if (Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) > 10) moved = true;
           };

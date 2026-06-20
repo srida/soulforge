@@ -245,7 +245,7 @@ Le pool dépend du tour :
 
 La main est conservée entre les tours (taille illimitée) — les cartes non jouées s'accumulent avec la nouvelle pioche au tour suivant, sans impact sur le pool de tiers disponible.
 
-Pas de doublon (même `card_id`) sur le terrain joueur : `InvocationManager.canSummon` refuse l'invocation d'une carte déjà présente vivante sur le board joueur, sauf si l'exemplaire existant est lui-même consommé comme matériau de l'invocation en cours. Limité au côté joueur (l'IA ennemie n'est pas concernée).
+Pas de doublon (même `card_id`) sur le terrain joueur pour une invocation **normale** uniquement : `InvocationManager.canSummon` / `InvocationRules.isPlayable` refusent une carte normale déjà présente vivante sur le board joueur (carte grisée en main). Sacrifice/Fusion/Heritage/Transformation peuvent se jouer par-dessus un doublon existant (invocations spéciales légitimes). Limité au côté joueur (l'IA ennemie n'est pas concernée).
 
 **Pioches garanties** (issues des effets d'attribut `guaranteed_draw`) :
 Ordre de priorité de résolution : Transformation > Heritage > Fusion > Pioche normale.
@@ -663,7 +663,7 @@ summon(cardId, pos, board, hand)    → Unit | null
 
 Chaque `Unit` porte deux propriétés utilisées par `_matchesMaterial` / `canSummon` :
 
-- **`represented_ids`** (`string[]`, init. `[card.id]`) — IDs de cartes que l'unité « représente » pour le matching de matériaux fusion/heritage/transformation. Une **Transformation** hérite des `represented_ids` du monstre d'origine remplacé (`[card.id, ...targetUnit.represented_ids]`) : elle compte donc comme le monstre d'origine pour une fusion/heritage ultérieure qui le requiert.
+- **`represented_ids`** (`string[]`, init. `[card.id]`) — IDs de cartes que l'unité « représente » pour le matching de matériaux fusion/heritage/transformation. Une **Transformation**, une **Fusion** et un **Heritage** héritent des `represented_ids` de leurs matériaux consommés (`[card.id, ...materiaux.represented_ids]`) : l'unité résultante compte donc comme ses matériaux pour une fusion/heritage ultérieure qui les requiert. Affiché dans le tooltip d'unité (`Tooltip.unitHtml`, icône 🧬) quand la lignée dépasse la carte de base.
 - **`material_value`** (`number`, init. `1`) — nombre de « slots » de matériau que l'unité représente si elle est elle-même consommée par un sacrifice/heritage ultérieur. Fixé lors de `summon()` :
   - Fusion → `card.cost.materials.length` (ou 1)
   - Heritage → `card.cost.sacrifice` (ou 1)
