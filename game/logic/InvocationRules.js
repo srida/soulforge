@@ -1,4 +1,4 @@
-import { matchesMaterial, fusionMaterialLegit, sumMaterialValue, canSummon, exceedsBoardSlots } from './InvocationManager.js';
+import { matchesMaterial, materialLineageLegit, materialLineageMatches, sumMaterialValue, canSummon, exceedsBoardSlots } from './InvocationManager.js';
 
 export function needsMaterials(card, board = null, graveyard = []) {
   if (card.summon_type === 'sacrifice') return (card.cost?.sacrifice ?? 0) > 0;
@@ -9,7 +9,7 @@ export function needsMaterials(card, board = null, graveyard = []) {
     // Only needs explicit material selection when the target isn't alive on the board
     const targetId = card.cost?.materials?.[0];
     if (!targetId || !board) return false;
-    return !board.getLivingUnitsOnSide('player').find(u => matchesMaterial(u, targetId));
+    return !board.getLivingUnitsOnSide('player').find(u => materialLineageMatches(u, targetId, [targetId]));
   }
   return false;
 }
@@ -20,7 +20,7 @@ export function materialsComplete(card, mats) {
   }
   if (card.summon_type === 'fusion') {
     const required = card.cost?.materials ?? [];
-    if (!mats.every(u => fusionMaterialLegit(u, required))) return false;
+    if (!mats.every(u => materialLineageLegit(u, required))) return false;
     const coveredIds = mats.flatMap(u => u.represented_ids ?? [u.card_id]);
     return required.every(id => coveredIds.includes(id));
   }
@@ -33,7 +33,7 @@ export function materialsComplete(card, mats) {
   if (card.summon_type === 'transformation') {
     const targetId = card.cost?.materials?.[0];
     if (!targetId) return true;
-    return mats.some(u => matchesMaterial(u, targetId));
+    return mats.some(u => materialLineageMatches(u, targetId, [targetId]));
   }
   return true;
 }
@@ -43,7 +43,7 @@ export function transformTargetCells(card, board) {
   if (card.summon_type !== 'transformation' || card._free_transformation) return [];
   const targetId = card.cost?.materials?.[0];
   if (!targetId) return [];
-  const target = board.getLivingUnitsOnSide('player').find(u => matchesMaterial(u, targetId));
+  const target = board.getLivingUnitsOnSide('player').find(u => materialLineageMatches(u, targetId, [targetId]));
   return target ? [{ ...target.position }] : [];
 }
 
@@ -64,7 +64,7 @@ export function materialCandidateCells(card, alreadySelected, board) {
     const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
     const stillNeeded = required.filter(id => !coveredIds.includes(id));
     if (stillNeeded.length === 0) return [];
-    return units.filter(u => !selected.has(u) && fusionMaterialLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id))).map(u => ({ ...u.position }));
+    return units.filter(u => !selected.has(u) && materialLineageLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id))).map(u => ({ ...u.position }));
   }
 
   if (card.summon_type === 'heritage') {
@@ -103,7 +103,7 @@ export function materialCandidateGraveyard(card, alreadySelected, graveyard, boa
     const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
     const stillNeeded = required.filter(id => !coveredIds.includes(id));
     if (stillNeeded.length === 0) return [];
-    return avail.filter(u => fusionMaterialLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id)));
+    return avail.filter(u => materialLineageLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id)));
   }
 
   if (card.summon_type === 'heritage') {
@@ -121,8 +121,8 @@ export function materialCandidateGraveyard(card, alreadySelected, graveyard, boa
     const targetId = card.cost?.materials?.[0];
     if (!targetId) return [];
     // Only when there's no board target does the graveyard one become usable
-    if (board.getLivingUnitsOnSide('player').find(u => matchesMaterial(u, targetId))) return [];
-    return avail.filter(u => matchesMaterial(u, targetId));
+    if (board.getLivingUnitsOnSide('player').find(u => materialLineageMatches(u, targetId, [targetId]))) return [];
+    return avail.filter(u => materialLineageMatches(u, targetId, [targetId]));
   }
 
   return [];
@@ -147,8 +147,8 @@ export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
     if (materials.length === 0) return hasEmptyPlayerCell(board);
     const units = board.getUnitsOnSide('player');
     return materials.every(id =>
-      units.find(u => matchesMaterial(u, id) && u.isAlive() && fusionMaterialLegit(u, materials)) ||
-      graveyard.find(u => matchesMaterial(u, id) && fusionMaterialLegit(u, materials))
+      units.find(u => matchesMaterial(u, id) && u.isAlive() && materialLineageLegit(u, materials)) ||
+      graveyard.find(u => matchesMaterial(u, id) && materialLineageLegit(u, materials))
     );
   }
   if (card.summon_type === 'heritage') {
@@ -162,8 +162,8 @@ export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
     if (card._free_transformation) return hasEmptyPlayerCell(board);
     const targetId = card.cost?.materials?.[0];
     if (!targetId) return false;
-    return !!board.getUnitsOnSide('player').find(u => matchesMaterial(u, targetId) && u.isAlive()) ||
-           !!graveyard.find(u => matchesMaterial(u, targetId));
+    return !!board.getUnitsOnSide('player').find(u => materialLineageMatches(u, targetId, [targetId]) && u.isAlive()) ||
+           !!graveyard.find(u => materialLineageMatches(u, targetId, [targetId]));
   }
   return hasEmptyPlayerCell(board);
 }
@@ -207,10 +207,10 @@ export function validCells(card, { board, hand, graveyard, selectedMaterials, pl
   // For transformation:
   if (card.summon_type === 'transformation') {
     const targetId = card.cost?.materials?.[0];
-    const boardTarget = board.getLivingUnitsOnSide('player').find(u => matchesMaterial(u, targetId));
+    const boardTarget = board.getLivingUnitsOnSide('player').find(u => materialLineageMatches(u, targetId, [targetId]));
     if (boardTarget) return [{ ...boardTarget.position }];
     // Graveyard target selected → show all empty player cells
-    const graveTarget = selectedMaterials.find(u => matchesMaterial(u, targetId) && graveyard.includes(u));
+    const graveTarget = selectedMaterials.find(u => materialLineageMatches(u, targetId, [targetId]) && graveyard.includes(u));
     if (graveTarget) {
       const cells = [];
       for (let r = 0; r <= 3; r++)

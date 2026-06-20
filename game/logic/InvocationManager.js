@@ -45,8 +45,8 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       if (materials.length === 0) return ok();
       const playerUnits = board.getUnitsOnSide('player');
       for (const matId of materials) {
-        const onBoard = playerUnits.find(u => _fusionMaterialMatches(u, matId, materials) && u.isAlive());
-        const inGrave = graveyard.find(u => _fusionMaterialMatches(u, matId, materials));
+        const onBoard = playerUnits.find(u => _materialLineageMatches(u, matId, materials) && u.isAlive());
+        const inGrave = graveyard.find(u => _materialLineageMatches(u, matId, materials));
         if (!onBoard && !inGrave)
           return fail(`Matériau manquant sur le terrain ou au cimetière : ${matId}`);
       }
@@ -77,8 +77,8 @@ export function canSummon(card, pos, board, hand, graveyard = []) {
       }
       const targetId = card.cost?.materials?.[0];
       if (!targetId) return fail('Pas de cible de transformation définie');
-      const onBoard = board.getUnitsOnSide('player').find(u => _matchesMaterial(u, targetId) && u.isAlive());
-      const inGrave = graveyard.find(u => _matchesMaterial(u, targetId));
+      const onBoard = board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
+      const inGrave = graveyard.find(u => _materialLineageMatches(u, targetId, [targetId]));
       if (!onBoard && !inGrave) return fail(`Requiert ${targetId} sur le terrain ou au cimetière`);
       return ok();
     }
@@ -128,7 +128,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         const fusionMaterials = card.cost?.materials ?? [];
         const fusionUnits = board.getUnitsOnSide('player');
         for (const matId of fusionMaterials) {
-          const mat = fusionUnits.find(u => _fusionMaterialMatches(u, matId, fusionMaterials) && u.isAlive() && !consumed.includes(u));
+          const mat = fusionUnits.find(u => _materialLineageMatches(u, matId, fusionMaterials) && u.isAlive() && !consumed.includes(u));
           if (mat) { board.removeUnit(mat); consumed.push(mat); }
         }
       }
@@ -173,8 +173,8 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
       if (!card._free_transformation) {
         const targetId = card.cost?.materials?.[0];
         // Prefer the explicitly-passed unit (fixes same-name ambiguity)
-        const targetUnit = sacrificeTargets?.find(u => _matchesMaterial(u, targetId) && u.isAlive())
-          ?? board.getUnitsOnSide('player').find(u => _matchesMaterial(u, targetId) && u.isAlive());
+        const targetUnit = sacrificeTargets?.find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive())
+          ?? board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
         if (targetUnit) {
           pos = { ...targetUnit.position };
           unit.represented_ids = [...new Set([card.id, ...targetUnit.represented_ids])];
@@ -234,18 +234,18 @@ const _matchesMaterial = matchesMaterial;
 // Ex: "Aile de feu" (fusion d'Avian+Burstinatrix) ne peut pas remplacer Avian seul pour Marin
 // (qui ne requiert pas Burstinatrix), mais peut remplacer Avian+Burstinatrix à la fois pour
 // Electrum (qui requiert les deux) puisqu'elle ne "représente" rien hors de ce qui est demandé.
-export function fusionMaterialLegit(unit, requiredMaterials) {
+export function materialLineageLegit(unit, requiredMaterials) {
   const inherited = (unit.represented_ids ?? [unit.card_id]).filter(id => id !== unit.card_id);
   return inherited.every(id => requiredMaterials.includes(id));
 }
 
-// matchesMaterial + fusionMaterialLegit combined — the check to use for fusion material candidates.
-export function fusionMaterialMatches(unit, matId, requiredMaterials) {
+// matchesMaterial + materialLineageLegit combined — the check to use for fusion material candidates.
+export function materialLineageMatches(unit, matId, requiredMaterials) {
   if (!matchesMaterial(unit, matId)) return false;
   if (matId.startsWith('ARCH_')) return true;
-  return fusionMaterialLegit(unit, requiredMaterials);
+  return materialLineageLegit(unit, requiredMaterials);
 }
-const _fusionMaterialMatches = fusionMaterialMatches;
+const _materialLineageMatches = materialLineageMatches;
 
 // Total material "slots" represented by a list of units.
 export function sumMaterialValue(units) {
