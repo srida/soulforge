@@ -176,8 +176,13 @@ export async function mount(container, params = {}) {
   });
 
   handArea.className = 'hand-ui-wrap';
+  const handGroupBtn = document.createElement('button');
+  handGroupBtn.className = 'btn btn-icon hand-group-toggle';
+  handGroupBtn.title = 'Grouper les cartes identiques';
+  handGroupBtn.textContent = '☰';
   const handInner = document.createElement('div');
   handInner.className = 'hand-ui';
+  handArea.appendChild(handGroupBtn);
   handArea.appendChild(handInner);
 
   const handUI = new HandUI(handInner, {
@@ -186,6 +191,12 @@ export async function mount(container, params = {}) {
     attributeDb: AttributeDatabase,
     cardDb: CardDatabase,
     isPlayable: (card) => _isPlayable(card, board, graveyard, gameState.player_board_slots),
+  });
+
+  handGroupBtn.addEventListener('click', () => {
+    const grouped = !handUI.isGrouped();
+    handUI.setGrouped(grouped);
+    handGroupBtn.classList.toggle('active', grouped);
   });
 
   // ── Interaction ──────────────────────────────────────────────────────────

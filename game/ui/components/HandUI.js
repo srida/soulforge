@@ -12,12 +12,24 @@ export class HandUI {
     this._hand = [];
     this._selectedIdx = null;
     this._selectedEl  = null; // direct element reference — immune to DOM index shifts after removals
+    this._grouped = false; // when true, duplicate card_id entries render as a single card with a ×N badge
   }
 
   setHand(cards) {
     this._hand = cards;
     this._selectedIdx = null;
     this._selectedEl  = null;
+    this._render();
+  }
+
+  isGrouped() { return this._grouped; }
+
+  setGrouped(grouped) {
+    if (this._grouped === grouped) return;
+    this._grouped = grouped;
+    this._selectedIdx = null;
+    this._selectedEl  = null;
+    this._onSelect?.(null);
     this._render();
   }
 
@@ -31,9 +43,31 @@ export class HandUI {
   // The external `hand` array is already spliced by InvocationManager before this is called.
   removeSelected() {
     if (this._selectedIdx === null) return;
-    // Remove by stored element reference — DOM indices shift after each removal so
-    // elems[this._selectedIdx] would point to the wrong element on 2nd+ plays.
-    if (this._selectedEl) this._selectedEl.remove();
+    if (this._selectedEl) {
+      if (this._grouped) {
+        // The consumed card object is already gone from this._hand (spliced by the caller) —
+        // only its id survives on the button. If duplicates remain, shrink the ×N badge and
+        // repoint the button at a surviving duplicate instead of removing it.
+        const cardId = this._selectedEl._repCard?.id;
+        const remaining = this._hand.filter(c => c.id === cardId);
+        if (remaining.length > 0) {
+          this._selectedEl._repCard = remaining[0];
+          const countEl = this._selectedEl.querySelector('.hand-card-count');
+          if (remaining.length > 1) {
+            if (countEl) countEl.textContent = `×${remaining.length}`;
+            else this._selectedEl.insertAdjacentHTML('beforeend', `<span class="hand-card-count">×${remaining.length}</span>`);
+          } else if (countEl) {
+            countEl.remove();
+          }
+        } else {
+          this._selectedEl.remove();
+        }
+      } else {
+        // Remove by stored element reference — DOM indices shift after each removal so
+        // elems[this._selectedIdx] would point to the wrong element on 2nd+ plays.
+        this._selectedEl.remove();
+      }
+    }
     this._selectedIdx = null;
     this._selectedEl  = null;
     this._onSelect?.(null);
@@ -49,9 +83,10 @@ export class HandUI {
   }
 
   _updateSelection() {
-    this._container.querySelectorAll('.hand-card').forEach((el, i) => {
-      el.classList.toggle('selected', i === this._selectedIdx);
-      if (this._isPlayable) el.classList.toggle('dim', !this._isPlayable(this._hand[i]));
+    const selectedCard = this._selectedIdx !== null ? this._hand[this._selectedIdx] : null;
+    this._container.querySelectorAll('.hand-card').forEach(el => {
+      el.classList.toggle('selected', el._repCard === selectedCard);
+      if (this._isPlayable) el.classList.toggle('dim', !this._isPlayable(el._repCard));
     });
   }
 
@@ -62,12 +97,16 @@ export class HandUI {
       return;
     }
 
-    this._hand.forEach((card, idx) => {
+    const groups = this._grouped ? _groupByCardId(this._hand) : this._hand.map(card => [card]);
+
+    groups.forEach(group => {
+      const card = group[0];
       const el = document.createElement('button');
       const playable = this._isPlayable ? this._isPlayable(card) : true;
       el.className = 'hand-card'
-        + (this._selectedIdx === idx ? ' selected' : '')
+        + (this._selectedIdx !== null && this._hand[this._selectedIdx] === card ? ' selected' : '')
         + (!playable ? ' dim' : '');
+      el._repCard = card; // representative card object — resolved dynamically on click/removal
 
       const costHint = _costHint(card);
       el.innerHTML = `
@@ -75,27 +114,29 @@ export class HandUI {
         <span class="hand-card-name">${esc(card.name)}</span>
         <span class="badge badge-tier${card.tier} hand-card-tier">T${card.tier}</span>
         ${costHint ? `<span class="hand-card-cost">${costHint}</span>` : ''}
+        ${group.length > 1 ? `<span class="hand-card-count">×${group.length}</span>` : ''}
       `;
 
       let longPressTimer;
       el.addEventListener('pointerdown', e => {
         e.stopPropagation();
         Tooltip.hide();
+        const currentCard = el._repCard;
         const rect = el.getBoundingClientRect();
         longPressTimer = setTimeout(() => {
-          Tooltip.showAtRect(Tooltip.cardHtml(card, this._powerDb, this._attributeDb, this._cardDb), rect);
+          Tooltip.showAtRect(Tooltip.cardHtml(currentCard, this._powerDb, this._attributeDb, this._cardDb), rect);
         }, 500);
-        // Compute CURRENT DOM position — the render-time `idx` becomes stale after
-        // removeSelected() shifts remaining elements without a full re-render.
-        const currentIdx = Array.from(this._container.querySelectorAll('.hand-card')).indexOf(el);
-        if (this._selectedIdx === currentIdx) {
+        // Resolve the real index in `this._hand` from the (possibly updated) representative
+        // card object — robust to DOM/array desync after partial group consumption.
+        const realIdx = this._hand.indexOf(currentCard);
+        if (this._selectedIdx === realIdx) {
           this._selectedIdx = null;
           this._selectedEl  = null;
           this._onSelect?.(null);
         } else {
-          this._selectedIdx = currentIdx;
+          this._selectedIdx = realIdx;
           this._selectedEl  = el;
-          this._onSelect?.(card);
+          this._onSelect?.(currentCard);
         }
         // Update classes only — do NOT call _render() which would detach el
         // and prevent pointerup from clearing longPressTimer on the right element
@@ -107,6 +148,18 @@ export class HandUI {
       this._container.appendChild(el);
     });
   }
+}
+
+// Groups hand cards by card_id, preserving first-occurrence order.
+function _groupByCardId(hand) {
+  const groups = [];
+  const byId = new Map();
+  for (const card of hand) {
+    const group = byId.get(card.id);
+    if (group) group.push(card);
+    else { const g = [card]; byId.set(card.id, g); groups.push(g); }
+  }
+  return groups;
 }
 
 function esc(s) {

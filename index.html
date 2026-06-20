@@ -497,8 +497,19 @@
   background: var(--surface);
   flex-shrink: 0;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
+.hand-group-toggle {
+  flex-shrink: 0;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  margin-left: 4px;
+}
+.hand-group-toggle.active { color: var(--accent); }
 .hand-ui {
+  flex: 1;
+  min-width: 0;
   height: 100%;
   display: flex;
   align-items: center;
@@ -566,6 +577,17 @@
   background: rgba(0,0,0,.7);
   border-radius: 4px;
   padding: 1px 3px;
+}
+.hand-card-count {
+  position: absolute;
+  bottom: 18px;
+  right: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 4px;
 }
 
 /* Tooltip */
