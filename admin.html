@@ -1416,18 +1416,128 @@ function renderThresholdBlock(th, ti) {
   `;
 }
 
+const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_speed', 'movement_speed', 'range', 'initiative'];
+const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
+const ATTR_EFFECT_CATEGORIES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
+const ATTR_EFFECT_TARGETS = ['neutralized_ally'];
+
+function _attrEffectFieldVisibility(type) {
+  return {
+    showStat: ['stat_bonus', 'stat_modifier'].includes(type),
+    showValuePer: ['stat_bonus', 'shield'].includes(type),
+    showTrigger: type === 'stat_modifier',
+    showMax: ['draw_bonus', 'board_slot_bonus'].includes(type),
+    showTarget: type === 'revive',
+    showHpPercent: type === 'revive',
+    showCategory: type === 'guaranteed_draw',
+    showValue: !['guaranteed_draw'].includes(type),
+  };
+}
+
 function renderEffectBlock(ef, ti, ei) {
+  const type = ef.type || 'stat_bonus';
+  const v = _attrEffectFieldVisibility(type);
+  const valuePerOptions = ['active_unit', ...attributes.map(a => a.id)];
   return `
     <div class="effect-block" id="ef-${ti}-${ei}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div class="field" style="flex:1"><label>Type</label><input id="ef-${ti}-${ei}-type" value="${ef.type || ''}" placeholder="stat_bonus, shield, revive..."></div>
+        <div class="field" style="flex:1"><label>Type</label>
+          <select id="ef-${ti}-${ei}-type" onchange="updateEffectFields(${ti},${ei})">
+            <option value="stat_bonus" ${type === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
+            <option value="stat_modifier" ${type === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat (sur trigger)</option>
+            <option value="draw_bonus" ${type === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
+            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par catégorie)</option>
+            <option value="revive" ${type === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
+            <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
+            <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
+          </select>
+        </div>
         <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeEffect(${ti},${ei})">×</button>
       </div>
-      <div class="field"><label>Données JSON</label>
-        <textarea id="ef-${ti}-${ei}-json" rows="3">${esc(JSON.stringify(ef, null, 2))}</textarea>
+      <div class="form-grid" id="ef-${ti}-${ei}-fields">
+        <div class="field" id="ef-${ti}-${ei}-stat-field" style="${v.showStat ? '' : 'display:none'}">
+          <label>Stat ciblée</label>
+          <select id="ef-${ti}-${ei}-stat">
+            ${ATTR_EFFECT_STATS.map(s => `<option value="${s}" ${ef.stat === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-trigger-field" style="${v.showTrigger ? '' : 'display:none'}">
+          <label>Déclencheur</label>
+          <select id="ef-${ti}-${ei}-trigger">
+            ${ATTR_EFFECT_TRIGGERS.map(t => `<option value="${t}" ${ef.trigger === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-value-field" style="${v.showValue ? '' : 'display:none'}">
+          <label>Valeur</label>
+          <input id="ef-${ti}-${ei}-value" type="number" step="any" value="${ef.value ?? 0}">
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-valueper-field" style="${v.showValuePer ? '' : 'display:none'}">
+          <label>Multiplié par (optionnel)</label>
+          <select id="ef-${ti}-${ei}-valueper">
+            <option value="" ${!ef.value_per ? 'selected' : ''}>— Aucun —</option>
+            ${valuePerOptions.map(id => `<option value="${id}" ${ef.value_per === id ? 'selected' : ''}>${id === 'active_unit' ? 'active_unit (unités alliées vivantes)' : id}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-max-field" style="${v.showMax ? '' : 'display:none'}">
+          <label>Maximum (optionnel)</label>
+          <input id="ef-${ti}-${ei}-max" type="number" min="1" value="${ef.max ?? ''}">
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-target-field" style="${v.showTarget ? '' : 'display:none'}">
+          <label>Cible</label>
+          <select id="ef-${ti}-${ei}-target">
+            ${ATTR_EFFECT_TARGETS.map(t => `<option value="${t}" ${ef.target === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-hppercent-field" style="${v.showHpPercent ? '' : 'display:none'}">
+          <label>% PV max</label>
+          <input id="ef-${ti}-${ei}-hppercent" type="number" min="1" max="100" value="${ef.hp_percent ?? 50}">
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-category-field" style="${v.showCategory ? '' : 'display:none'}">
+          <label>Catégorie d'invocation</label>
+          <select id="ef-${ti}-${ei}-category">
+            ${ATTR_EFFECT_CATEGORIES.map(c => `<option value="${c}" ${ef.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </div>
       </div>
     </div>
   `;
+}
+
+function updateEffectFields(ti, ei) {
+  const type = document.getElementById(`ef-${ti}-${ei}-type`).value;
+  const v = _attrEffectFieldVisibility(type);
+  document.getElementById(`ef-${ti}-${ei}-stat-field`).style.display = v.showStat ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-trigger-field`).style.display = v.showTrigger ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-value-field`).style.display = v.showValue ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-valueper-field`).style.display = v.showValuePer ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-max-field`).style.display = v.showMax ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-target-field`).style.display = v.showTarget ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-hppercent-field`).style.display = v.showHpPercent ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-category-field`).style.display = v.showCategory ? '' : 'none';
+}
+
+function _collectEffectFromFields(ti, ei) {
+  const type = document.getElementById(`ef-${ti}-${ei}-type`).value;
+  const v = _attrEffectFieldVisibility(type);
+  const ef = { type };
+  if (v.showStat) ef.stat = document.getElementById(`ef-${ti}-${ei}-stat`).value;
+  if (v.showTrigger) ef.trigger = document.getElementById(`ef-${ti}-${ei}-trigger`).value;
+  if (v.showValue) ef.value = parseFloat(document.getElementById(`ef-${ti}-${ei}-value`).value) || 0;
+  if (v.showValuePer) {
+    const valuePer = document.getElementById(`ef-${ti}-${ei}-valueper`).value;
+    if (valuePer) ef.value_per = valuePer;
+  }
+  if (v.showMax) {
+    const max = document.getElementById(`ef-${ti}-${ei}-max`).value;
+    if (max) ef.max = parseInt(max);
+  }
+  if (v.showTarget) ef.target = document.getElementById(`ef-${ti}-${ei}-target`).value;
+  if (v.showHpPercent) ef.hp_percent = parseInt(document.getElementById(`ef-${ti}-${ei}-hppercent`).value) || 0;
+  if (v.showCategory) {
+    ef.category = document.getElementById(`ef-${ti}-${ei}-category`).value;
+    ef.attribute = selectedAttr.id; // guaranteed_draw se réfère toujours à l'attribut courant
+  }
+  return ef;
 }
 
 function addThreshold() {
@@ -1454,10 +1564,7 @@ function removeEffect(ti, ei) {
 
 function collectAttrFromForm() {
   const thresholds = (selectedAttr.thresholds || []).map((th, ti) => {
-    const effects = (th.effects || []).map((ef, ei) => {
-      try { return JSON.parse(document.getElementById(`ef-${ti}-${ei}-json`).value); }
-      catch { return ef; }
-    });
+    const effects = (th.effects || []).map((ef, ei) => _collectEffectFromFields(ti, ei));
     return {
       count: parseInt(document.getElementById(`th-${ti}-count`).value),
       medal: document.getElementById(`th-${ti}-medal`).value,
