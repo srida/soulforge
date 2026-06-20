@@ -66,8 +66,16 @@ Réponds uniquement avec le contenu décrit ci-dessus, sans préambule ni
 conclusion, en français.
 EOF
 
+CLAUDE_BIN="$(command -v claude || echo "$HOME/.local/bin/claude")"
+
+if [ -f "$REPO_ROOT/.env" ]; then
+  set -a
+  source "$REPO_ROOT/.env"
+  set +a
+fi
+
 set +e
-PROPOSAL=$(claude --bare -p < "$PROMPT_FILE" --allowedTools "" --output-format text 2>/tmp/gdd-sync-error.log)
+PROPOSAL=$("$CLAUDE_BIN" --bare -p < "$PROMPT_FILE" --allowedTools "" --output-format text 2>/tmp/gdd-sync-error.log)
 CLAUDE_EXIT=$?
 set -e
 rm -f "$PROMPT_FILE"
