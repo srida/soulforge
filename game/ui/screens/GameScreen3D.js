@@ -823,19 +823,20 @@ export async function mount(container, params = {}) {
       }
     }
 
-    // Restore preparation UI
-    _hideCombatMultipliers();
-    board3D.exitCombatMode();
-    handArea.style.display = '';
-    const sc = container.querySelector('#speed-controls');
-    sc.style.display = 'none';
-    const bp = sc.querySelector('#btn-pause');
-    if (bp) { bp.textContent = '⏸'; bp.classList.remove('active'); }
-    btnCombat.style.display = '';
-
     // Laisse les animations de combat (mort, repositionnement) se terminer
-    // visuellement avant d'afficher la pop-up de résultat.
-    setTimeout(() => _showEndRound(winner), 1000);
+    // visuellement avant de recentrer la caméra et d'afficher la pop-up de résultat.
+    setTimeout(() => {
+      _hideCombatMultipliers();
+      board3D.exitCombatMode();
+      handArea.style.display = '';
+      const sc = container.querySelector('#speed-controls');
+      sc.style.display = 'none';
+      const bp = sc.querySelector('#btn-pause');
+      if (bp) { bp.textContent = '⏸'; bp.classList.remove('active'); }
+      btnCombat.style.display = '';
+
+      _showEndRound(winner);
+    }, 1000);
   }
 
   // ── Shopping phase ───────────────────────────────────────────────────────
