@@ -2,6 +2,22 @@ import { navigate } from '../../main.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
 import * as PublicDeckDatabase from '../../data/PublicDeckDatabase.js';
 
+// Tap detection robust to vertical scroll: only fires if the pointer hasn't moved past
+// a small threshold between down and up. A plain `click` can fire on whichever item the
+// finger ends up over after a scroll gesture, selecting the wrong deck on mobile.
+function onTap(el, handler) {
+  let startX = 0, startY = 0, moved = false;
+  el.addEventListener('pointerdown', e => {
+    startX = e.clientX; startY = e.clientY; moved = false;
+  });
+  el.addEventListener('pointermove', e => {
+    if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) moved = true;
+  });
+  el.addEventListener('pointerup', e => {
+    if (!moved) handler(e);
+  });
+}
+
 export async function mount(container, params = {}) {
   const target = params.target || 'game3d';
   let selectedPlayer = null;       // nom du deck privé sélectionné
@@ -66,7 +82,7 @@ export async function mount(container, params = {}) {
           </div>`).join('');
 
         deckList.querySelectorAll('.deck-item').forEach(el => {
-          el.addEventListener('click', e => {
+          onTap(el, e => {
             if (e.target.closest('.deck-item-actions')) return;
             selectedPlayer = el.dataset.name;
             renderStep1();
@@ -109,7 +125,7 @@ export async function mount(container, params = {}) {
           </div>`).join('');
 
         deckList.querySelectorAll('.deck-item').forEach(el => {
-          el.addEventListener('click', e => {
+          onTap(el, e => {
             if (e.target.closest('.deck-item-actions')) return;
             selectedPublic = publicDecks.find(d => d.id === el.dataset.id);
             renderStep1();
@@ -194,7 +210,7 @@ export async function mount(container, params = {}) {
     container.querySelector('#btn-back').addEventListener('click', renderStep1);
 
     container.querySelector('#deck-list').querySelectorAll('.deck-item').forEach(el => {
-      el.addEventListener('click', () => {
+      onTap(el, () => {
         selectedEnemy = el.dataset.name;
         renderStep2();
       });
