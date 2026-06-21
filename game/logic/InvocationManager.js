@@ -85,6 +85,13 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
       const onBoard = board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
       const inGrave = graveyard.find(u => _materialLineageMatches(u, targetId, [targetId]));
       if (!onBoard && !inGrave) return fail(`Requiert ${targetId} sur le terrain ou au cimetière`);
+      // Si un doublon du résultat de cette transformation est déjà vivant sur le terrain,
+      // c'est lui qui doit être consommé comme matériau (sinon on se retrouverait avec
+      // deux exemplaires vivants du résultat).
+      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
+      if (duplicate && selectedMaterials[0] !== duplicate) {
+        return fail('Le doublon présent sur le terrain doit être utilisé comme matériau de la transformation');
+      }
       return ok();
     }
 
