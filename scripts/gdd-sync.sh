@@ -110,6 +110,16 @@ echo "$CURRENT_COMMIT" > "$SYNC_MARKER"
 
 echo ""
 echo "📋 [gdd-sync] Proposition générée : $PROPOSAL_FILE"
-echo "    -> Relis-la, ajuste-la si besoin, puis lance :"
-echo "       scripts/gdd-push-to-notion.sh \"$PROPOSAL_FILE\""
+
+if [ -n "${NOTION_TOKEN:-}" ] && [ -n "${NOTION_SYNC_PAGE_ID:-}" ]; then
+  if "$REPO_ROOT/scripts/gdd-push-to-notion.sh" "$PROPOSAL_FILE"; then
+    echo "    -> Poussée automatiquement vers Notion (sous-page de \"Sync GDD\")."
+  else
+    echo "    -> Échec du push automatique vers Notion. Relance manuellement :" >&2
+    echo "       scripts/gdd-push-to-notion.sh \"$PROPOSAL_FILE\"" >&2
+  fi
+else
+  echo "    -> NOTION_TOKEN / NOTION_SYNC_PAGE_ID absents, push manuel requis :"
+  echo "       scripts/gdd-push-to-notion.sh \"$PROPOSAL_FILE\""
+fi
 echo ""
