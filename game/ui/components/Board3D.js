@@ -421,8 +421,8 @@ export class Board3D {
     const list = elements && elements.length ? elements : ['neutral'];
     const t = Math.max(1, Math.min(5, tier));
     const CFG = [
-      { count:  2, sM: 0.12, szM: 0.15, lM: 0.10, rS: 1.5, rL: 0.14, fi: 0,   fR: 0, fL: 0    },
-      { count:  8, sM: 0.22, szM: 0.28, lM: 0.20, rS: 2.5, rL: 0.20, fi: 0,   fR: 0, fL: 0    },
+      { count: 18, sM: 0.36, szM: 0.42, lM: 0.30, rS: 3.5, rL: 0.28, fi: 1.5, fR: 2, fL: 0.12 },
+      { count: 18, sM: 0.36, szM: 0.42, lM: 0.30, rS: 3.5, rL: 0.28, fi: 1.5, fR: 2, fL: 0.12 },
       { count: 18, sM: 0.36, szM: 0.42, lM: 0.30, rS: 3.5, rL: 0.28, fi: 1.5, fR: 2, fL: 0.12 },
       { count: 32, sM: 0.52, szM: 0.58, lM: 0.42, rS: 5.0, rL: 0.36, fi: 3.0, fR: 3, fL: 0.16 },
       { count: 50, sM: 0.68, szM: 0.72, lM: 0.55, rS: 7.0, rL: 0.45, fi: 5.0, fR: 4, fL: 0.20 },
@@ -628,13 +628,15 @@ export class Board3D {
     const elements = entry.elements && entry.elements.length ? entry.elements : ['neutral'];
     const tier = Math.max(1, Math.min(5, entry.unit.tier ?? 1));
 
-    const KILL_CFG = [
-      { fc: 3, fr: 3, speed: 1.60, vy: 0.90, rot: 12, fi:  3.0, fR: 2.5, fL: 0.18, pc:  40, fS: 0.80, halo: false, spMax: 1.2, ltMax: 1.0, mLife: 0.38, grav: 7.0 },
-      { fc: 3, fr: 3, speed: 2.20, vy: 1.20, rot: 14, fi:  5.0, fR: 3.5, fL: 0.22, pc:  65, fS: 0.90, halo: false, spMax: 1.8, ltMax: 1.4, mLife: 0.44, grav: 6.5 },
-      { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
-      { fc: 4, fr: 4, speed: 3.80, vy: 2.00, rot: 22, fi: 12.0, fR: 7.0, fL: 0.30, pc: 140, fS: 1.00, halo: false, spMax: 3.2, ltMax: 2.2, mLife: 0.56, grav: 5.5 },
-      { fc: 6, fr: 5, speed: 6.00, vy: 3.00, rot: 30, fi: 28.0, fR:14.0, fL: 0.45, pc: 220, fS: 1.00, halo: true,  spMax: 2.5, ltMax: 2.0, mLife: 0.65, grav: 5.0 },
-    ][tier - 1];
+    const KILL_CFG = {
+      ...[
+        { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
+        { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
+        { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
+        { fc: 4, fr: 4, speed: 3.80, vy: 2.00, rot: 22, fi: 12.0, fR: 7.0, fL: 0.30, pc: 140, fS: 1.00, halo: false, spMax: 3.2, ltMax: 2.2, mLife: 0.56, grav: 5.5 },
+        { fc: 6, fr: 5, speed: 6.00, vy: 3.00, rot: 30, fi: 28.0, fR:14.0, fL: 0.45, pc: 220, fS: 1.00, halo: true,  spMax: 2.5, ltMax: 2.0, mLife: 0.65, grav: 5.0 },
+      ][tier - 1]
+    };
     if (LOW_END_DEVICE) {
       KILL_CFG.fc = Math.max(2, Math.ceil(KILL_CFG.fc / 2));
       KILL_CFG.fr = Math.max(2, Math.ceil(KILL_CFG.fr / 2));
