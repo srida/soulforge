@@ -833,7 +833,9 @@ export async function mount(container, params = {}) {
     if (bp) { bp.textContent = '⏸'; bp.classList.remove('active'); }
     btnCombat.style.display = '';
 
-    _showEndRound(winner);
+    // Laisse les animations de combat (mort, repositionnement) se terminer
+    // visuellement avant d'afficher la pop-up de résultat.
+    setTimeout(() => _showEndRound(winner), 1000);
   }
 
   // ── Shopping phase ───────────────────────────────────────────────────────
