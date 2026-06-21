@@ -603,15 +603,16 @@ export async function mount(container, params = {}) {
         (!draw.category  || c.summon_type === draw.category)
       );
       if (matches.length > 0) {
-        hand.push(matches[Math.floor(Math.random() * matches.length)]);
+        // Clone so duplicate card_ids in hand are distinct instances (see Draw.js)
+        hand.push({ ...matches[Math.floor(Math.random() * matches.length)] });
       } else {
         // Fallback: relax tier, then any card from full pool
         const fallback = fullPool.filter(c =>
           (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
           (!draw.category  || c.summon_type === draw.category)
         );
-        if (fallback.length > 0) hand.push(fallback[Math.floor(Math.random() * fallback.length)]);
-        else if (fullPool.length > 0) hand.push(fullPool[Math.floor(Math.random() * fullPool.length)]);
+        if (fallback.length > 0) hand.push({ ...fallback[Math.floor(Math.random() * fallback.length)] });
+        else if (fullPool.length > 0) hand.push({ ...fullPool[Math.floor(Math.random() * fullPool.length)] });
       }
     }
 
@@ -660,6 +661,12 @@ export async function mount(container, params = {}) {
 
   function runCombat() {
     _stopPrepTimer();
+    selectedCard = null;
+    selectedBoardPos = null;
+    selectedMaterials = [];
+    handUI.deselect();
+    board3D.clearHighlight();
+    board3D.clearMaterialHighlight();
     graveyard = [];
     enemyGraveyard = [];
     btnCombat.disabled = true;

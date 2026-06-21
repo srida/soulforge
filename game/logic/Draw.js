@@ -15,7 +15,9 @@ export function drawHand(cardsByTier, round, count) {
   if (pool.length === 0) return [];
   const hand = [];
   for (let i = 0; i < count; i++) {
-    hand.push(pool[Math.floor(Math.random() * pool.length)]);
+    // Clone so two draws of the same card_id are distinct object instances —
+    // HandUI's selection (in non-grouped mode) compares cards by reference.
+    hand.push({ ...pool[Math.floor(Math.random() * pool.length)] });
   }
   return hand;
 }
