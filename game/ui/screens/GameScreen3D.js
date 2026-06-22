@@ -176,13 +176,21 @@ export async function mount(container, params = {}) {
   });
 
   handArea.className = 'hand-ui-wrap';
+  const handToolbar = document.createElement('div');
+  handToolbar.className = 'hand-toolbar';
   const handGroupBtn = document.createElement('button');
   handGroupBtn.className = 'btn btn-icon hand-group-toggle';
   handGroupBtn.title = 'Grouper les cartes identiques';
   handGroupBtn.textContent = '☰';
+  const handSortBtn = document.createElement('button');
+  handSortBtn.className = 'btn btn-icon hand-sort-toggle';
+  handSortBtn.title = 'Trier par tier';
+  handSortBtn.textContent = '⇅';
   const handInner = document.createElement('div');
   handInner.className = 'hand-ui';
-  handArea.appendChild(handGroupBtn);
+  handToolbar.appendChild(handGroupBtn);
+  handToolbar.appendChild(handSortBtn);
+  handArea.appendChild(handToolbar);
   handArea.appendChild(handInner);
 
   const handUI = new HandUI(handInner, {
@@ -197,6 +205,12 @@ export async function mount(container, params = {}) {
     const grouped = !handUI.isGrouped();
     handUI.setGrouped(grouped);
     handGroupBtn.classList.toggle('active', grouped);
+  });
+
+  handSortBtn.addEventListener('click', () => {
+    const sorted = !handUI.isSortedByTier();
+    handUI.setSortedByTier(sorted);
+    handSortBtn.classList.toggle('active', sorted);
   });
 
   // ── Interaction ──────────────────────────────────────────────────────────
@@ -624,14 +638,14 @@ export async function mount(container, params = {}) {
           const idx = hand.findIndex(c => c.summon_type === 'sacrifice' && (c.cost?.sacrifice ?? 0) > 0);
           if (idx !== -1) {
           const original = hand[idx]._original_sacrifice ?? hand[idx].cost?.sacrifice ?? 0;
-          hand[idx] = { ...hand[idx], _original_sacrifice: original, cost: { ...hand[idx].cost, sacrifice: Math.max(0, original - (mod.value || 1)) } };
+          hand[idx] = { ...hand[idx], _original_sacrifice: original, _no_group: true, cost: { ...hand[idx].cost, sacrifice: Math.max(0, original - (mod.value || 1)) } };
         }
         } else if (mod.type === 'free_transformation') {
           const idx = hand.findIndex(c => c.summon_type === 'transformation');
-          if (idx !== -1) hand[idx] = { ...hand[idx], _free_transformation: true };
+          if (idx !== -1) hand[idx] = { ...hand[idx], _free_transformation: true, _no_group: true };
         } else if (mod.type === 'remove_heritage_material') {
           const idx = hand.findIndex(c => c.summon_type === 'heritage' && (c.cost?.materials?.length ?? 0) > 0);
-          if (idx !== -1) hand[idx] = { ...hand[idx], cost: { ...hand[idx].cost, materials: [] } };
+          if (idx !== -1) hand[idx] = { ...hand[idx], _no_group: true, cost: { ...hand[idx].cost, materials: [] } };
         }
       }
     }

@@ -13,6 +13,7 @@ export class HandUI {
     this._selectedIdx = null;
     this._selectedEl  = null; // direct element reference — immune to DOM index shifts after removals
     this._grouped = false; // when true, duplicate card_id entries render as a single card with a ×N badge
+    this._sortedByTier = false; // when true, cards are displayed ordered by tier ascending
   }
 
   setHand(cards) {
@@ -33,6 +34,17 @@ export class HandUI {
     this._render();
   }
 
+  isSortedByTier() { return this._sortedByTier; }
+
+  setSortedByTier(sorted) {
+    if (this._sortedByTier === sorted) return;
+    this._sortedByTier = sorted;
+    this._selectedIdx = null;
+    this._selectedEl  = null;
+    this._onSelect?.(null);
+    this._render();
+  }
+
   getSelected() {
     return this._selectedIdx !== null ? this._hand[this._selectedIdx] : null;
   }
@@ -44,12 +56,12 @@ export class HandUI {
   removeSelected() {
     if (this._selectedIdx === null) return;
     if (this._selectedEl) {
-      if (this._grouped) {
+      if (this._grouped && !this._selectedEl._repCard?._no_group) {
         // The consumed card object is already gone from this._hand (spliced by the caller) —
         // only its id survives on the button. If duplicates remain, shrink the ×N badge and
         // repoint the button at a surviving duplicate instead of removing it.
         const cardId = this._selectedEl._repCard?.id;
-        const remaining = this._hand.filter(c => c.id === cardId);
+        const remaining = this._hand.filter(c => c.id === cardId && !c._no_group);
         if (remaining.length > 0) {
           this._selectedEl._repCard = remaining[0];
           const countEl = this._selectedEl.querySelector('.hand-card-count');
@@ -97,7 +109,8 @@ export class HandUI {
       return;
     }
 
-    const groups = this._grouped ? _groupByCardId(this._hand) : this._hand.map(card => [card]);
+    let groups = this._grouped ? _groupByCardId(this._hand) : this._hand.map(card => [card]);
+    if (this._sortedByTier) groups = [...groups].sort((a, b) => a[0].tier - b[0].tier);
 
     groups.forEach(group => {
       const card = group[0];
@@ -151,10 +164,14 @@ export class HandUI {
 }
 
 // Groups hand cards by card_id, preserving first-occurrence order.
+// Cards flagged `_no_group` (e.g. instance-specific bonus from a magie effect such as
+// "Bourse des âmes" / "Ristourne" reducing this exact card's sacrifice cost) are never
+// merged into a group — grouping them would hide the bonus and let the wrong instance be played.
 function _groupByCardId(hand) {
   const groups = [];
   const byId = new Map();
   for (const card of hand) {
+    if (card._no_group) { groups.push([card]); continue; }
     const group = byId.get(card.id);
     if (group) group.push(card);
     else { const g = [card]; byId.set(card.id, g); groups.push(g); }

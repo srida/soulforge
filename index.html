@@ -505,13 +505,21 @@
   display: flex;
   align-items: center;
 }
-.hand-group-toggle {
+.hand-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 4px;
+}
+.hand-group-toggle,
+.hand-sort-toggle {
+  flex: 1;
   flex-shrink: 0;
   min-width: var(--touch-target);
   min-height: var(--touch-target);
-  margin-left: 4px;
 }
-.hand-group-toggle.active { color: var(--accent); }
+.hand-group-toggle.active,
+.hand-sort-toggle.active { color: var(--accent); }
 .hand-ui {
   flex: 1;
   min-width: 0;
