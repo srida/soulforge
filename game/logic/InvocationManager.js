@@ -184,9 +184,12 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
       _removeFromHand(hand, card.id, handIdx);
       if (!card._free_transformation) {
         const targetId = card.cost?.materials?.[0];
-        // Prefer the explicitly-passed unit (fixes same-name ambiguity)
+        // Prefer the explicitly-passed unit (fixes same-name ambiguity). Otherwise fall back to
+        // the exact same resolution the UI used to pick/highlight the target cell — using a
+        // plain "first match" here instead would silently consume a different unit than the one
+        // the player tapped, losing whatever Shopping Phase bonus was on the intended unit.
         const targetUnit = sacrificeTargets?.find(u => _materialLineageMatches(u, targetId, [targetId]))
-          ?? board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
+          ?? resolveTransformationTarget(card, board);
         if (targetUnit) {
           // Une unité encore sur le board cède sa case ; une unité du cimetière n'a plus
           // de case valide (sa .position est l'ancienne position de combat) — garder le pos
@@ -245,6 +248,17 @@ export function matchesMaterial(unit, matId) {
   return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
 const _matchesMaterial = matchesMaterial;
+
+// Single source of truth for "which board unit does this Transformation consume when the
+// player didn't explicitly tap a specific unit". Mirrors InvocationRules.transformTargetCells'
+// preference (an existing duplicate of the transformation's own result, to avoid ending up with
+// two living copies) so the cell the UI highlights always matches the unit actually consumed.
+export function resolveTransformationTarget(card, board) {
+  const targetId = card.cost?.materials?.[0];
+  if (!targetId) return null;
+  const matches = board.getLivingUnitsOnSide('player').filter(u => materialLineageMatches(u, targetId, [targetId]));
+  return matches.find(u => u.card_id === card.id) ?? matches[0] ?? null;
+}
 
 // A composite unit (built via a previous fusion/heritage/transformation) can only stand in for a
 // fusion material slot if every id it itself was built from is also required by THIS fusion.
