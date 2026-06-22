@@ -185,7 +185,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
       if (!card._free_transformation) {
         const targetId = card.cost?.materials?.[0];
         // Prefer the explicitly-passed unit (fixes same-name ambiguity)
-        const targetUnit = sacrificeTargets?.find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive())
+        const targetUnit = sacrificeTargets?.find(u => _materialLineageMatches(u, targetId, [targetId]))
           ?? board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
         if (targetUnit) {
           pos = { ...targetUnit.position };
