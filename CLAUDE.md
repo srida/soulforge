@@ -266,9 +266,15 @@ Le multiplicateur est calculé au lancement du combat, en fonction du nombre d'u
 
 Appliqué symétriquement (calculé indépendamment pour chaque côté). Tension risk/reward : un board peu rempli encaisse moins de dégâts entrants mais en infligera davantage en cas de victoire.
 
+**Multiplicateur de tour :** se multiplie au multiplicateur ci-dessus. Progression linéaire — `round` (tour 1 = ×1, tour 5 = ×5). Appliqué symétriquement aux deux joueurs.
+
+```js
+multiplicateur_final = multiplier(unitCount) × round
+```
+
 Implémenté dans `GameState.js` :
 ```js
-gameState.startCombat(playerUnitCount, enemyUnitCount)  // calcule player_multiplier / enemy_multiplier
+gameState.startCombat(playerUnitCount, enemyUnitCount)  // calcule player_multiplier / enemy_multiplier (× round)
 gameState.player_multiplier
 gameState.enemy_multiplier
 ```

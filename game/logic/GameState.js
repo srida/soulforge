@@ -36,8 +36,8 @@ export class GameState {
 
   startCombat(playerUnitCount, enemyUnitCount) {
     this.phase = Phase.COMBAT;
-    this.player_multiplier = this._multiplier(playerUnitCount);
-    this.enemy_multiplier  = this._multiplier(enemyUnitCount);
+    this.player_multiplier = this._multiplier(playerUnitCount) * this.round;
+    this.enemy_multiplier  = this._multiplier(enemyUnitCount) * this.round;
   }
 
   _multiplier(unitCount) {
