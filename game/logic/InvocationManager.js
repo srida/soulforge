@@ -188,7 +188,12 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         const targetUnit = sacrificeTargets?.find(u => _materialLineageMatches(u, targetId, [targetId]))
           ?? board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
         if (targetUnit) {
-          pos = { ...targetUnit.position };
+          // Une unité encore sur le board cède sa case ; une unité du cimetière n'a plus
+          // de case valide (sa .position est l'ancienne position de combat) — garder le pos
+          // tapé par le joueur dans ce cas.
+          if (board.getUnit(targetUnit.position) === targetUnit) {
+            pos = { ...targetUnit.position };
+          }
           unit.represented_ids = [...new Set([card.id, ...targetUnit.represented_ids])];
           board.removeUnit(targetUnit);
           _transferShoppingBonuses(unit, [targetUnit]);
