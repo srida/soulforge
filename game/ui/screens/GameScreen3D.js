@@ -849,7 +849,7 @@ export async function mount(container, params = {}) {
       if (bp) { bp.textContent = '⏸'; bp.classList.remove('active'); }
       btnCombat.style.display = '';
 
-      _showEndRound(winner);
+      _showEndRound(winner, playerSurvivorsAtk, enemySurvivorsAtk);
     }, 1000);
   }
 
@@ -1016,7 +1016,31 @@ export async function mount(container, params = {}) {
 
   // ── End of round overlay ─────────────────────────────────────────────────
 
-  function _showEndRound(winner) {
+  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk) {
+    if (winner !== 'player' && winner !== 'enemy') return '';
+    const atk = winner === 'player' ? playerSurvivorsAtk : enemySurvivorsAtk;
+    const unitMultiplier = winner === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
+    const total = Math.round(atk * unitMultiplier * gameState.round);
+    return `
+      <details class="end-round-breakdown">
+        <summary>Détail des dégâts infligés</summary>
+        <div class="end-round-breakdown-row">
+          <span>ATK des survivants</span><span>${atk}</span>
+        </div>
+        <div class="end-round-breakdown-row">
+          <span>Multiplicateur d'unités</span><span>×${unitMultiplier}</span>
+        </div>
+        <div class="end-round-breakdown-row">
+          <span>Multiplicateur de tour</span><span>×${gameState.round}</span>
+        </div>
+        <div class="end-round-breakdown-row end-round-breakdown-total">
+          <span>Total</span><span>${total}</span>
+        </div>
+      </details>
+    `;
+  }
+
+  function _showEndRound(winner, playerSurvivorsAtk = 0, enemySurvivorsAtk = 0) {
     _updateHUD();
     const msgMap = { player: '🏆 Victoire du round !', enemy: '💀 Défaite du round', draw: '⚖ Égalité' };
     const isOver = gameState.isGameOver();
@@ -1031,6 +1055,7 @@ export async function mount(container, params = {}) {
           <span style="color:var(--muted)">vs</span>
           <span class="hud-hp enemy">♥ ${gameState.enemy_hp}</span>
         </div>
+        ${_damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk)}
         <button class="btn btn-primary" id="btn-next">
           ${isOver ? 'Résultat final' : 'Tour suivant'}
         </button>

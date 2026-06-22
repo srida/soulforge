@@ -19,6 +19,9 @@ export class GameState {
 
     this.player_multiplier = 1.0;
     this.enemy_multiplier  = 1.0;
+    // Unit-count component only (without the round multiplier), kept for UI breakdown
+    this.player_unit_multiplier = 1.0;
+    this.enemy_unit_multiplier  = 1.0;
 
     // Expanded by board_slot_bonus attribute effect
     this.player_board_slots = DEFAULT_BOARD_SLOTS;
@@ -36,8 +39,10 @@ export class GameState {
 
   startCombat(playerUnitCount, enemyUnitCount) {
     this.phase = Phase.COMBAT;
-    this.player_multiplier = this._multiplier(playerUnitCount) * this.round;
-    this.enemy_multiplier  = this._multiplier(enemyUnitCount) * this.round;
+    this.player_unit_multiplier = this._multiplier(playerUnitCount);
+    this.enemy_unit_multiplier  = this._multiplier(enemyUnitCount);
+    this.player_multiplier = this.player_unit_multiplier * this.round;
+    this.enemy_multiplier  = this.enemy_unit_multiplier * this.round;
   }
 
   _multiplier(unitCount) {
@@ -106,6 +111,8 @@ export class GameState {
       // Reset per-round multipliers
       this.player_multiplier = 1.0;
       this.enemy_multiplier  = 1.0;
+      this.player_unit_multiplier = 1.0;
+      this.enemy_unit_multiplier  = 1.0;
     }
     return this.phase;
   }
