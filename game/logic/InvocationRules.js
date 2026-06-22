@@ -1,4 +1,4 @@
-import { matchesMaterial, materialLineageLegit, materialLineageMatches, sumMaterialValue, canSummon, exceedsBoardSlots } from './InvocationManager.js';
+import { matchesMaterial, materialLineageLegit, materialLineageMatches, sumMaterialValue, canSummon, exceedsBoardSlots, resolveTransformationTarget } from './InvocationManager.js';
 
 export function needsMaterials(card, board = null, graveyard = []) {
   if (card.summon_type === 'sacrifice') return (card.cost?.sacrifice ?? 0) > 0;
@@ -43,11 +43,7 @@ export function transformTargetCells(card, board) {
   if (card.summon_type !== 'transformation' || card._free_transformation) return [];
   const targetId = card.cost?.materials?.[0];
   if (!targetId) return [];
-  const matches = board.getLivingUnitsOnSide('player').filter(u => materialLineageMatches(u, targetId, [targetId]));
-  // Prefer an existing duplicate of this transformation's own result, if one is alive —
-  // consuming it (instead of a fresh raw-material copy) avoids ending up with two living
-  // copies of the result on the board.
-  const target = matches.find(u => u.card_id === card.id) ?? matches[0];
+  const target = resolveTransformationTarget(card, board);
   return target ? [{ ...target.position }] : [];
 }
 
@@ -211,8 +207,7 @@ export function validCells(card, { board, hand, graveyard, selectedMaterials, pl
   // For transformation:
   if (card.summon_type === 'transformation') {
     const targetId = card.cost?.materials?.[0];
-    const boardMatches = board.getLivingUnitsOnSide('player').filter(u => materialLineageMatches(u, targetId, [targetId]));
-    const boardTarget = boardMatches.find(u => u.card_id === card.id) ?? boardMatches[0];
+    const boardTarget = resolveTransformationTarget(card, board);
     if (boardTarget) return [{ ...boardTarget.position }];
     // Graveyard target selected → show all empty player cells
     const graveTarget = selectedMaterials.find(u => materialLineageMatches(u, targetId, [targetId]) && graveyard.includes(u));
