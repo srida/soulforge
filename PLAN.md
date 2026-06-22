@@ -348,4 +348,4 @@ Ces règles sont héritées du projet Godot et s'appliquent à la version web :
 - [x] Phase 4 — Navigation
 - [x] Phase 5 — Board UI
 - [x] Phase 6 — Combat visuel
-- [ ] Phase 7 — Polish mobile
+- [x] Phase 7 — Polish mobile
