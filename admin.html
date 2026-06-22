@@ -1288,30 +1288,72 @@ async function deleteIllustration() {
 }
 
 // Attribute picker modal
+let attrPickCat = '';
+let attrPickSelected = new Set();
+
 function openAttrPickModal() {
-  const current = selectedCard.attributes || [];
+  attrPickCat = '';
+  attrPickSelected = new Set();
+  const cats = getAttrCategories();
   showModal(`
-    <h2>Ajouter un attribut</h2>
-    <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
-      ${attributes.filter(a => !current.includes(a.id)).map(a => `
-        <div class="list-item" style="border-radius:6px" onclick="addAttribute('${a.id}')">
-          <span style="font-size:16px">${a.icon || ''}</span>
-          <div><div>${a.name}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
-        </div>
-      `).join('')}
+    <h2>Ajouter des attributs</h2>
+    <input type="search" id="ap-search" placeholder="Rechercher..." autocomplete="off" oninput="renderAttrPickList()" style="width:100%;margin-bottom:8px">
+    <div class="tabs" style="margin-bottom:8px;flex-wrap:wrap">
+      <button class="tab ap-tab active" data-cat="" onclick="setAttrPickCat('')">Tous</button>
+      ${cats.map(cat => `<button class="tab ap-tab" data-cat="${esc(cat)}" onclick="setAttrPickCat('${esc(cat)}')">${esc(cat)}</button>`).join('')}
     </div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
+    <div id="ap-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmAttrPick()">Ajouter<span id="ap-count"></span></button>
+    </div>
   `);
+  renderAttrPickList();
 }
 
-function addAttribute(aid) {
+function setAttrPickCat(cat) {
+  attrPickCat = cat;
+  document.querySelectorAll('.ap-tab').forEach(el => el.classList.toggle('active', el.dataset.cat === cat));
+  renderAttrPickList();
+}
+
+function renderAttrPickList() {
+  const current = selectedCard.attributes || [];
+  const q = (document.getElementById('ap-search')?.value || '').toLowerCase();
+  const list = attributes.filter(a =>
+    !current.includes(a.id) &&
+    (!attrPickCat || a.categorie === attrPickCat) &&
+    (!q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+  );
+  document.getElementById('ap-list').innerHTML = list.map(a => `
+    <div class="list-item ${attrPickSelected.has(a.id) ? 'bulk-selected' : ''}" style="border-radius:6px" onclick="toggleAttrPickSelect('${a.id}')">
+      <span style="font-size:16px">${a.icon || ''}</span>
+      <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
+    </div>
+  `).join('') || '<div class="empty"><span>Aucun attribut</span></div>';
+  updateAttrPickCount();
+}
+
+function toggleAttrPickSelect(aid) {
+  if (attrPickSelected.has(aid)) attrPickSelected.delete(aid);
+  else attrPickSelected.add(aid);
+  renderAttrPickList();
+}
+
+function updateAttrPickCount() {
+  const el = document.getElementById('ap-count');
+  if (el) el.textContent = attrPickSelected.size ? ` (${attrPickSelected.size})` : '';
+}
+
+function confirmAttrPick() {
+  if (!attrPickSelected.size) { closeModal(); return; }
   if (!selectedCard.attributes) selectedCard.attributes = [];
-  if (!selectedCard.attributes.includes(aid)) {
-    syncCardFromForm();
-    selectedCard.attributes.push(aid);
-    closeModal();
-    renderCardDetail();
+  syncCardFromForm();
+  for (const aid of attrPickSelected) {
+    if (!selectedCard.attributes.includes(aid)) selectedCard.attributes.push(aid);
   }
+  closeModal();
+  renderCardDetail();
 }
 
 // ================== ATTRIBUTES ==================
