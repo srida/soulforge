@@ -51,8 +51,47 @@ function chunk(text, size = 1900) {
   return parts.length ? parts : [text];
 }
 
+// Tokenise le markdown inline : **gras**, `code`, liens bruts http(s)://...
+function tokenizeInline(text) {
+  const regex = /(\*\*[^*]+\*\*|`[^`]+`|https?:\/\/[^\s)]+)/g;
+  const tokens = [];
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(text))) {
+    if (match.index > lastIndex) {
+      tokens.push({ type: "text", value: text.slice(lastIndex, match.index) });
+    }
+    const token = match[0];
+    if (token.startsWith("**")) {
+      tokens.push({ type: "bold", value: token.slice(2, -2) });
+    } else if (token.startsWith("`")) {
+      tokens.push({ type: "code", value: token.slice(1, -1) });
+    } else {
+      tokens.push({ type: "link", value: token });
+    }
+    lastIndex = match.index + token.length;
+  }
+  if (lastIndex < text.length) {
+    tokens.push({ type: "text", value: text.slice(lastIndex) });
+  }
+  return tokens;
+}
+
+// Construit un tableau de rich_text Notion avec annotations (gras/code) et liens.
 function richText(text) {
-  return chunk(text).map((c) => ({ type: "text", text: { content: c } }));
+  const out = [];
+  for (const token of tokenizeInline(text)) {
+    if (!token.value) continue;
+    for (const c of chunk(token.value)) {
+      if (!c) continue;
+      const entry = { type: "text", text: { content: c } };
+      if (token.type === "bold") entry.annotations = { bold: true };
+      if (token.type === "code") entry.annotations = { code: true };
+      if (token.type === "link") entry.text.link = { url: token.value };
+      out.push(entry);
+    }
+  }
+  return out.length ? out : [{ type: "text", text: { content: "" } }];
 }
 
 function markdownToBlocks(markdown) {
@@ -70,20 +109,14 @@ function markdownToBlocks(markdown) {
       i++;
       continue;
     }
-    if (line.startsWith("## ")) {
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
+    if (headingMatch) {
+      const level = Math.min(headingMatch[1].length, 3);
+      const type = `heading_${level}`;
       blocks.push({
         object: "block",
-        type: "heading_2",
-        heading_2: { rich_text: richText(line.slice(3).trim()) },
-      });
-      i++;
-      continue;
-    }
-    if (line.startsWith("# ")) {
-      blocks.push({
-        object: "block",
-        type: "heading_1",
-        heading_1: { rich_text: richText(line.slice(2).trim()) },
+        type,
+        [type]: { rich_text: richText(headingMatch[2].trim()) },
       });
       i++;
       continue;
@@ -97,15 +130,14 @@ function markdownToBlocks(markdown) {
       i++;
       continue;
     }
-    // Paragraphe : regroupe les lignes consécutives jusqu'à une ligne vide
+    // Paragraphe : regroupe les lignes consécutives jusqu'à une ligne vide/titre/liste/séparateur
     const paragraphLines = [line];
     i++;
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&
       lines[i].trim() !== "---" &&
-      !lines[i].startsWith("# ") &&
-      !lines[i].startsWith("## ") &&
+      !/^#{1,6}\s+/.test(lines[i]) &&
       !lines[i].startsWith("- ")
     ) {
       paragraphLines.push(lines[i]);
@@ -114,7 +146,7 @@ function markdownToBlocks(markdown) {
     blocks.push({
       object: "block",
       type: "paragraph",
-      paragraph: { rich_text: richText(paragraphLines.join("\n")) },
+      paragraph: { rich_text: richText(paragraphLines.join(" ")) },
     });
   }
   return blocks;
