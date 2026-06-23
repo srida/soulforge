@@ -175,6 +175,18 @@ html, body {
   min-height: var(--touch-target);
   display: flex;
   align-items: center;
+  gap: 8px;
+  list-style: none;
+}
+.end-round-breakdown summary::-webkit-details-marker { display: none; }
+.end-round-breakdown-arrow {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform .15s;
+}
+.end-round-breakdown[open] .end-round-breakdown-arrow {
+  transform: rotate(90deg);
 }
 .end-round-breakdown-row {
   display: flex;
@@ -182,6 +194,12 @@ html, body {
   font-size: 13px;
   color: var(--muted);
   padding: 4px 0;
+}
+.end-round-breakdown-names {
+  justify-content: flex-start;
+  font-size: 12px;
+  font-style: italic;
+  padding-top: 0;
 }
 .end-round-breakdown-total {
   border-top: 1px solid var(--border);

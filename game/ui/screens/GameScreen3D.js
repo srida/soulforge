@@ -770,8 +770,10 @@ export async function mount(container, params = {}) {
     if (hasAttrEffects) _flashAttributeChips();
 
     const winner = combat.winner ?? 'draw';
-    const playerSurvivorsAtk = playerUnits.filter(u => !u.is_neutralized).reduce((s, u) => s + u.atk, 0);
-    const enemySurvivorsAtk  = enemyUnits.filter(u => !u.is_neutralized).reduce((s, u) => s + u.atk, 0);
+    const playerSurvivors = playerUnits.filter(u => !u.is_neutralized);
+    const enemySurvivors  = enemyUnits.filter(u => !u.is_neutralized);
+    const playerSurvivorsAtk = playerSurvivors.reduce((s, u) => s + u.atk, 0);
+    const enemySurvivorsAtk  = enemySurvivors.reduce((s, u) => s + u.atk, 0);
     gameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult);
 
     // Remove dead enemy units; surviving ones stay on board
@@ -849,7 +851,7 @@ export async function mount(container, params = {}) {
       if (bp) { bp.textContent = '⏸'; bp.classList.remove('active'); }
       btnCombat.style.display = '';
 
-      _showEndRound(winner, playerSurvivorsAtk, enemySurvivorsAtk);
+      _showEndRound(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors);
     }, 1000);
   }
 
@@ -1016,17 +1018,26 @@ export async function mount(container, params = {}) {
 
   // ── End of round overlay ─────────────────────────────────────────────────
 
-  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk) {
+  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors = [], enemySurvivors = []) {
     if (winner !== 'player' && winner !== 'enemy') return '';
     const atk = winner === 'player' ? playerSurvivorsAtk : enemySurvivorsAtk;
+    const survivors = winner === 'player' ? playerSurvivors : enemySurvivors;
     const unitMultiplier = winner === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
     const total = Math.round(atk * unitMultiplier * gameState.round);
+    const names = survivors
+      .map(u => CardDatabase.getCard(u.card_id)?.name)
+      .filter(Boolean)
+      .join(', ');
     return `
       <details class="end-round-breakdown">
-        <summary>Détail des dégâts infligés</summary>
+        <summary><span class="end-round-breakdown-arrow">▶</span>Détail des dégâts infligés</summary>
         <div class="end-round-breakdown-row">
           <span>ATK des survivants</span><span>${atk}</span>
         </div>
+        ${names ? `
+        <div class="end-round-breakdown-row end-round-breakdown-names">
+          <span>${names}</span>
+        </div>` : ''}
         <div class="end-round-breakdown-row">
           <span>Multiplicateur d'unités</span><span>×${unitMultiplier}</span>
         </div>
@@ -1040,7 +1051,7 @@ export async function mount(container, params = {}) {
     `;
   }
 
-  function _showEndRound(winner, playerSurvivorsAtk = 0, enemySurvivorsAtk = 0) {
+  function _showEndRound(winner, playerSurvivorsAtk = 0, enemySurvivorsAtk = 0, playerSurvivors = [], enemySurvivors = []) {
     _updateHUD();
     const msgMap = { player: '🏆 Victoire du round !', enemy: '💀 Défaite du round', draw: '⚖ Égalité' };
     const isOver = gameState.isGameOver();
@@ -1055,7 +1066,7 @@ export async function mount(container, params = {}) {
           <span style="color:var(--muted)">vs</span>
           <span class="hud-hp enemy">♥ ${gameState.enemy_hp}</span>
         </div>
-        ${_damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk)}
+        ${_damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors)}
         <button class="btn btn-primary" id="btn-next">
           ${isOver ? 'Résultat final' : 'Tour suivant'}
         </button>
