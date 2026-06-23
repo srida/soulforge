@@ -1024,20 +1024,21 @@ export async function mount(container, params = {}) {
     const survivors = winner === 'player' ? playerSurvivors : enemySurvivors;
     const unitMultiplier = winner === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
     const total = Math.round(atk * unitMultiplier * gameState.round);
-    const names = survivors
-      .map(u => CardDatabase.getCard(u.card_id)?.name)
-      .filter(Boolean)
-      .join(', ');
+    const unitRows = survivors
+      .map(u => ({ name: CardDatabase.getCard(u.card_id)?.name, atk: u.atk }))
+      .filter(u => u.name)
+      .map(u => `
+        <div class="end-round-breakdown-row end-round-breakdown-unit">
+          <span>${u.name}</span><span>${u.atk}</span>
+        </div>`)
+      .join('');
     return `
       <details class="end-round-breakdown">
         <summary><span class="end-round-breakdown-arrow">▶</span>Détail des dégâts infligés</summary>
-        <div class="end-round-breakdown-row">
+        ${unitRows}
+        <div class="end-round-breakdown-row end-round-breakdown-subtotal">
           <span>ATK des survivants</span><span>${atk}</span>
         </div>
-        ${names ? `
-        <div class="end-round-breakdown-row end-round-breakdown-names">
-          <span>${names}</span>
-        </div>` : ''}
         <div class="end-round-breakdown-row">
           <span>Multiplicateur d'unités</span><span>×${unitMultiplier}</span>
         </div>

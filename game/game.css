@@ -195,11 +195,14 @@ html, body {
   color: var(--muted);
   padding: 4px 0;
 }
-.end-round-breakdown-names {
-  justify-content: flex-start;
+.end-round-breakdown-unit {
   font-size: 12px;
-  font-style: italic;
-  padding-top: 0;
+  padding: 2px 0 2px 8px;
+}
+.end-round-breakdown-subtotal {
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+  padding-top: 6px;
 }
 .end-round-breakdown-total {
   border-top: 1px solid var(--border);
