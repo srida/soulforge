@@ -186,13 +186,21 @@ app.post('/api/cards/:id/illustration', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Upload illustration directement en base64 (utilisé par push-illustrations.js)
-app.put('/api/cards/:id/illustration', (req, res) => {
+// Upload illustration en base64 (utilisé par push-illustrations.js et l'upload depuis l'appareil dans l'admin)
+// Convertit automatiquement vers PNG, quel que soit le format d'origine (JPEG, WebP, etc.)
+app.put('/api/cards/:id/illustration', async (req, res) => {
   const { data } = req.body;
   if (!data) return res.status(400).json({ error: 'data (base64) required' });
   const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
-    fs.writeFileSync(destPath, Buffer.from(data, 'base64'));
+    const imageBuffer = Buffer.from(data, 'base64');
+    let sharp;
+    try { sharp = require('sharp'); } catch (_) {}
+    if (sharp) {
+      await sharp(imageBuffer).png().toFile(destPath);
+    } else {
+      fs.writeFileSync(destPath, imageBuffer);
+    }
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
