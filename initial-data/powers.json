@@ -57,6 +57,6 @@
     {
         "id": "POWER_FREEZE",
         "name": "Glace",
-        "description": "Gèle temporairement une case du terrain."
+        "description": "Gèle une case du terrain jusqu'à la fin du combat."
     }
 ]

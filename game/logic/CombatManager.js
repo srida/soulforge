@@ -12,7 +12,6 @@ const DOT_INTERVAL = 3;              // global steps between DOT pulses
 const DOT_PULSES = 5;
 const BURN_DAMAGE_DIVISOR = 2;
 const BURN_ATTACKS = 3;              // number of the target's own attacks before the curse expires
-const FREEZE_DEFAULT_TICKS = 10;
 
 export class CombatManager {
   /**
@@ -272,7 +271,10 @@ export class CombatManager {
           : primaryTarget.position.row + 1;
         const ahead = { col: primaryTarget.position.col, row: aheadRow };
         const cell = this.board.isInBounds(ahead) ? ahead : { ...primaryTarget.position };
-        const expiresAtStep = this._stepCount + (unit.power_value ?? FREEZE_DEFAULT_TICKS);
+        // Frozen until the round ends, not a fixed tick count — cleared along
+        // with the rest of the terrain's temporary blocks when the next combat
+        // (or the following preparation phase) resets the board's blocked cells.
+        const expiresAtStep = Infinity;
         this.board.setTemporaryBlock(cell, expiresAtStep);
         // Emit both: 'power' drives the standard cast toast/flash (like every
         // other power), 'freeze' carries the cell data for the ice overlay.
