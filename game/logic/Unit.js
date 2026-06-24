@@ -47,6 +47,7 @@ export class Unit {
     this.shield = 0;
     this.power_gauge = 0;
     this.dot_effects = []; // { damage, remaining, interval, timer }
+    this.burn_stacks = []; // { damage, attacksRemaining } — self-inflicted on this unit's next attacks
     this.paralysis_remaining = 0;  // steps left of paralysis
     this.attack_speed_modifier = 0; // added to attack_speed while paralyzed
     this.is_power_blocked = false;
@@ -128,6 +129,7 @@ export class Unit {
     this.is_power_blocked = false;
     this.power_block_remaining = 0;
     this.dot_effects = [];
+    this.burn_stacks = [];
     this._recomputeStats();
     this.current_hp = Math.min(this.current_hp, this.max_hp);
   }

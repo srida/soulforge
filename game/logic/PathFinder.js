@@ -103,7 +103,7 @@ export function isInAttackRange(attacker, target) {
  * on the straight line between `from` and `to` (endpoints excluded).
  */
 export function hasLineOfSight(board, from, to) {
-  if (!board || board._blockedCells.size === 0) return true;
+  if (!board || (board._blockedCells.size === 0 && board._temporaryBlockedCells.size === 0)) return true;
   let x = from.col, y = from.row;
   const x1 = to.col, y1 = to.row;
   const dx = Math.abs(x1 - x), dy = Math.abs(y1 - y);

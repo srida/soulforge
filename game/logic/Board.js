@@ -4,6 +4,9 @@ export class Board {
     this.rows = 11; // rows 0–3 player, 4–6 neutral, 7–10 enemy
     this.grid = this._emptyGrid();
     this._blockedCells = new Set();
+    // Temporary blocks (e.g. POWER_FREEZE), separate from the permanent terrain
+    // blocks: key "col,row" → the combat step at which the freeze expires.
+    this._temporaryBlockedCells = new Map();
   }
 
   _emptyGrid() {
@@ -76,14 +79,29 @@ export class Board {
   // Blocked cells (rows 4–6 neutral zone)
   setBlockedCells(cells) {
     this._blockedCells = new Set((cells || []).map(c => `${c.col},${c.row}`));
+    this._temporaryBlockedCells = new Map();
   }
 
   isBlocked(pos) {
-    return this._blockedCells.has(`${pos.col},${pos.row}`);
+    const key = `${pos.col},${pos.row}`;
+    return this._blockedCells.has(key) || this._temporaryBlockedCells.has(key);
   }
 
   clearBlockedCells() {
     this._blockedCells = new Set();
+    this._temporaryBlockedCells = new Map();
+  }
+
+  // Temporarily blocks a cell (POWER_FREEZE) until `expiresAtStep` (a
+  // CombatManager._stepCount value, purged via purgeExpiredTemporaryBlocks).
+  setTemporaryBlock(pos, expiresAtStep) {
+    this._temporaryBlockedCells.set(`${pos.col},${pos.row}`, expiresAtStep);
+  }
+
+  purgeExpiredTemporaryBlocks(currentStep) {
+    for (const [key, expiresAtStep] of this._temporaryBlockedCells) {
+      if (currentStep >= expiresAtStep) this._temporaryBlockedCells.delete(key);
+    }
   }
 
   // Neighbours (4-directional) within bounds, excluding blocked cells

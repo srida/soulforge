@@ -10,6 +10,9 @@ const POWER_BLOCK_TICKS = 25;
 const DOT_DAMAGE_DIVISOR = 2;
 const DOT_INTERVAL = 3;              // global steps between DOT pulses
 const DOT_PULSES = 5;
+const BURN_DAMAGE_DIVISOR = 2;
+const BURN_ATTACKS = 3;              // number of the target's own attacks before the curse expires
+const FREEZE_DEFAULT_TICKS = 10;
 
 export class CombatManager {
   /**
@@ -36,6 +39,7 @@ export class CombatManager {
    *   { type: 'attack',  attacker, target, damage }
    *   { type: 'power',   unit, targets, power_id, extra }
    *   { type: 'dot',     unit, damage }
+   *   { type: 'freeze',  cell, expiresAtStep }
    *   { type: 'death',   unit }
    *   { type: 'combat_end', winner }
    */
@@ -44,6 +48,7 @@ export class CombatManager {
 
     const events = [];
     this._stepCount++;
+    this.board.purgeExpiredTemporaryBlocks(this._stepCount);
 
     const allUnits = [...this.playerUnits, ...this.enemyUnits];
     const livingUnits = allUnits.filter(u => u.isAlive());
@@ -137,11 +142,15 @@ export class CombatManager {
       if (!canAttack(u, target, this.board)) continue; // out of range or no line of sight
 
       if (u.isPowerReady()) {
-        u.power_gauge = 0;
-        this._firePower(u, target, events);
+        // _firePower returns false only for a power that failed to resolve this
+        // tick (e.g. POWER_TELEPORT with no free cell) — in that case the gauge
+        // stays full so the unit retries on a later tick instead of wasting it.
+        const fired = this._firePower(u, target, events);
+        if (fired !== false) u.power_gauge = 0;
       } else {
         this._normalAttack(u, target, events);
       }
+      this._applyBurnStacks(u, events);
     }
 
     // ── 5. Deaths from attacks ──
@@ -239,6 +248,28 @@ export class CombatManager {
         break;
       }
 
+      case 'POWER_TELEPORT': {
+        return this._teleportToWeakestEnemy(unit, enemies, events);
+      }
+
+      case 'POWER_BURN': {
+        const burn = {
+          damage: Math.max(1, Math.floor(unit.atk / BURN_DAMAGE_DIVISOR)),
+          attacksRemaining: unit.power_value ?? BURN_ATTACKS,
+        };
+        primaryTarget.burn_stacks.push(burn);
+        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: burn });
+        break;
+      }
+
+      case 'POWER_FREEZE': {
+        const cell = { ...primaryTarget.position };
+        const expiresAtStep = this._stepCount + (unit.power_value ?? FREEZE_DEFAULT_TICKS);
+        this.board.setTemporaryBlock(cell, expiresAtStep);
+        events.push({ type: 'freeze', cell, expiresAtStep });
+        break;
+      }
+
       case 'POWER_BLOCK': {
         primaryTarget.is_power_blocked = true;
         primaryTarget.power_block_remaining = POWER_BLOCK_TICKS;
@@ -250,6 +281,57 @@ export class CombatManager {
         // Unknown power — fall back to normal attack
         this._normalAttack(unit, primaryTarget, events);
     }
+  }
+
+  // Teleport `unit` next to the enemy with the least current_hp (mirrors the
+  // lowest-HP reduce used by POWER_HEAL, applied to enemies instead of allies).
+  // Moves the unit directly via board.moveUnit — no pathfinding, no movement
+  // cooldown. Returns false (power not consumed) if no cell is available at all.
+  _teleportToWeakestEnemy(unit, enemies, events) {
+    if (enemies.length === 0) return false;
+    const target = enemies.reduce((a, b) => a.current_hp < b.current_hp ? a : b, enemies[0]);
+
+    const adjacent = [
+      { col: target.position.col, row: target.position.row - 1 },
+      { col: target.position.col, row: target.position.row + 1 },
+      { col: target.position.col - 1, row: target.position.row },
+      { col: target.position.col + 1, row: target.position.row },
+    ].filter(p => this.board.isInBounds(p) && !this.board.isOccupied(p) && !this.board.isBlocked(p));
+
+    let destination = adjacent[0] ?? null;
+
+    if (!destination) {
+      // No free adjacent cell — fall back to the closest free cell on the board.
+      let bestDist = Infinity;
+      for (let col = 0; col < this.board.cols; col++) {
+        for (let row = 0; row < this.board.rows; row++) {
+          const p = { col, row };
+          if (this.board.isOccupied(p) || this.board.isBlocked(p)) continue;
+          const d = Math.abs(p.col - target.position.col) + Math.abs(p.row - target.position.row);
+          if (d < bestDist) { bestDist = d; destination = p; }
+        }
+      }
+    }
+
+    if (!destination) return false; // board full — retry next tick
+
+    const from = { ...unit.position };
+    this.board.moveUnit(unit, destination);
+    events.push({ type: 'move', unit, from, to: { ...unit.position } });
+    return true;
+  }
+
+  // Unlike POWER_POISON (a DOT ticking on a fixed timer), POWER_BURN is a curse
+  // attached to the attacker itself: it pulses on the unit's own next attacks
+  // (decremented here, right after it acts) instead of on a global tick interval.
+  _applyBurnStacks(unit, events) {
+    if (unit.burn_stacks.length === 0) return;
+    for (const stack of unit.burn_stacks) {
+      unit.takeDamage(stack.damage);
+      events.push({ type: 'dot', unit, damage: stack.damage });
+      stack.attacksRemaining--;
+    }
+    unit.burn_stacks = unit.burn_stacks.filter(s => s.attacksRemaining > 0);
   }
 
   // Push target away from attacker's position by `cells` steps in a straight line

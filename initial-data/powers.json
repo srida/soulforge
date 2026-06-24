@@ -43,5 +43,20 @@
         "id": "POWER_BLOCK",
         "name": "Blocage",
         "description": "Empêche la cible d'utiliser son pouvoir"
+    },
+    {
+        "id": "POWER_BURN",
+        "name": "Brûlure",
+        "description": "Maudit la cible : lors de ses prochaines attaques, elle se brûle elle-même."
+    },
+    {
+        "id": "POWER_TELEPORT",
+        "name": "Téléportation",
+        "description": "Se téléporte instantanément au contact de l'ennemi ayant le moins de PV."
+    },
+    {
+        "id": "POWER_FREEZE",
+        "name": "Glace",
+        "description": "Gèle temporairement une case du terrain."
     }
 ]
