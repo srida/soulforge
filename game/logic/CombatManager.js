@@ -53,7 +53,9 @@ export class CombatManager {
 
     // ── 1. Passive ticks (power gauge, DOT, paralysis, power block) ──
     for (const u of livingUnits) {
-      u.power_gauge++;
+      // 'power_charge' is a regular stat_bonus stat (applied via AttributeManager
+      // like atk/hp) that speeds up power gauge charging instead of a combat stat.
+      u.power_gauge += 1 + (u._stat_bonuses.power_charge || 0);
 
       // Paralysis countdown
       if (u.paralysis_remaining > 0) {
