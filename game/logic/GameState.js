@@ -64,7 +64,8 @@ export class GameState {
     this.phase = Phase.END_ROUND;
 
     if (winner === 'player') {
-      this.enemy_hp -= Math.round(playerSurvivorsAtk * this.player_multiplier);
+      const mult = this.player_multiplier + (attributeResult.damage_multiplier_bonus || 0);
+      this.enemy_hp -= Math.round(playerSurvivorsAtk * mult);
     } else if (winner === 'enemy') {
       this.player_hp -= Math.round(enemySurvivorsAtk * this.enemy_multiplier);
     }

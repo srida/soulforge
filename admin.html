@@ -1526,6 +1526,7 @@ function renderEffectBlock(ef, ti, ei) {
             <option value="revive" ${type === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
             <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
             <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
+            <option value="damage_multiplier_bonus" ${type === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégât supplémentaire (fin de combat)</option>
           </select>
         </div>
         <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeEffect(${ti},${ei})">×</button>
