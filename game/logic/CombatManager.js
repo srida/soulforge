@@ -263,7 +263,15 @@ export class CombatManager {
       }
 
       case 'POWER_FREEZE': {
-        const cell = { ...primaryTarget.position };
+        // Freeze the cell just ahead of the target (toward its own opponent),
+        // not the cell it's actively standing on — that cell stays occupied by
+        // the (still alive) target, whose own card visual would otherwise hide
+        // the frozen-tile overlay completely.
+        const aheadRow = primaryTarget.side === 'enemy'
+          ? primaryTarget.position.row - 1
+          : primaryTarget.position.row + 1;
+        const ahead = { col: primaryTarget.position.col, row: aheadRow };
+        const cell = this.board.isInBounds(ahead) ? ahead : { ...primaryTarget.position };
         const expiresAtStep = this._stepCount + (unit.power_value ?? FREEZE_DEFAULT_TICKS);
         this.board.setTemporaryBlock(cell, expiresAtStep);
         // Emit both: 'power' drives the standard cast toast/flash (like every
