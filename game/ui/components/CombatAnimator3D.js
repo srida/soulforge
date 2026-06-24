@@ -233,9 +233,10 @@ export class CombatAnimator3D {
         this._board.spawnRing(t.position, color);
       }
 
-      // POWER_PUSH : la logique a déjà déplacé l'unité via board.moveUnit,
-      // mais aucun event 'move' n'est émis — on anime le déplacement ici.
-      if (power_id === 'POWER_PUSH' && entry && t.position) {
+      // POWER_PUSH / POWER_FREEZE : la logique a déjà déplacé l'unité via
+      // board.moveUnit, mais aucun event 'move' n'est émis — on anime le
+      // déplacement ici.
+      if ((power_id === 'POWER_PUSH' || power_id === 'POWER_FREEZE') && entry && t.position) {
         this._board.animateUnitMove(t.uid, t.position, 0.2);
       }
     }

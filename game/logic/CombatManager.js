@@ -262,15 +262,12 @@ export class CombatManager {
       }
 
       case 'POWER_FREEZE': {
-        // Freeze the cell just ahead of the target (toward its own opponent),
-        // not the cell it's actively standing on — that cell stays occupied by
-        // the (still alive) target, whose own card visual would otherwise hide
-        // the frozen-tile overlay completely.
-        const aheadRow = primaryTarget.side === 'enemy'
-          ? primaryTarget.position.row - 1
-          : primaryTarget.position.row + 1;
-        const ahead = { col: primaryTarget.position.col, row: aheadRow };
-        const cell = this.board.isInBounds(ahead) ? ahead : { ...primaryTarget.position };
+        // Push the target back by one cell (reuses the same retreat mechanic
+        // as POWER_PUSH) and freeze the cell it just vacated — guaranteed
+        // empty, unlike the cell it's standing on, whose own card visual
+        // would otherwise hide the frozen-tile overlay completely.
+        const cell = { ...primaryTarget.position };
+        this._pushUnit(primaryTarget, unit.position, 1);
         // Frozen until the round ends, not a fixed tick count — cleared along
         // with the rest of the terrain's temporary blocks when the next combat
         // (or the following preparation phase) resets the board's blocked cells.
