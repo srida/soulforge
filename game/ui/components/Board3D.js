@@ -6,7 +6,7 @@ export const ELEMENT_STYLES = {
   feu:         { color: 0xff6a3c, ringColor: 0xff8a3c, size: 0.08, speed: [1.5, 3.5], lift: [2, 4],     gravity: 2,  spin: 0, flash: false },
   eau:         { color: 0x4fc3f7, ringColor: 0x4fc3f7, size: 0.06, speed: [0.8, 2],   lift: [0.5, 1.5], gravity: 10, spin: 0, flash: false },
   terre:       { color: 0xa0743c, ringColor: 0xc09058, size: 0.09, speed: [0.6, 1.6], lift: [0.4, 1.2], gravity: 14, spin: 0, flash: false },
-  air:         { color: 0xb8ffd8, ringColor: 0xc8ffe0, size: 0.06, speed: [1, 2.5],   lift: [1, 2.5],   gravity: 1,  spin: 4, flash: false },
+  air:         { color: 0xb8ffd8, ringColor: 0xc8ffe0, size: 0.06, speed: [1, 2.5],   lift: [1, 2.5],   gravity: 1,  spin: 4, flash: true  },
   foudre:      { color: 0xfff066, ringColor: 0xfff9a8, size: 0.09, speed: [2, 5],     lift: [1, 4],     gravity: 6,  spin: 0, flash: true  },
   glace:       { color: 0xa8e8ff, ringColor: 0xc8f4ff, size: 0.07, speed: [0.6, 1.6], lift: [0.6, 1.6], gravity: 6,  spin: 1, flash: false },
   sorcellerie: { color: 0xb86ae8, ringColor: 0xd8a0f8, size: 0.07, speed: [1, 2.4],   lift: [1.2, 2.8], gravity: 3,  spin: 3, flash: true  },
@@ -416,6 +416,472 @@ export class Board3D {
     this.spawnFlash(center, color, 5, 5, 0.55);
   }
 
+  // Arc électrique brisé entre deux points (ou un point + une direction aléatoire courte
+  // si toPos est omis) — bolt principal + halo blanc + quelques ramifications courtes.
+  spawnLightningArc(fromPos, toPos, color = 0xfff066, opts = {}) {
+    const THREE = this.THREE;
+    const from = fromPos instanceof THREE.Vector3 ? fromPos : this.tilePosition(fromPos);
+    const to = toPos instanceof THREE.Vector3 ? toPos : this.tilePosition(toPos);
+    const { segments = 7, jitter = 0.16, lift = 0.3, maxLife = 0.16, branches = 1 } = opts;
+
+    const makeBoltPoints = (a, b) => {
+      const pts = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const p = a.clone().lerp(b, t);
+        p.y += lift;
+        if (i > 0 && i < segments) {
+          p.x += (Math.random() - 0.5) * jitter;
+          p.y += (Math.random() - 0.5) * jitter;
+          p.z += (Math.random() - 0.5) * jitter;
+        }
+        pts.push(p);
+      }
+      return pts;
+    };
+
+    const lines = [];
+    const addBolt = (pts, lineColor, opacity) => {
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({
+        color: lineColor, transparent: true, opacity,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      const line = new THREE.Line(geo, mat);
+      line.userData.baseOpacity = opacity;
+      this.scene.add(line);
+      lines.push(line);
+    };
+
+    const mainPts = makeBoltPoints(from, to);
+    addBolt(mainPts, color, 1);
+    addBolt(mainPts, 0xffffff, 0.55);
+
+    for (let b = 0; b < branches; b++) {
+      const startIdx = 1 + Math.floor(Math.random() * Math.max(1, segments - 2));
+      const branchStart = mainPts[startIdx];
+      const branchEnd = branchStart.clone().add(new THREE.Vector3(
+        (Math.random() - 0.5) * 0.7,
+        Math.random() * 0.25,
+        (Math.random() - 0.5) * 0.7,
+      ));
+      addBolt(makeBoltPoints(branchStart, branchEnd), color, 0.65);
+    }
+
+    this.bursts.push({ lines, life: 0, maxLife });
+  }
+
+  // Cercle magique : anneaux concentriques tournant à vitesses/sens différents + petits
+  // motifs (façon symboles runiques) répartis sur l'anneau médian, qui tourne avec eux.
+  // Flash bref façon "cercle d'invocation" — appelé pour l'élément 'sorcellerie'.
+  spawnMagicCircle(pos, tier = 1) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const color = 0xb86ae8;
+    const glowColor = 0xe8c8ff;
+
+    const group = new THREE.Group();
+    group.position.set(center.x, 0.05, center.z);
+    this.scene.add(group);
+
+    const ringDefs = [
+      { rIn: 0.30, rOut: 0.34, spin: 2.6, color },
+      { rIn: 0.46, rOut: 0.49, spin: -2.0, color: glowColor },
+      { rIn: 0.60 + t * 0.03, rOut: 0.63 + t * 0.03, spin: 1.4, color },
+    ];
+    const rings = ringDefs.map((def) => {
+      const geo = new THREE.RingGeometry(def.rIn, def.rOut, 48);
+      const mat = new THREE.MeshBasicMaterial({
+        color: def.color, transparent: true, opacity: 0.85, side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      group.add(mesh);
+      return { mesh, spin: def.spin };
+    });
+
+    const glyphCount = 6 + t;
+    const glyphRadius = 0.46;
+    const glyphs = [];
+    for (let i = 0; i < glyphCount; i++) {
+      const a = (i / glyphCount) * Math.PI * 2;
+      const geo = new THREE.OctahedronGeometry(0.045, 0);
+      const mat = new THREE.MeshBasicMaterial({
+        color: glowColor, transparent: true, opacity: 0.95,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(Math.cos(a) * glyphRadius, 0.01, Math.sin(a) * glyphRadius);
+      group.add(mesh);
+      glyphs.push(mesh);
+    }
+
+    this.spawnFlash(center, color, 2 + t * 0.4, 3 + t * 0.4, 0.3);
+    this.bursts.push({ group, rings, glyphs, glyphSpin: 1.4, life: 0, maxLife: 0.6 + t * 0.08 });
+  }
+
+  // Texture flamme générée une fois (canvas, gradient radial chaud) et mise en cache.
+  _getFlameTexture() {
+    if (this._flameTex) return this._flameTex;
+    const THREE = this.THREE;
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0,    'rgba(255,255,255,1)');
+    grad.addColorStop(0.25, 'rgba(255,220,120,0.95)');
+    grad.addColorStop(0.6,  'rgba(255,120,40,0.45)');
+    grad.addColorStop(1,    'rgba(255,60,20,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    this._flameTex = tex;
+    return tex;
+  }
+
+  // Flammèches qui s'échappent vers le haut en se dissipant (gravité négative = portance),
+  // texture flamme + dégradé de couleur (cœur clair -> orange -> rouge) + flash chaud.
+  // Appelé pour l'élément 'feu', à la fois sur l'attaquant (départ d'attaque) et la cible (impact).
+  // Les particules naissent sur un anneau juste à l'extérieur de la carte (CARD_PX/CSS_SCALE
+  // = CELL, donc demi-largeur ≈ 0.5) pour s'échapper tout autour d'elle plutôt que par-dessus.
+  spawnFlames(pos, tier = 1, opts = {}) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const count = opts.count ?? (10 + t * 6);
+    const innerR = opts.innerRadius ?? 0.5;
+    const band = opts.spread ?? 0.22;
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const palette = [
+      new THREE.Color(0xfff3b0),
+      new THREE.Color(0xffb347),
+      new THREE.Color(0xff5a1f),
+    ];
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = innerR + Math.random() * band;
+      positions[i * 3]     = center.x + Math.cos(a) * r;
+      positions[i * 3 + 1] = center.y + Math.random() * 0.06;
+      positions[i * 3 + 2] = center.z + Math.sin(a) * r;
+      velocities[i * 3]     = Math.cos(a) * (0.25 + Math.random() * 0.3);
+      velocities[i * 3 + 1] = 1.4 + Math.random() * (1.2 + t * 0.3);
+      velocities[i * 3 + 2] = Math.sin(a) * (0.25 + Math.random() * 0.3);
+      const c = palette[Math.min(palette.length - 1, Math.floor(Math.random() * palette.length))];
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({
+      size: opts.size ?? (0.22 + t * 0.05),
+      map: this._getFlameTexture(),
+      vertexColors: true,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    });
+    const points = new THREE.Points(geo, mat);
+    this.scene.add(points);
+    this.bursts.push({
+      points,
+      velocities,
+      life: 0,
+      maxLife: opts.maxLife ?? (0.45 + t * 0.05),
+      gravity: opts.gravity ?? -1.2,
+      spin: 0,
+    });
+    this.spawnFlash(center, 0xff7a3c, 1 + t * 0.3, 2 + t * 0.4, 0.18);
+  }
+
+  // Texture goutte d'eau (cœur clair -> bleu profond) générée une fois et mise en cache.
+  _getDropletTexture() {
+    if (this._dropletTex) return this._dropletTex;
+    const THREE = this.THREE;
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0,    'rgba(255,255,255,0.95)');
+    grad.addColorStop(0.35, 'rgba(170,224,255,0.9)');
+    grad.addColorStop(0.7,  'rgba(70,160,230,0.55)');
+    grad.addColorStop(1,    'rgba(40,120,200,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    this._dropletTex = tex;
+    return tex;
+  }
+
+  // Splash d'eau : gouttelettes projetées en arc qui retombent rapidement (forte gravité,
+  // contrairement aux flammèches qui montent) + double onde de ricochet au sol.
+  // Appelé pour l'élément 'eau', à la fois sur l'attaquant (départ d'attaque) et la cible (impact).
+  spawnSplash(pos, tier = 1, opts = {}) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const count = opts.count ?? (14 + t * 8);
+    const innerR = opts.innerRadius ?? 0.12;
+    const band = opts.spread ?? 0.18;
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const palette = [
+      new THREE.Color(0xe8faff),
+      new THREE.Color(0x9adcff),
+      new THREE.Color(0x4fc3f7),
+    ];
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = innerR + Math.random() * band;
+      positions[i * 3]     = center.x + Math.cos(a) * r;
+      positions[i * 3 + 1] = center.y + 0.03;
+      positions[i * 3 + 2] = center.z + Math.sin(a) * r;
+      const speed = 0.9 + Math.random() * (0.8 + t * 0.25);
+      velocities[i * 3]     = Math.cos(a) * speed;
+      velocities[i * 3 + 1] = 1.6 + Math.random() * (1 + t * 0.35);
+      velocities[i * 3 + 2] = Math.sin(a) * speed;
+      const c = palette[Math.min(palette.length - 1, Math.floor(Math.random() * palette.length))];
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({
+      size: opts.size ?? (0.16 + t * 0.03),
+      map: this._getDropletTexture(),
+      vertexColors: true,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+    const points = new THREE.Points(geo, mat);
+    this.scene.add(points);
+    this.bursts.push({
+      points,
+      velocities,
+      life: 0,
+      maxLife: opts.maxLife ?? (0.4 + t * 0.04),
+      gravity: opts.gravity ?? (9 + t * 0.6),
+      spin: 0,
+    });
+    // Onde de ricochet : un cercle net qui s'étale vite, superposé à un second plus large et plus pâle.
+    this.spawnRing(new THREE.Vector3(center.x, 0, center.z), 0xaee6ff, 0.32 + t * 0.03, 3 + t * 0.6);
+    this.spawnRing(new THREE.Vector3(center.x, 0.01, center.z), 0xddf4ff, 0.5 + t * 0.05, 5 + t * 0.9);
+  }
+
+  // Fissure unique au sol (ligne brisée, sans glow additif contrairement à spawnLightningArc)
+  // utilisée par spawnCrater pour dessiner les craquelures radiales.
+  spawnCrack(from, to, color = 0x2a1c10) {
+    const THREE = this.THREE;
+    const segments = 4;
+    const pts = [];
+    for (let i = 0; i <= segments; i++) {
+      const tt = i / segments;
+      const p = from.clone().lerp(to, tt);
+      p.y += 0.01;
+      if (i > 0 && i < segments) {
+        p.x += (Math.random() - 0.5) * 0.05;
+        p.z += (Math.random() - 0.5) * 0.05;
+      }
+      pts.push(p);
+    }
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false });
+    const line = new THREE.Line(geo, mat);
+    line.userData.baseOpacity = 0.85;
+    this.scene.add(line);
+    return line;
+  }
+
+  // Cratère : craquelures radiales sombres au sol + anneau de terre soulevée (persiste plus
+  // longtemps que les autres impacts élémentaires) + débris rocheux lourds (forte gravité).
+  // Appelé pour l'élément 'terre', en complément du tremblement de caméra (shakeCamera).
+  spawnCrater(pos, tier = 1) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const crackCount = 5 + t;
+    const lines = [];
+    for (let i = 0; i < crackCount; i++) {
+      const angle = (i / crackCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const len = 0.22 + Math.random() * (0.12 + t * 0.06);
+      const end = new THREE.Vector3(center.x + Math.cos(angle) * len, center.y, center.z + Math.sin(angle) * len);
+      lines.push(this.spawnCrack(center, end));
+    }
+    this.bursts.push({ lines, life: 0, maxLife: 0.9 + t * 0.15 });
+    this.spawnRing(new THREE.Vector3(center.x, 0.02, center.z), 0x4a3318, 1.0 + t * 0.12, 3.5 + t * 0.7);
+    // Nuage de poussière fine (discret, en fond derrière les éclats rocheux).
+    this.spawnBurst(center, 0x6b4a2c, 5 + t, {
+      speed: [0.4, 0.9 + t * 0.1],
+      lift: [0.8, 1.4 + t * 0.2],
+      size: 0.08 + t * 0.01,
+      gravity: 14 + t,
+      maxLife: 0.45 + t * 0.05,
+    });
+    this.spawnRockShards(center, t);
+  }
+
+  // Éclats de pierre : polyèdres irréguliers projetés en l'air, qui culbutent (rotation libre)
+  // puis retombent et rebondissent une fois au sol avant de s'immobiliser et de s'effacer.
+  // Bien plus visibles qu'un nuage de particules-points — c'est le coeur de l'effet "cratère".
+  spawnRockShards(pos, tier = 1) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const count = 7 + t * 3;
+    const palette = [0x6b4a2c, 0x8a6238, 0x4a3318, 0x9c805a, 0x5c4226];
+    const rocks = [];
+    for (let i = 0; i < count; i++) {
+      const size = 0.09 + Math.random() * (0.07 + t * 0.03);
+      const geo = new THREE.DodecahedronGeometry(size, 0);
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(center.x, center.y + 0.06, center.z);
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      this.scene.add(mesh);
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.9 + Math.random() * (0.9 + t * 0.35);
+      rocks.push({
+        mesh,
+        vel: new THREE.Vector3(Math.cos(angle) * speed, 2.2 + Math.random() * (1.6 + t * 0.4), Math.sin(angle) * speed),
+        angVel: new THREE.Vector3((Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9),
+        bounced: false,
+      });
+    }
+    this.bursts.push({ rocks, life: 0, maxLife: 0.9 + t * 0.12, gravity: 9 + t * 0.8 });
+  }
+
+  // Texture poussière/courant d'air (cœur clair -> menthe translucide) générée une fois et mise en cache.
+  _getWindTexture() {
+    if (this._windTex) return this._windTex;
+    const THREE = this.THREE;
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0,    'rgba(255,255,255,0.9)');
+    grad.addColorStop(0.4,  'rgba(220,255,235,0.55)');
+    grad.addColorStop(1,    'rgba(200,255,220,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    this._windTex = tex;
+    return tex;
+  }
+
+  // Tornade : large colonne de particules en spirale (chaque particule traîne plusieurs
+  // échos retardés sur sa propre trajectoire pour simuler une traînée de vent continue,
+  // plutôt qu'un nuage de points isolés) qui montent en s'écartant du centre (rayon et
+  // hauteur croissants, rotation alternée gauche/droite par particule), additive blending
+  // pour bien ressortir sur le board sombre, + entonnoir de poussière au sol (anneaux
+  // empilés à tailles/délais croissants) bien plus marqué qu'un impact standard.
+  // Appelé pour l'élément 'air', en complément du burst générique (vert menthe, spin léger).
+  spawnTornado(pos, tier = 1, opts = {}) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const strands = opts.count ?? (10 + t * 4);
+    const echoesPerStrand = 4;
+    const count = strands * echoesPerStrand;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const baseAngle = new Float32Array(count);
+    const baseRadius = new Float32Array(count);
+    const rotSpeed = new Float32Array(count);
+    const expandSpeed = new Float32Array(count);
+    const riseSpeed = new Float32Array(count);
+    const maxHeight = new Float32Array(count);
+    const maxRadius = new Float32Array(count);
+    const echoDelay = new Float32Array(count);
+    const palette = [
+      new THREE.Color(0xffffff),
+      new THREE.Color(0xc8ffe6),
+      new THREE.Color(0x7af0c0),
+      new THREE.Color(0x4ad8a0),
+    ];
+    for (let s = 0; s < strands; s++) {
+      const angle0 = Math.random() * Math.PI * 2;
+      const radius0 = 0.1 + Math.random() * 0.16;
+      const rot = (7 + Math.random() * 5 + t * 0.7) * (Math.random() < 0.5 ? -1 : 1);
+      const expand = 0.5 + Math.random() * (0.35 + t * 0.08);
+      const rise = 1.6 + Math.random() * (1.0 + t * 0.3);
+      const height = 1.6 + Math.random() * (0.8 + t * 0.3);
+      const rad = 0.7 + Math.random() * (0.35 + t * 0.1);
+      const c = palette[Math.min(palette.length - 1, Math.floor(Math.random() * palette.length))];
+      for (let e = 0; e < echoesPerStrand; e++) {
+        const i = s * echoesPerStrand + e;
+        baseAngle[i] = angle0;
+        baseRadius[i] = radius0;
+        rotSpeed[i] = rot;
+        expandSpeed[i] = expand;
+        riseSpeed[i] = rise;
+        maxHeight[i] = height;
+        maxRadius[i] = rad;
+        echoDelay[i] = e * 0.05;
+        positions[i * 3]     = center.x + Math.cos(angle0) * radius0;
+        positions[i * 3 + 1] = center.y;
+        positions[i * 3 + 2] = center.z + Math.sin(angle0) * radius0;
+        const fade = 1 - e / echoesPerStrand;
+        colors[i * 3]     = c.r * fade;
+        colors[i * 3 + 1] = c.g * fade;
+        colors[i * 3 + 2] = c.b * fade;
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({
+      size: opts.size ?? (0.22 + t * 0.05),
+      map: this._getWindTexture(),
+      vertexColors: true,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    });
+    const points = new THREE.Points(geo, mat);
+    this.scene.add(points);
+    this.bursts.push({
+      points,
+      life: 0,
+      maxLife: opts.maxLife ?? (1.1 + t * 0.12),
+      orbit: { center, baseAngle, baseRadius, rotSpeed, expandSpeed, riseSpeed, maxHeight, maxRadius, echoDelay },
+    });
+    // Entonnoir de poussière au sol : trois anneaux empilés, du plus large/pâle au plus
+    // serré/vif, pour donner une impression de base de tornade plutôt qu'un simple impact.
+    this.spawnRing(new THREE.Vector3(center.x, 0.01, center.z), 0xeafff0, 0.9 + t * 0.1, 6 + t);
+    this.spawnRing(new THREE.Vector3(center.x, 0.02, center.z), 0xc8ffe0, 0.75 + t * 0.08, 4 + t * 0.7);
+    this.spawnRing(new THREE.Vector3(center.x, 0.03, center.z), 0x8cf0bc, 0.6 + t * 0.06, 2.2 + t * 0.4);
+  }
+
+  // Secousse caméra : décale légèrement la position le temps de duration, en décroissant.
+  // Additif sur la base courante (_camH/_camCenterZ) — n'écrase jamais la position de référence.
+  shakeCamera(magnitude = 0.08, duration = 0.3) {
+    this._shake = { time: 0, duration, magnitude };
+  }
+
   spawnElementImpact(position, elements, tier = 1) {
     const THREE = this.THREE;
     const list = elements && elements.length ? elements : ['neutral'];
@@ -442,6 +908,26 @@ export class Board3D {
       }
       this.spawnRing(new THREE.Vector3(position.x, 0, position.z), style.ringColor, CFG.rL, CFG.rS);
       if (CFG.fi > 0) this.spawnFlash(position, style.color, CFG.fi / list.length, CFG.fR, CFG.fL);
+      if (element === 'foudre') {
+        const arcCount = 5 + t * 2;
+        for (let i = 0; i < arcCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 0.5 + Math.random() * 0.5 * CFG.sM * 2;
+          const end = new THREE.Vector3(position.x + Math.cos(angle) * dist, position.y, position.z + Math.sin(angle) * dist);
+          this.spawnLightningArc(position, end, style.color, { maxLife: 0.14 + t * 0.015, branches: t >= 3 ? 2 : 1 });
+        }
+      }
+      if (element === 'feu') this.spawnFlames(position, t);
+      if (element === 'eau') this.spawnSplash(position, t);
+      if (element === 'air') this.spawnTornado(position, t);
+      if (element === 'sorcellerie') this.spawnMagicCircle(position, t);
+      if (element === 'terre') {
+        this.spawnCrater(position, t);
+        // Magnitude relative à la hauteur de caméra (_camH) pour rester perceptible
+        // quel que soit le niveau de zoom (vue plateau complet vs cadrage rapproché).
+        const camH = this._camH || 6;
+        this.shakeCamera(camH * (0.035 + t * 0.012), 0.3 + t * 0.06);
+      }
     }
     if (t === 5) this.spawnHalo(position, (ELEMENT_STYLES[list[0]] || ELEMENT_STYLES.neutral).color);
   }
@@ -966,7 +1452,25 @@ export class Board3D {
       const b = this.bursts[i];
       b.life += dt;
       const p = Math.min(b.life / b.maxLife, 1);
-      if (b.points) {
+      if (b.orbit) {
+        // Tornade : position recalculée chaque frame en coordonnées polaires (pas de vélocité
+        // cartésienne) — rayon et hauteur croissent avec b.life, l'angle tourne à rotSpeed.
+        // echoDelay décale chaque écho d'une même traînée (strand) pour simuler un filament
+        // continu plutôt qu'un nuage de points isolés.
+        const o = b.orbit;
+        const arr = b.points.geometry.attributes.position.array;
+        for (let i = 0, j = 0; j < arr.length; i++, j += 3) {
+          const localLife = Math.max(0, b.life - (o.echoDelay?.[i] ?? 0));
+          const angle = o.baseAngle[i] + localLife * o.rotSpeed[i];
+          const radius = Math.min(o.baseRadius[i] + localLife * o.expandSpeed[i], o.maxRadius[i]);
+          const height = Math.min(localLife * o.riseSpeed[i], o.maxHeight[i]);
+          arr[j]     = o.center.x + Math.cos(angle) * radius;
+          arr[j + 1] = o.center.y + height;
+          arr[j + 2] = o.center.z + Math.sin(angle) * radius;
+        }
+        b.points.geometry.attributes.position.needsUpdate = true;
+        b.points.material.opacity = 1 - p;
+      } else if (b.points) {
         const gravity = b.gravity ?? 6;
         const spin = b.spin ?? 0;
         const arr = b.points.geometry.attributes.position.array;
@@ -993,9 +1497,70 @@ export class Board3D {
       if (b.light) {
         b.light.intensity = (b.maxIntensity ?? 4) * (1 - p);
       }
+      if (b.lines) {
+        const flicker = 0.5 + Math.random() * 0.5;
+        for (const line of b.lines) {
+          line.material.opacity = line.userData.baseOpacity * flicker * (1 - p);
+        }
+      }
+      if (b.group) {
+        for (const r of b.rings) r.mesh.rotation.z += r.spin * dt;
+        b.group.rotation.y += b.glyphSpin * dt;
+        const fadeIn = Math.min(b.life / 0.15, 1);
+        const opacity = fadeIn * (1 - p);
+        for (const r of b.rings) r.mesh.material.opacity = 0.85 * opacity;
+        for (const g of b.glyphs) g.material.opacity = 0.95 * opacity;
+      }
+      if (b.rocks) {
+        const gravity = b.gravity ?? 9;
+        const fadeStart = 0.7;
+        for (const r of b.rocks) {
+          r.vel.y -= gravity * dt;
+          r.mesh.position.addScaledVector(r.vel, dt);
+          if (r.mesh.position.y < 0.04) {
+            r.mesh.position.y = 0.04;
+            if (!r.bounced && r.vel.y < 0) {
+              r.bounced = true;
+              r.vel.y *= -0.35;
+              r.vel.x *= 0.5;
+              r.vel.z *= 0.5;
+            } else {
+              r.vel.set(0, 0, 0);
+            }
+          }
+          r.mesh.rotation.x += r.angVel.x * dt;
+          r.mesh.rotation.y += r.angVel.y * dt;
+          r.mesh.rotation.z += r.angVel.z * dt;
+          if (p > fadeStart) {
+            r.mesh.material.opacity = 1 - (p - fadeStart) / (1 - fadeStart);
+          }
+        }
+      }
       if (p >= 1) {
         if (b.light) {
           this.scene.remove(b.light);
+        } else if (b.lines) {
+          for (const line of b.lines) {
+            this.scene.remove(line);
+            line.geometry.dispose();
+            line.material.dispose();
+          }
+        } else if (b.rocks) {
+          for (const r of b.rocks) {
+            this.scene.remove(r.mesh);
+            r.mesh.geometry.dispose();
+            r.mesh.material.dispose();
+          }
+        } else if (b.group) {
+          for (const r of b.rings) {
+            r.mesh.geometry.dispose();
+            r.mesh.material.dispose();
+          }
+          for (const g of b.glyphs) {
+            g.geometry.dispose();
+            g.material.dispose();
+          }
+          this.scene.remove(b.group);
         } else {
           const obj = b.points || b.ring;
           this.scene.remove(obj);
@@ -1003,6 +1568,22 @@ export class Board3D {
           obj.material.dispose();
         }
         this.bursts.splice(i, 1);
+      }
+    }
+
+    if (this._shake) {
+      this._shake.time += dt;
+      const sp = this._shake.time / this._shake.duration;
+      if (sp >= 1) {
+        this._shake = null;
+        this.camera.position.x = 0;
+        this.camera.position.y = this._camH;
+        this.camera.lookAt(0, 0, this._camCenterZ);
+      } else {
+        const mag = this._shake.magnitude * (1 - sp);
+        this.camera.position.x = (Math.random() * 2 - 1) * mag;
+        this.camera.position.y = this._camH + (Math.random() * 2 - 1) * mag * 0.6;
+        this.camera.lookAt(0, 0, this._camCenterZ);
       }
     }
 
@@ -1030,6 +1611,8 @@ export class Board3D {
     for (const b of this.bursts) {
       if (b.points) { b.points.geometry.dispose(); b.points.material.dispose(); }
       if (b.ring) { b.ring.geometry.dispose(); b.ring.material.dispose(); }
+      if (b.lines) { for (const line of b.lines) { line.geometry.dispose(); line.material.dispose(); } }
+      if (b.rocks) { for (const r of b.rocks) { r.mesh.geometry.dispose(); r.mesh.material.dispose(); } }
     }
 
     this.renderer.dispose();

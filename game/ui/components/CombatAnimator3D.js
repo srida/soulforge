@@ -106,6 +106,15 @@ export class CombatAnimator3D {
     if (atkEntry) this._flashClass(atkEntry.el, 'anim-shake');
     const projColor = (ELEMENT_STYLES[elementsForUnit(attacker)[0]] || ELEMENT_STYLES.neutral).color;
 
+    if (elementsForUnit(attacker).includes('feu') && attacker.position) {
+      const atier = Math.max(1, Math.min(5, attacker.tier ?? 1));
+      this._board.spawnFlames(attacker.position, atier, { count: 8 + atier * 3, maxLife: 0.32, spread: 0.16 });
+    }
+    if (elementsForUnit(attacker).includes('eau') && attacker.position) {
+      const atier = Math.max(1, Math.min(5, attacker.tier ?? 1));
+      this._board.spawnSplash(attacker.position, atier, { count: 6 + atier * 4, maxLife: 0.3, spread: 0.12 });
+    }
+
     if (attacker.range > 1) {
       if (atkEntry && target.position) {
         this._board.playProjectile(attacker.position, target.position, projColor).then(() => {
@@ -148,6 +157,20 @@ export class CombatAnimator3D {
           maxLife: 0.20 + atier * 0.04,
         });
         this._board.spawnRing(target.position, style.ringColor, 0.20 + atier * 0.04, ATK_CFG.rS);
+        if (element === 'foudre') {
+          const arcCount = 5 + atier * 2;
+          for (let i = 0; i < arcCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 0.4 + Math.random() * 0.4 * (atier / 5);
+            const end = {
+              col: target.position.col + Math.cos(angle) * dist,
+              row: target.position.row + Math.sin(angle) * dist,
+            };
+            this._board.spawnLightningArc(target.position, end, style.color, { maxLife: 0.14 + atier * 0.015, branches: atier >= 3 ? 2 : 1 });
+          }
+        }
+        if (element === 'feu') this._board.spawnFlames(target.position, atier, { count: 10 + atier * 6 });
+        if (element === 'eau') this._board.spawnSplash(target.position, atier, { count: 8 + atier * 5 });
       }
     }
   }
