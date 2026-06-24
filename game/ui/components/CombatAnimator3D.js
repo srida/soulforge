@@ -13,6 +13,9 @@ const POWER_NAMES = {
   POWER_PUSH:         'Poussée',
   POWER_DEBUFF:       'Débuff',
   POWER_BLOCK:        'Blocage',
+  POWER_BURN:         'Brûlure',
+  POWER_TELEPORT:     'Téléportation',
+  POWER_FREEZE:       'Gel',
 };
 
 const POWER_COLORS = {
@@ -21,7 +24,11 @@ const POWER_COLORS = {
   POWER_POISON:    0xc878e0,
   POWER_PARALYSIS: 0xf0c040,
   POWER_PUSH:      0xf0a040,
+  POWER_BURN:      0xff6020,
+  POWER_FREEZE:    0x8fd6ff,
 };
+
+function _cellKey(pos) { return `${pos.col},${pos.row}`; }
 
 export class CombatAnimator3D {
   constructor(combatManager, board3D, { onFinished, onStep } = {}) {
@@ -33,6 +40,7 @@ export class CombatAnimator3D {
     this._timer = null;
     this._running = false;
     this._paused = false;
+    this._frozenCells = new Map(); // cellKey → expiresAtStep, for the POWER_FREEZE overlay
   }
 
   setSpeed(s) { this._speed = s; }
@@ -68,6 +76,7 @@ export class CombatAnimator3D {
       this._onStep?.(events);
       const dyingUids = new Set(events.filter(e => e.type === 'death').map(e => e.unit.uid));
       for (const evt of events) this._apply(evt, interval, dyingUids);
+      this._purgeFrozenCells();
       this._refreshPowerGauges();
       if (this._cm.isOver) {
         this._running = false;
@@ -93,6 +102,25 @@ export class CombatAnimator3D {
       case 'dot':    this._applyDot(evt);     break;
       case 'power':  this._applyPower(evt);   break;
       case 'death':  this._applyDeath(evt);   break;
+      case 'freeze': this._applyFreeze(evt);  break;
+    }
+  }
+
+  _applyFreeze({ cell, expiresAtStep }) {
+    this._frozenCells.set(_cellKey(cell), { cell, expiresAtStep });
+    this._board.addTemporaryBlockedCell(cell);
+  }
+
+  // Frozen cells are purged on the animator's own tick (not by the events
+  // array, which only reports new freezes) since the logic-side expiry is
+  // silent — CombatManager just stops re-blocking the cell once it lapses.
+  _purgeFrozenCells() {
+    const currentStep = this._cm._stepCount;
+    for (const [cellKey, { cell, expiresAtStep }] of this._frozenCells) {
+      if (currentStep >= expiresAtStep) {
+        this._board.removeTemporaryBlockedCell(cell);
+        this._frozenCells.delete(cellKey);
+      }
     }
   }
 

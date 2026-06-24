@@ -245,6 +245,18 @@ export class Board3D {
     this._refreshTileColors();
   }
 
+  // Additive variants used for POWER_FREEZE: merge/remove a single cell
+  // without touching the terrain's permanent blocked cells set above.
+  addTemporaryBlockedCell(pos) {
+    this._blockedCells.add(key(pos));
+    this._refreshTileColors();
+  }
+
+  removeTemporaryBlockedCell(pos) {
+    this._blockedCells.delete(key(pos));
+    this._refreshTileColors();
+  }
+
   setHighlight(cells) {
     this._highlighted = new Set((cells || []).map(key));
     this._refreshTileColors();

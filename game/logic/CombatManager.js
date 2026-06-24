@@ -266,6 +266,9 @@ export class CombatManager {
         const cell = { ...primaryTarget.position };
         const expiresAtStep = this._stepCount + (unit.power_value ?? FREEZE_DEFAULT_TICKS);
         this.board.setTemporaryBlock(cell, expiresAtStep);
+        // Emit both: 'power' drives the standard cast toast/flash (like every
+        // other power), 'freeze' carries the cell data for the ice overlay.
+        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { cell, expiresAtStep } });
         events.push({ type: 'freeze', cell, expiresAtStep });
         break;
       }
