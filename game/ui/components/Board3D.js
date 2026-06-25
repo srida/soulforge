@@ -781,6 +781,71 @@ export class Board3D {
     this.bursts.push({ rocks, life: 0, maxLife: 0.9 + t * 0.12, gravity: 9 + t * 0.8 });
   }
 
+  // Éclats métalliques façon douilles/munitions qui explosent à l'impact : petits parallélépipèdes
+  // gris/argentés projetés en l'air (réutilise la mécanique de chute/rebond de spawnRockShards via
+  // le même champ `rocks`) + gerbe d'étincelles vives + flash blanc bref. Appelé pour l'élément 'metal'.
+  spawnMetalShards(pos, tier = 1) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const count = 6 + t * 2;
+    const palette = [0xd8dee4, 0xb0b8c0, 0x8c94a0, 0xf0f4f8];
+    const rocks = [];
+    for (let i = 0; i < count; i++) {
+      const size = 0.05 + Math.random() * (0.04 + t * 0.015);
+      const geo = new THREE.BoxGeometry(size, size * 0.4, size * 0.4);
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(center.x, center.y + 0.08, center.z);
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      this.scene.add(mesh);
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.4 + Math.random() * (1.4 + t * 0.4);
+      rocks.push({
+        mesh,
+        vel: new THREE.Vector3(Math.cos(angle) * speed, 1.8 + Math.random() * (1.4 + t * 0.4), Math.sin(angle) * speed),
+        angVel: new THREE.Vector3((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14),
+        bounced: false,
+      });
+    }
+    this.bursts.push({ rocks, life: 0, maxLife: 0.5 + t * 0.06, gravity: 14 + t });
+    this.spawnBurst(center, 0xfff6d8, 10 + t * 3, {
+      speed: [2, 4.5 + t * 0.4], lift: [1, 2.5 + t * 0.3], size: 0.045, gravity: 16, maxLife: 0.22 + t * 0.02,
+    });
+    this.spawnFlash(center, 0xf0f4f8, 2 + t * 0.4, 3, 0.14);
+  }
+
+  // Slash d'épée : 2 à 4 arcs fins (anneau partiel à plat sur le sol) qui flashent puis
+  // s'effacent très vite, orientation aléatoire — simule des traces de lames croisées sur
+  // la cible. Appelé pour l'élément 'metal', en complément des éclats métalliques.
+  spawnSwordSlash(pos, tier = 1) {
+    const THREE = this.THREE;
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const t = Math.max(1, Math.min(5, tier));
+    const slashCount = 2 + (t >= 3 ? 1 : 0) + (t >= 5 ? 1 : 0);
+    const slashes = [];
+    for (let i = 0; i < slashCount; i++) {
+      const rOut = 0.32 + Math.random() * 0.12 + t * 0.02;
+      const rIn = rOut - (0.04 + Math.random() * 0.02);
+      const thetaLength = (0.7 + Math.random() * 0.3) * Math.PI;
+      const thetaStart = Math.random() * Math.PI * 2;
+      const geo = new THREE.RingGeometry(rIn, rOut, 24, 1, thetaStart, thetaLength);
+      geo.rotateX(-Math.PI / 2);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xe8eef4, transparent: true, opacity: 0.95, side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(center.x, 0.07 + i * 0.01, center.z);
+      mesh.rotation.y = Math.random() * Math.PI * 2;
+      this.scene.add(mesh);
+      slashes.push(mesh);
+    }
+    this.bursts.push({ slashes, life: 0, maxLife: 0.22 + t * 0.02 });
+    this.spawnFlash(center, 0xe8eef4, 1.5 + t * 0.3, 2.5, 0.12);
+  }
+
   // Texture poussière/courant d'air (cœur clair -> menthe translucide) générée une fois et mise en cache.
   _getWindTexture() {
     if (this._windTex) return this._windTex;
@@ -939,6 +1004,10 @@ export class Board3D {
         // quel que soit le niveau de zoom (vue plateau complet vs cadrage rapproché).
         const camH = this._camH || 6;
         this.shakeCamera(camH * (0.035 + t * 0.012), 0.3 + t * 0.06);
+      }
+      if (element === 'metal') {
+        this.spawnMetalShards(position, t);
+        this.spawnSwordSlash(position, t);
       }
     }
     if (t === 5) this.spawnHalo(position, (ELEMENT_STYLES[list[0]] || ELEMENT_STYLES.neutral).color);
@@ -1523,6 +1592,13 @@ export class Board3D {
         for (const r of b.rings) r.mesh.material.opacity = 0.85 * opacity;
         for (const g of b.glyphs) g.material.opacity = 0.95 * opacity;
       }
+      if (b.slashes) {
+        const grow = 1 + p * 0.4;
+        for (const s of b.slashes) {
+          s.scale.set(grow, 1, grow);
+          s.material.opacity = 0.95 * (1 - p);
+        }
+      }
       if (b.rocks) {
         const gravity = b.gravity ?? 9;
         const fadeStart = 0.7;
@@ -1562,6 +1638,12 @@ export class Board3D {
             this.scene.remove(r.mesh);
             r.mesh.geometry.dispose();
             r.mesh.material.dispose();
+          }
+        } else if (b.slashes) {
+          for (const s of b.slashes) {
+            this.scene.remove(s);
+            s.geometry.dispose();
+            s.material.dispose();
           }
         } else if (b.group) {
           for (const r of b.rings) {
@@ -1625,6 +1707,7 @@ export class Board3D {
       if (b.ring) { b.ring.geometry.dispose(); b.ring.material.dispose(); }
       if (b.lines) { for (const line of b.lines) { line.geometry.dispose(); line.material.dispose(); } }
       if (b.rocks) { for (const r of b.rocks) { r.mesh.geometry.dispose(); r.mesh.material.dispose(); } }
+      if (b.slashes) { for (const s of b.slashes) { s.geometry.dispose(); s.material.dispose(); } }
     }
 
     this.renderer.dispose();
