@@ -333,6 +333,9 @@ export class CombatManager {
 
     const from = { ...unit.position };
     this.board.moveUnit(unit, destination);
+    // 'power' drives the standard cast toast/flash (like every other power);
+    // 'move' is consumed separately by the animator to play the relocation.
+    events.push({ type: 'power', unit, targets: [target], power_id: 'POWER_TELEPORT', extra: { from, to: { ...unit.position } } });
     events.push({ type: 'move', unit, from, to: { ...unit.position } });
     return true;
   }

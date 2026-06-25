@@ -26,6 +26,7 @@ const POWER_COLORS = {
   POWER_PUSH:      0xf0a040,
   POWER_BURN:      0xff6020,
   POWER_FREEZE:    0x8fd6ff,
+  POWER_TELEPORT:  0xb070ff,
 };
 
 function _cellKey(pos) { return `${pos.col},${pos.row}`; }
