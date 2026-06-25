@@ -301,12 +301,18 @@ export class CombatManager {
     if (enemies.length === 0) return false;
     const target = enemies.reduce((a, b) => a.current_hp < b.current_hp ? a : b, enemies[0]);
 
+    // Excludes unit.position explicitly (on top of the occupied check, which
+    // already covers it) so the teleport is guaranteed to land on a different
+    // cell — never a no-op "teleport to where it already stands".
+    const isFree = p => this.board.isInBounds(p) && !this.board.isOccupied(p) && !this.board.isBlocked(p)
+      && (p.col !== unit.position.col || p.row !== unit.position.row);
+
     const adjacent = [
       { col: target.position.col, row: target.position.row - 1 },
       { col: target.position.col, row: target.position.row + 1 },
       { col: target.position.col - 1, row: target.position.row },
       { col: target.position.col + 1, row: target.position.row },
-    ].filter(p => this.board.isInBounds(p) && !this.board.isOccupied(p) && !this.board.isBlocked(p));
+    ].filter(isFree);
 
     let destination = adjacent[0] ?? null;
 
@@ -316,14 +322,14 @@ export class CombatManager {
       for (let col = 0; col < this.board.cols; col++) {
         for (let row = 0; row < this.board.rows; row++) {
           const p = { col, row };
-          if (this.board.isOccupied(p) || this.board.isBlocked(p)) continue;
+          if (!isFree(p)) continue;
           const d = Math.abs(p.col - target.position.col) + Math.abs(p.row - target.position.row);
           if (d < bestDist) { bestDist = d; destination = p; }
         }
       }
     }
 
-    if (!destination) return false; // board full — retry next tick
+    if (!destination) return false; // no other cell available — retry next tick
 
     const from = { ...unit.position };
     this.board.moveUnit(unit, destination);
