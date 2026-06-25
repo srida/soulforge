@@ -52,6 +52,8 @@ export class Unit {
     this.attack_speed_modifier = 0; // added to attack_speed while paralyzed
     this.is_power_blocked = false;
     this.power_block_remaining = 0;
+    this.confusion_remaining = 0;  // steps left of confusion (targets own allies)
+    this.taunt_remaining = 0;      // steps left this unit forces enemies to target it
 
     this.position = null;         // { col, row }
     this.initial_position = null;
@@ -128,6 +130,8 @@ export class Unit {
     this.paralysis_remaining = 0;
     this.is_power_blocked = false;
     this.power_block_remaining = 0;
+    this.confusion_remaining = 0;
+    this.taunt_remaining = 0;
     this.dot_effects = [];
     this.burn_stacks = [];
     this._recomputeStats();

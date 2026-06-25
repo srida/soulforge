@@ -68,6 +68,10 @@ function _statusIcons(unit) {
     html += `<span class="status-icon si-burn">🔥</span>`;
   if ((unit.paralysis_remaining ?? 0) > 0)
     html += `<span class="status-icon si-paralysis">⚡</span>`;
+  if ((unit.confusion_remaining ?? 0) > 0)
+    html += `<span class="status-icon si-confusion">❓</span>`;
+  if ((unit.taunt_remaining ?? 0) > 0)
+    html += `<span class="status-icon si-taunt">😡</span>`;
   if (unit.is_power_blocked)
     html += `<span class="status-icon si-block">🔇</span>`;
   return html;

@@ -58,5 +58,15 @@
         "id": "POWER_FREEZE",
         "name": "Glace",
         "description": "Gèle une case du terrain jusqu'à la fin du combat."
+    },
+    {
+        "id": "POWER_CONFUSION",
+        "name": "Confusion",
+        "description": "Confond la cible : elle attaque ses propres alliés pendant un court laps de temps."
+    },
+    {
+        "id": "POWER_TAUNT",
+        "name": "Provocation",
+        "description": "Force toutes les unités ennemies à portée de vue à attaquer le lanceur pendant un court laps de temps."
     }
 ]

@@ -16,6 +16,8 @@ const POWER_NAMES = {
   POWER_BURN:         'Brûlure',
   POWER_TELEPORT:     'Téléportation',
   POWER_FREEZE:       'Gel',
+  POWER_CONFUSION:    'Confusion',
+  POWER_TAUNT:        'Provocation',
 };
 
 const POWER_COLORS = {
@@ -27,6 +29,8 @@ const POWER_COLORS = {
   POWER_BURN:      0xff6020,
   POWER_FREEZE:    0x8fd6ff,
   POWER_TELEPORT:  0xb070ff,
+  POWER_CONFUSION: 0xa040c8,
+  POWER_TAUNT:     0xc83020,
 };
 
 function _cellKey(pos) { return `${pos.col},${pos.row}`; }

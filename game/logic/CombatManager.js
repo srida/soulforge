@@ -1,4 +1,4 @@
-import { chebyshevDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, stepToward, stepTowardOrNearest } from './PathFinder.js';
+import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest } from './PathFinder.js';
 
 // Power constants
 const POWER_SUPER_ATTACK_MULT = 3;
@@ -7,6 +7,8 @@ const POWER_SHIELD_MULT = 2;         // × atk
 const POWER_PARALYSIS_MODIFIER = 6;  // added to attack_speed
 const POWER_PARALYSIS_TICKS = 20;
 const POWER_BLOCK_TICKS = 25;
+const POWER_CONFUSION_TICKS = 20;
+const POWER_TAUNT_TICKS = 20;
 const DOT_DAMAGE_DIVISOR = 2;
 const DOT_INTERVAL = 3;              // global steps between DOT pulses
 const DOT_PULSES = 5;
@@ -73,6 +75,10 @@ export class CombatManager {
         if (u.power_block_remaining === 0) u.is_power_blocked = false;
       }
 
+      // Confusion / taunt countdown
+      if (u.confusion_remaining > 0) u.confusion_remaining--;
+      if (u.taunt_remaining > 0) u.taunt_remaining--;
+
       // DOT pulses
       for (const dot of u.dot_effects.slice()) {
         dot.timer++;
@@ -97,11 +103,11 @@ export class CombatManager {
       if (u.move_timer < u.movement_speed) continue;
       u.move_timer = 0;
 
-      const enemies = this._enemies(u).filter(e => e.isAlive());
-      if (enemies.length === 0) continue;
+      const candidates = this._targetCandidates(u, { requireLOS: false });
+      if (candidates.length === 0) continue;
 
-      // Try enemies closest-first; if primary target is blocked, fall back to next reachable one
-      const sorted = [...enemies].sort(
+      // Try candidates closest-first; if primary target is blocked, fall back to next reachable one
+      const sorted = [...candidates].sort(
         (a, b) => chebyshevDistance(u.position, a.position) - chebyshevDistance(u.position, b.position)
       );
       let moved = false;
@@ -135,9 +141,9 @@ export class CombatManager {
       if (u.attack_timer < u.effectiveAttackSpeed()) continue;
       u.attack_timer = 0;
 
-      const enemies = this._enemies(u).filter(e => e.isAlive());
-      if (enemies.length === 0) continue;
-      const { unit: target } = findAttackTarget(u, enemies, this.board);
+      const candidates = this._targetCandidates(u, { requireLOS: true });
+      if (candidates.length === 0) continue;
+      const { unit: target } = findAttackTarget(u, candidates, this.board);
       if (!canAttack(u, target, this.board)) continue; // out of range or no line of sight
 
       if (u.isPowerReady()) {
@@ -169,6 +175,30 @@ export class CombatManager {
 
   _allies(unit) {
     return unit.side === 'player' ? this.playerUnits : this.enemyUnits;
+  }
+
+  // Resolves the pool of candidate targets for `unit`'s movement/attack this step,
+  // taking taunt (POWER_TAUNT) and confusion (POWER_CONFUSION) into account.
+  // Taunt always overrides confusion: a taunted unit must commit to the taunter.
+  // requireLOS: true for attack target resolution (a taunter out of sight no longer
+  // forces targeting — falls back to normal enemy targeting), false for movement
+  // (the unit should keep walking toward the taunter to regain line of sight).
+  _targetCandidates(unit, { requireLOS }) {
+    const enemies = this._enemies(unit).filter(e => e.isAlive());
+    let taunters = enemies.filter(e => e.taunt_remaining > 0);
+    if (requireLOS) taunters = taunters.filter(e => hasLineOfSight(this.board, unit.position, e.position));
+    if (taunters.length > 0) {
+      return [taunters.reduce((a, b) =>
+        manhattanDistance(unit.position, a.position) <= manhattanDistance(unit.position, b.position) ? a : b
+      )];
+    }
+
+    if (unit.confusion_remaining > 0) {
+      const allies = this._allies(unit).filter(a => a.isAlive() && a !== unit);
+      if (allies.length > 0) return allies;
+    }
+
+    return enemies;
   }
 
   _normalAttack(attacker, target, events) {
@@ -284,6 +314,18 @@ export class CombatManager {
         primaryTarget.is_power_blocked = true;
         primaryTarget.power_block_remaining = POWER_BLOCK_TICKS;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid });
+        break;
+      }
+
+      case 'POWER_CONFUSION': {
+        primaryTarget.confusion_remaining = POWER_CONFUSION_TICKS;
+        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: POWER_CONFUSION_TICKS } });
+        break;
+      }
+
+      case 'POWER_TAUNT': {
+        unit.taunt_remaining = POWER_TAUNT_TICKS;
+        events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { ticks: POWER_TAUNT_TICKS } });
         break;
       }
 
