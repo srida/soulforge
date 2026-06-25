@@ -302,6 +302,9 @@ export class CombatManager {
         // with the rest of the terrain's temporary blocks when the next combat
         // (or the following preparation phase) resets the board's blocked cells.
         const expiresAtStep = Infinity;
+        // Only one ice block exists at a time — a new freeze replaces the
+        // previous one instead of stacking blocked cells indefinitely.
+        this.board.clearTemporaryBlocks();
         this.board.setTemporaryBlock(cell, expiresAtStep);
         // Emit both: 'power' drives the standard cast toast/flash (like every
         // other power), 'freeze' carries the cell data for the ice overlay.
@@ -324,8 +327,9 @@ export class CombatManager {
       }
 
       case 'POWER_TAUNT': {
-        unit.taunt_remaining = POWER_TAUNT_TICKS;
-        events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { ticks: POWER_TAUNT_TICKS } });
+        const taunt_ticks = unit.power_value ?? POWER_TAUNT_TICKS;
+        unit.taunt_remaining = taunt_ticks;
+        events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { ticks: taunt_ticks } });
         break;
       }
 

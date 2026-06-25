@@ -795,9 +795,10 @@ export async function mount(container, params = {}) {
       );
       for (const u of toReposition) board.removeUnit(u);
       for (const u of toReposition) {
-        if (!board.isOccupied(u.initial_position)) {
-          board.moveUnit(u, u.initial_position);
-        }
+        // initial_position can be occupied by another survivor that drifted there
+        // during combat — fall back to any free enemy cell rather than losing the unit.
+        const dest = !board.isOccupied(u.initial_position) ? u.initial_position : board.firstEmptyEnemyCell();
+        if (dest) board.moveUnit(u, dest);
       }
     }
 
@@ -813,7 +814,9 @@ export async function mount(container, params = {}) {
         ? u.initial_position
         : board.firstEmptyPlayerCell();
       if (target) {
-        try { board.placeUnit(u, target); } catch (_) { /* occupied by a survivor that moved there */ }
+        try { board.placeUnit(u, target); } catch (_) { u.is_neutralized = true; /* no free slot — revive fails, back to graveyard */ }
+      } else {
+        u.is_neutralized = true; // no free slot — revive fails, back to graveyard
       }
     }
 
@@ -833,9 +836,10 @@ export async function mount(container, params = {}) {
       );
       for (const u of toReposition) board.removeUnit(u);
       for (const u of toReposition) {
-        if (!board.isOccupied(u.initial_position)) {
-          board.moveUnit(u, u.initial_position);
-        }
+        // initial_position can be occupied by another survivor that drifted there
+        // during combat — fall back to any free player cell rather than losing the unit.
+        const dest = !board.isOccupied(u.initial_position) ? u.initial_position : board.firstEmptyPlayerCell();
+        if (dest) board.moveUnit(u, dest);
       }
     }
 
@@ -851,7 +855,7 @@ export async function mount(container, params = {}) {
       if (bp) { bp.textContent = '⏸'; bp.classList.remove('active'); }
       btnCombat.style.display = '';
 
-      _showEndRound(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors);
+      _showEndRound(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors, attributeResult.damage_multiplier_bonus);
     }, 1000);
   }
 
@@ -1018,12 +1022,13 @@ export async function mount(container, params = {}) {
 
   // ── End of round overlay ─────────────────────────────────────────────────
 
-  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors = [], enemySurvivors = []) {
+  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors = [], enemySurvivors = [], damageMultiplierBonus = 0) {
     if (winner !== 'player' && winner !== 'enemy') return '';
     const atk = winner === 'player' ? playerSurvivorsAtk : enemySurvivorsAtk;
     const survivors = winner === 'player' ? playerSurvivors : enemySurvivors;
     const unitMultiplier = winner === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
-    const total = Math.round(atk * unitMultiplier * gameState.round);
+    const bonus = winner === 'player' ? (damageMultiplierBonus || 0) : 0;
+    const total = Math.round(atk * (unitMultiplier * gameState.round + bonus));
     const unitRows = survivors
       .map(u => ({ name: CardDatabase.getCard(u.card_id)?.name, atk: u.atk }))
       .filter(u => u.name)
@@ -1045,6 +1050,10 @@ export async function mount(container, params = {}) {
         <div class="end-round-breakdown-row">
           <span>Multiplicateur de tour</span><span>×${gameState.round}</span>
         </div>
+        ${bonus ? `
+        <div class="end-round-breakdown-row">
+          <span>Bonus d'attribut</span><span>+${bonus}</span>
+        </div>` : ''}
         <div class="end-round-breakdown-row end-round-breakdown-total">
           <span>Total</span><span>${total}</span>
         </div>
@@ -1052,7 +1061,7 @@ export async function mount(container, params = {}) {
     `;
   }
 
-  function _showEndRound(winner, playerSurvivorsAtk = 0, enemySurvivorsAtk = 0, playerSurvivors = [], enemySurvivors = []) {
+  function _showEndRound(winner, playerSurvivorsAtk = 0, enemySurvivorsAtk = 0, playerSurvivors = [], enemySurvivors = [], damageMultiplierBonus = 0) {
     _updateHUD();
     const msgMap = { player: '🏆 Victoire du round !', enemy: '💀 Défaite du round', draw: '⚖ Égalité' };
     const isOver = gameState.isGameOver();
@@ -1067,7 +1076,7 @@ export async function mount(container, params = {}) {
           <span style="color:var(--muted)">vs</span>
           <span class="hud-hp enemy">♥ ${gameState.enemy_hp}</span>
         </div>
-        ${_damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors)}
+        ${_damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors, damageMultiplierBonus)}
         <button class="btn btn-primary" id="btn-next">
           ${isOver ? 'Résultat final' : 'Tour suivant'}
         </button>

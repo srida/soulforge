@@ -112,6 +112,12 @@ export class CombatAnimator3D {
   }
 
   _applyFreeze({ cell, expiresAtStep }) {
+    // Only one ice block exists at a time — clear any previous frozen cell's
+    // overlay before showing the new one (mirrors Board.clearTemporaryBlocks).
+    for (const { cell: oldCell } of this._frozenCells.values()) {
+      this._board.removeTemporaryBlockedCell(oldCell);
+    }
+    this._frozenCells.clear();
     this._frozenCells.set(_cellKey(cell), { cell, expiresAtStep });
     this._board.addTemporaryBlockedCell(cell);
   }

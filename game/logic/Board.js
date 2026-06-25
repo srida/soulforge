@@ -98,6 +98,12 @@ export class Board {
     this._temporaryBlockedCells.set(`${pos.col},${pos.row}`, expiresAtStep);
   }
 
+  // Only one frozen cell (POWER_FREEZE) should exist at a time — a new ice
+  // block replaces the previous one rather than stacking.
+  clearTemporaryBlocks() {
+    this._temporaryBlockedCells = new Map();
+  }
+
   purgeExpiredTemporaryBlocks(currentStep) {
     for (const [key, expiresAtStep] of this._temporaryBlockedCells) {
       if (currentStep >= expiresAtStep) this._temporaryBlockedCells.delete(key);
