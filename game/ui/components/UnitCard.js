@@ -64,6 +64,8 @@ function _statusIcons(unit) {
     html += `<span class="status-icon si-shield">🛡 ${unit.shield}</span>`;
   if (unit.dot_effects?.length > 0)
     html += `<span class="status-icon si-poison">☠</span>`;
+  if (unit.burn_stacks?.length > 0)
+    html += `<span class="status-icon si-burn">🔥</span>`;
   if ((unit.paralysis_remaining ?? 0) > 0)
     html += `<span class="status-icon si-paralysis">⚡</span>`;
   if (unit.is_power_blocked)
