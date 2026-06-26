@@ -5,3 +5,4 @@ node_modules/
 .gdd-sync.log
 .gdd-last-sync
 .claude/settings.local.json
+/gdd-proposals/
