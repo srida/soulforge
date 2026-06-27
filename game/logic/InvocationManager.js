@@ -240,8 +240,9 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
 }
 
 // Carries Shopping Phase bonuses from consumed/replaced units onto the resulting composite
-// unit: permanent stat bonuses (stat_bonus/stat_modifier magies, summing positive contributions
-// only) plus any still-unused shield (shield magie), which would otherwise be silently lost.
+// unit: permanent stat bonuses (stat_bonus/stat_modifier magies — including any negative
+// stat traded off against another, e.g. -5 attack_speed for +15 atk) plus any still-unused
+// shield (shield magie), which would otherwise be silently lost.
 function _transferShoppingBonuses(unit, consumedUnits) {
   const summed = {};
   let shieldTotal = 0;
@@ -249,7 +250,7 @@ function _transferShoppingBonuses(unit, consumedUnits) {
     const bonus = u._shopping_bonus;
     if (bonus) {
       for (const [stat, value] of Object.entries(bonus)) {
-        if (value > 0) summed[stat] = (summed[stat] || 0) + value;
+        summed[stat] = (summed[stat] || 0) + value;
       }
     }
     shieldTotal += u.shield || 0;
