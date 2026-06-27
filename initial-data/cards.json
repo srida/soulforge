@@ -186,7 +186,11 @@
 				"CORE_005",
 				"CORE_006"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_005",
+			"CORE_006"
+		]
 	},
 	{
 		"id": "CORE_008",
@@ -290,7 +294,10 @@
 			"materials": [
 				"CORE_005"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_005"
+		]
 	},
 	{
 		"id": "CORE_012",
@@ -423,7 +430,11 @@
 				"CORE_014",
 				"CORE_015"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_014",
+			"CORE_015"
+		]
 	},
 	{
 		"id": "CORE_017",
@@ -982,7 +993,11 @@
 				"CORE_037",
 				"CORE_035"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_035",
+			"CORE_037"
+		]
 	},
 	{
 		"id": "CORE_039",
@@ -1434,7 +1449,10 @@
 			"materials": [
 				"CORE_055"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_055"
+		]
 	},
 	{
 		"id": "CORE_057",
@@ -1465,7 +1483,11 @@
 			"materials": [
 				"CORE_056"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_055",
+			"CORE_056"
+		]
 	},
 	{
 		"id": "CORE_058",
@@ -1573,7 +1595,12 @@
 				"CORE_059",
 				"CORE_060"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_058",
+			"CORE_059",
+			"CORE_060"
+		]
 	},
 	{
 		"id": "CORE_062",
@@ -1681,7 +1708,12 @@
 				"CORE_063",
 				"CORE_064"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_062",
+			"CORE_063",
+			"CORE_064"
+		]
 	},
 	{
 		"id": "CORE_066",
@@ -1714,7 +1746,11 @@
 				"CORE_001",
 				"CORE_013"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_001",
+			"CORE_013"
+		]
 	},
 	{
 		"id": "CORE_067",
@@ -1746,7 +1782,13 @@
 			"materials": [
 				"CORE_061"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_058",
+			"CORE_059",
+			"CORE_060",
+			"CORE_061"
+		]
 	},
 	{
 		"id": "CORE_068",
@@ -1778,7 +1820,10 @@
 			"materials": [
 				"CORE_013"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_013"
+		]
 	},
 	{
 		"id": "CORE_069",
@@ -1811,7 +1856,12 @@
 				"CORE_048",
 				"CORE_049"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_047",
+			"CORE_048",
+			"CORE_049"
+		]
 	},
 	{
 		"id": "CORE_070",
@@ -1843,7 +1893,11 @@
 				"CORE_047",
 				"CORE_048"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_047",
+			"CORE_048"
+		]
 	},
 	{
 		"id": "CORE_071",
@@ -1875,7 +1929,11 @@
 				"CORE_047",
 				"CORE_049"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_047",
+			"CORE_049"
+		]
 	},
 	{
 		"id": "CORE_072",
@@ -1907,7 +1965,11 @@
 				"CORE_049",
 				"CORE_048"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_048",
+			"CORE_049"
+		]
 	},
 	{
 		"id": "CORE_073",
@@ -2016,7 +2078,11 @@
 				"CORE_074",
 				"CORE_035"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_035",
+			"CORE_074"
+		]
 	},
 	{
 		"id": "CORE_077",
@@ -2048,7 +2114,10 @@
 			"materials": [
 				"CORE_001"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_001"
+		]
 	},
 	{
 		"id": "CORE_078",
@@ -2234,7 +2303,10 @@
 			"materials": [
 				"CORE_083"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_083"
+		]
 	},
 	{
 		"id": "CORE_085",
@@ -2317,7 +2389,10 @@
 			"materials": [
 				"CORE_086"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_086"
+		]
 	},
 	{
 		"id": "CORE_088",
@@ -2347,7 +2422,11 @@
 			"materials": [
 				"CORE_087"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_086",
+			"CORE_087"
+		]
 	},
 	{
 		"id": "CORE_089",
@@ -2379,7 +2458,11 @@
 				"CORE_033",
 				"CORE_073"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_033",
+			"CORE_073"
+		]
 	},
 	{
 		"id": "CORE_090",
@@ -2412,7 +2495,11 @@
 				"CORE_033",
 				"CORE_012"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_012",
+			"CORE_033"
+		]
 	},
 	{
 		"id": "CORE_091",
@@ -2622,7 +2709,11 @@
 				"CORE_096",
 				"CORE_095"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_095",
+			"CORE_096"
+		]
 	},
 	{
 		"id": "CORE_099",
@@ -2654,7 +2745,11 @@
 				"CORE_096",
 				"CORE_097"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_096",
+			"CORE_097"
+		]
 	},
 	{
 		"id": "CORE_100",
@@ -2686,7 +2781,11 @@
 				"CORE_096",
 				"CORE_094"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_094",
+			"CORE_096"
+		]
 	},
 	{
 		"id": "CORE_101",
@@ -2718,7 +2817,11 @@
 				"CORE_094",
 				"CORE_093"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094"
+		]
 	},
 	{
 		"id": "CORE_102",
@@ -2751,7 +2854,12 @@
 				"CORE_053",
 				"CORE_054"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_052",
+			"CORE_053",
+			"CORE_054"
+		]
 	},
 	{
 		"id": "CORE_103",
@@ -2783,7 +2891,10 @@
 			"materials": [
 				"CORE_002"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_002"
+		]
 	},
 	{
 		"id": "CORE_104",
@@ -2816,7 +2927,11 @@
 				"CORE_001",
 				"CORE_033"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_001",
+			"CORE_033"
+		]
 	},
 	{
 		"id": "CORE_105",
@@ -2847,7 +2962,10 @@
 			"materials": [
 				"CORE_001"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_001"
+		]
 	},
 	{
 		"id": "CORE_106",
@@ -2878,7 +2996,11 @@
 				"CORE_001",
 				"CORE_039"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_001",
+			"CORE_039"
+		]
 	},
 	{
 		"id": "CORE_107",
@@ -2908,7 +3030,12 @@
 			"materials": [
 				"CORE_106"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_001",
+			"CORE_039",
+			"CORE_106"
+		]
 	},
 	{
 		"id": "CORE_108",
@@ -2940,7 +3067,11 @@
 				"CORE_023",
 				"CORE_026"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_023",
+			"CORE_026"
+		]
 	},
 	{
 		"id": "CORE_109",
@@ -3026,7 +3157,10 @@
 			"materials": [
 				"CORE_035"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_035"
+		]
 	},
 	{
 		"id": "CORE_112",
@@ -3079,7 +3213,10 @@
 			"materials": [
 				"CORE_036"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_036"
+		]
 	},
 	{
 		"id": "CORE_114",
@@ -3106,7 +3243,10 @@
 			"materials": [
 				"CORE_012"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_012"
+		]
 	},
 	{
 		"id": "CORE_115",
@@ -3132,7 +3272,10 @@
 			"materials": [
 				"CORE_073"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_073"
+		]
 	},
 	{
 		"id": "CORE_116",
@@ -3158,7 +3301,10 @@
 			"materials": [
 				"CORE_035"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_035"
+		]
 	},
 	{
 		"id": "CORE_117",
@@ -3245,7 +3391,12 @@
 				"CORE_097",
 				"CORE_093"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_095",
+			"CORE_097"
+		]
 	},
 	{
 		"id": "CORE_120",
@@ -3276,7 +3427,13 @@
 				"CORE_101",
 				"CORE_095"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094",
+			"CORE_095",
+			"CORE_101"
+		]
 	},
 	{
 		"id": "CORE_121",
@@ -3304,7 +3461,11 @@
 				"CORE_093",
 				"CORE_094"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094"
+		]
 	},
 	{
 		"id": "CORE_122",
@@ -3332,7 +3493,11 @@
 				"CORE_095",
 				"CORE_093"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_095"
+		]
 	},
 	{
 		"id": "CORE_123",
@@ -3365,7 +3530,12 @@
 				"CORE_093",
 				"CORE_094"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094",
+			"CORE_095"
+		]
 	},
 	{
 		"id": "CORE_124",
@@ -3397,7 +3567,11 @@
 				"CORE_094",
 				"CORE_097"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_094",
+			"CORE_097"
+		]
 	},
 	{
 		"id": "CORE_125",
@@ -3429,7 +3603,11 @@
 				"CORE_093",
 				"CORE_097"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_097"
+		]
 	},
 	{
 		"id": "CORE_126",
@@ -3462,6 +3640,12 @@
 				"CORE_097",
 				"CORE_096"
 			]
-		}
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094",
+			"CORE_096",
+			"CORE_097"
+		]
 	}
 ]

@@ -824,6 +824,27 @@ function renderCardDetail() {
       </div>
     </div>
 
+    <div class="section-title">Lignée (cartes représentées)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      IDs de cartes que cette carte « représente » en plus d'elle-même pour le matching de matériaux fusion/heritage/transformation (ex : une fusion Avian+Burstinatrix doit lister Avian et Burstinatrix ici pour pouvoir combler leurs slots dans une fusion ultérieure qui les requiert).
+    </div>
+    <div class="materials-list" id="represented-list">
+      ${(c.represented_ids || []).map(rid => `
+        <div class="material-item" data-mid="${rid}">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span>${esc(getMaterialName(rid))}</span>
+            <span style="font-size:10px;color:var(--muted);font-family:monospace">${rid}</span>
+          </span>
+          <button onclick="removeRepresented('${rid}')">×</button>
+        </div>`).join('')}
+    </div>
+    <div style="position:relative;margin-top:8px;margin-bottom:20px" id="represented-search-wrap">
+      <input type="text" id="represented-search" placeholder="Rechercher une carte à ajouter à la lignée..." autocomplete="off"
+        oninput="filterRepresentedSearch()" onfocus="showRepresentedDropdown()" onblur="hideRepresentedDropdown()"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+      <div id="represented-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+    </div>
+
     <div class="section-title">Options d'invocation alternatives</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
       Permet d'invoquer le même monstre par plusieurs méthodes différentes (ex : transformation depuis une carte précise OU sacrifice de plusieurs monstres). ${(c.summon_options && c.summon_options.length) ? `<strong style="color:var(--text)">Le type et le coût classiques ci-dessus sont ignorés</strong> tant qu'au moins une option est définie ici.` : `Tant qu'aucune option n'est ajoutée, le type et le coût classiques ci-dessus s'appliquent normalement.`}
@@ -873,6 +894,63 @@ function removeMaterial(mid) {
   syncCardFromForm();
   selectedCard.cost.materials = (selectedCard.cost.materials || []).filter(m => m !== mid);
   renderCardDetail();
+}
+
+function removeRepresented(rid) {
+  syncCardFromForm();
+  selectedCard.represented_ids = (selectedCard.represented_ids || []).filter(r => r !== rid);
+  renderCardDetail();
+}
+
+function addRepresented(id) {
+  syncCardFromForm();
+  if (!selectedCard.represented_ids) selectedCard.represented_ids = [];
+  if (!selectedCard.represented_ids.includes(id) && id !== selectedCard.id) {
+    selectedCard.represented_ids.push(id);
+    renderCardDetail();
+  }
+}
+
+function filterRepresentedSearch() {
+  const q = document.getElementById('represented-search')?.value.toLowerCase() || '';
+  const current = selectedCard.represented_ids || [];
+
+  const results = cards
+    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
+    .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
+    .slice(0, 20);
+
+  renderRepresentedDropdown(results);
+}
+
+function renderRepresentedDropdown(results) {
+  const dd = document.getElementById('represented-dropdown');
+  if (!dd) return;
+  if (!results.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  } else {
+    dd.innerHTML = results.map(x => `
+        <div onmousedown="addRepresented('${x.id}')"
+          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div>
+            <div style="font-size:13px">${esc(x.name)}</div>
+            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span></div>
+          </div>
+        </div>`).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function showRepresentedDropdown() {
+  filterRepresentedSearch();
+}
+
+function hideRepresentedDropdown() {
+  setTimeout(() => {
+    const dd = document.getElementById('represented-dropdown');
+    if (dd) dd.style.display = 'none';
+  }, 150);
 }
 
 function filterMaterialSearch() {
@@ -1143,6 +1221,7 @@ function syncCardFromForm() {
     sacrifice: parseFloat(document.getElementById('f-sac').value) || 0,
     materials: selectedCard.cost?.materials || [],
   };
+  selectedCard.represented_ids = selectedCard.represented_ids || [];
   selectedCard.summon_options = collectSummonOptionsFromForm();
 }
 
@@ -1174,6 +1253,7 @@ function collectCardFromForm() {
       sacrifice: parseFloat(document.getElementById('f-sac').value),
       materials: [...(selectedCard.cost.materials || [])],
     },
+    represented_ids: [...(selectedCard.represented_ids || [])],
     summon_options: collectSummonOptionsFromForm(),
   };
 }
@@ -1291,7 +1371,7 @@ function openNewCard() {
   selectedCard = {
     id: newId, name: '', type: 'monster', tier: 1, summon_type: 'normal',
     attributes: [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
-    power: {}, cost: { sacrifice: 0, materials: [] }, _has_illustration: false,
+    power: {}, cost: { sacrifice: 0, materials: [] }, represented_ids: [], _has_illustration: false,
   };
   isNewCard = true;
   renderCardList();

@@ -11,8 +11,8 @@ export class Unit {
     this.attributes = card.attributes || [];
 
     // Card IDs this unit "counts as" for fusion/heritage material matching.
-    // Transformation results inherit the original monster's represented IDs.
-    this.represented_ids = [card.id];
+    // Pre-determined on the card definition (admin panel) rather than computed at summon time.
+    this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];
     // How many material "slots" this unit counts as when consumed as a
     // sacrifice/heritage material (set by InvocationManager.summon for
     // fusion/heritage/sacrifice results).

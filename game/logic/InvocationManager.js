@@ -177,7 +177,6 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         }
       }
       unit.material_value = (cost?.materials ?? []).length || 1;
-      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -207,7 +206,6 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         consumed = toConsume;
       }
       unit.material_value = cost?.sacrifice || 1;
-      unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -229,7 +227,6 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
           if (board.getUnit(targetUnit.position) === targetUnit) {
             pos = { ...targetUnit.position };
           }
-          unit.represented_ids = [...new Set([card.id, ...targetUnit.represented_ids])];
           board.removeUnit(targetUnit);
           _transferShoppingBonuses(unit, [targetUnit]);
         }
