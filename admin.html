@@ -649,6 +649,7 @@ function renderCardList(list = cards) {
           <div style="display:flex;gap:4px;margin-top:3px">
             ${tierBadge(c.tier)}
             <span class="badge" style="background:var(--surface2);color:${summonColor(c.summon_type)};font-size:10px">${summonLabel(c.summon_type)}</span>
+            ${(c.summon_options && c.summon_options.length) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${c.summon_options.length}</span>` : ''}
           </div>
         </div>
       </div>`;
@@ -729,6 +730,7 @@ function renderCardDetail() {
         <div class="detail-meta">
           ${tierBadge(c.tier)}
           <span class="badge badge-summon">${summonLabel(c.summon_type)}</span>
+          ${(c.summon_options && c.summon_options.length) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${c.summon_options.length} options alt.</span>` : ''}
           ${hasPower ? `<span class="badge badge-power">⚡ ${getPowerName(c.power.id)}</span>` : ''}
           <span class="badge ${hasIllus ? 'badge-illus' : 'badge-no-illus'}">${hasIllus ? '🖼 Illus.' : 'Pas d\'illus.'}</span>
         </div>
@@ -821,6 +823,15 @@ function renderCardDetail() {
         <div id="material-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
       </div>
     </div>
+
+    <div class="section-title">Options d'invocation alternatives</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      Permet d'invoquer le même monstre par plusieurs méthodes différentes (ex : transformation depuis une carte précise OU sacrifice de plusieurs monstres). ${(c.summon_options && c.summon_options.length) ? `<strong style="color:var(--text)">Le type et le coût classiques ci-dessus sont ignorés</strong> tant qu'au moins une option est définie ici.` : `Tant qu'aucune option n'est ajoutée, le type et le coût classiques ci-dessus s'appliquent normalement.`}
+    </div>
+    <div id="summon-options-list">
+      ${(c.summon_options || []).map((opt, idx) => optionRowHtml(opt, idx)).join('')}
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="addSummonOption()" style="margin-bottom:20px">+ Ajouter une option alternative</button>
 
     <div class="section-title">Attributs</div>
     <div class="attr-chips" id="attr-chips">
@@ -915,6 +926,163 @@ function renderMaterialDropdown(results) {
   dd.style.display = 'block';
 }
 
+function optionMaterialsLabel(type) {
+  return type === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage/transformation';
+}
+
+function optionRowHtml(opt, idx) {
+  const sac = Math.min(3, Math.max(0, opt.cost?.sacrifice || 0));
+  const mats = opt.cost?.materials || [];
+  return `
+    <div class="option-row" data-idx="${idx}" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--surface2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:600;font-size:12px;color:var(--muted)">Option ${idx + 1}</span>
+        <button class="btn btn-danger btn-sm" onclick="removeSummonOption(${idx})">× Retirer</button>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Type d'invocation</label>
+          <select id="opt-summon-${idx}" onchange="onOptionSummonTypeChange(${idx}, this.value)">
+            ${['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'].map(s => `<option value="${s}" ${opt.summon_type === s ? 'selected' : ''}>${summonLabel(s)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Sacrifices requis <span class="slider-val" id="opt-sac-val-${idx}">${sac}</span></label>
+          <input type="range" id="opt-sac-${idx}" min="0" max="3" step="1" value="${sac}" oninput="document.getElementById('opt-sac-val-${idx}').textContent=this.value">
+          <div class="slider-marks"><span>0</span><span>1</span><span>2</span><span>3</span></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600" id="opt-material-label-${idx}">${optionMaterialsLabel(opt.summon_type)}</div>
+      <div class="materials-list" id="opt-materials-list-${idx}">
+        ${mats.map(mid => {
+          const isAttr = isMaterialAttribute(mid);
+          return `
+          <div class="material-item" data-mid="${mid}">
+            <span style="display:flex;align-items:center;gap:6px">
+              ${isAttr ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px;white-space:nowrap">Attribut</span>` : ''}
+              <span>${esc(getMaterialName(mid))}</span>
+              <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
+            </span>
+            <button onclick="removeOptionMaterial(${idx}, '${mid}')">×</button>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="position:relative;margin-top:8px" id="opt-material-search-wrap-${idx}">
+        <input type="text" id="opt-material-search-${idx}" placeholder="Rechercher une carte ou un attribut..." autocomplete="off"
+          oninput="filterOptionMaterialSearch(${idx})" onfocus="showOptionMaterialDropdown(${idx})" onblur="hideOptionMaterialDropdown(${idx})"
+          style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+        <div id="opt-material-dropdown-${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+      </div>
+    </div>`;
+}
+
+function addSummonOption() {
+  syncCardFromForm();
+  if (!selectedCard.summon_options) selectedCard.summon_options = [];
+  selectedCard.summon_options.push({ summon_type: 'normal', cost: { sacrifice: 0, materials: [] } });
+  renderCardDetail();
+}
+
+function removeSummonOption(idx) {
+  syncCardFromForm();
+  selectedCard.summon_options.splice(idx, 1);
+  renderCardDetail();
+}
+
+function onOptionSummonTypeChange(idx, val) {
+  syncCardFromForm();
+  selectedCard.summon_options[idx].summon_type = val;
+  renderCardDetail();
+}
+
+function removeOptionMaterial(idx, mid) {
+  syncCardFromForm();
+  const opt = selectedCard.summon_options[idx];
+  opt.cost.materials = (opt.cost.materials || []).filter(m => m !== mid);
+  renderCardDetail();
+}
+
+function addOptionMaterial(idx, id) {
+  syncCardFromForm();
+  const opt = selectedCard.summon_options[idx];
+  if (!opt.cost.materials) opt.cost.materials = [];
+  if (!opt.cost.materials.includes(id)) {
+    opt.cost.materials.push(id);
+    renderCardDetail();
+  }
+}
+
+function filterOptionMaterialSearch(idx) {
+  const q = document.getElementById(`opt-material-search-${idx}`)?.value.toLowerCase() || '';
+  const current = selectedCard.summon_options[idx]?.cost?.materials || [];
+
+  const matchedCards = cards
+    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
+    .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
+    .slice(0, 20)
+    .map(x => ({ ...x, _matType: 'card' }));
+
+  const matchedAttrs = attributes
+    .filter(a => !current.includes(a.id))
+    .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+    .slice(0, 10)
+    .map(a => ({ ...a, _matType: 'attribute' }));
+
+  renderOptionMaterialDropdown(idx, [...matchedAttrs, ...matchedCards]);
+}
+
+function renderOptionMaterialDropdown(idx, results) {
+  const dd = document.getElementById(`opt-material-dropdown-${idx}`);
+  if (!dd) return;
+  if (!results.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  } else {
+    dd.innerHTML = results.map(x => {
+      const isAttr = x._matType === 'attribute';
+      const sub = isAttr
+        ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
+        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span>`;
+      return `
+        <div onmousedown="addOptionMaterial(${idx}, '${x.id}')"
+          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
+          <div>
+            <div style="font-size:13px">${esc(x.name)}</div>
+            <div style="margin-top:2px">${sub}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function showOptionMaterialDropdown(idx) {
+  filterOptionMaterialSearch(idx);
+}
+
+function hideOptionMaterialDropdown(idx) {
+  // Delay so onmousedown on items fires first
+  setTimeout(() => {
+    const dd = document.getElementById(`opt-material-dropdown-${idx}`);
+    if (dd) dd.style.display = 'none';
+  }, 150);
+}
+
+function collectSummonOptionsFromForm() {
+  if (!selectedCard.summon_options || !selectedCard.summon_options.length) return undefined;
+  return selectedCard.summon_options.map((opt, idx) => {
+    const typeEl = document.getElementById(`opt-summon-${idx}`);
+    const sacEl = document.getElementById(`opt-sac-${idx}`);
+    return {
+      summon_type: typeEl ? typeEl.value : opt.summon_type,
+      cost: {
+        sacrifice: sacEl ? (parseFloat(sacEl.value) || 0) : (opt.cost?.sacrifice || 0),
+        materials: [...(opt.cost?.materials || [])],
+      },
+    };
+  });
+}
+
 function onSummonTypeChange(val) {
   syncCardFromForm();
   const label = document.getElementById('material-section-label');
@@ -970,6 +1138,7 @@ function syncCardFromForm() {
     sacrifice: parseFloat(document.getElementById('f-sac').value) || 0,
     materials: selectedCard.cost?.materials || [],
   };
+  selectedCard.summon_options = collectSummonOptionsFromForm();
 }
 
 function collectCardFromForm() {
@@ -1000,6 +1169,7 @@ function collectCardFromForm() {
       sacrifice: parseFloat(document.getElementById('f-sac').value),
       materials: [...(selectedCard.cost.materials || [])],
     },
+    summon_options: collectSummonOptionsFromForm(),
   };
 }
 
