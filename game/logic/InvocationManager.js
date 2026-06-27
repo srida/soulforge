@@ -239,25 +239,31 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
   return unit;
 }
 
-// Carries permanent Shopping Phase stat bonuses (stat_bonus/stat_modifier magies) from
-// consumed/replaced units onto the resulting composite unit, summing positive contributions only.
+// Carries Shopping Phase bonuses from consumed/replaced units onto the resulting composite
+// unit: permanent stat bonuses (stat_bonus/stat_modifier magies, summing positive contributions
+// only) plus any still-unused shield (shield magie), which would otherwise be silently lost.
 function _transferShoppingBonuses(unit, consumedUnits) {
   const summed = {};
+  let shieldTotal = 0;
   for (const u of consumedUnits) {
     const bonus = u._shopping_bonus;
-    if (!bonus) continue;
-    for (const [stat, value] of Object.entries(bonus)) {
-      if (value > 0) summed[stat] = (summed[stat] || 0) + value;
+    if (bonus) {
+      for (const [stat, value] of Object.entries(bonus)) {
+        if (value > 0) summed[stat] = (summed[stat] || 0) + value;
+      }
     }
+    shieldTotal += u.shield || 0;
   }
   const entries = Object.entries(summed);
-  if (entries.length === 0) return;
-  unit._shopping_bonus = unit._shopping_bonus || {};
-  for (const [stat, value] of entries) {
-    unit._base[stat] = (unit._base[stat] ?? 0) + value;
-    unit._shopping_bonus[stat] = (unit._shopping_bonus[stat] || 0) + value;
+  if (entries.length > 0) {
+    unit._shopping_bonus = unit._shopping_bonus || {};
+    for (const [stat, value] of entries) {
+      unit._base[stat] = (unit._base[stat] ?? 0) + value;
+      unit._shopping_bonus[stat] = (unit._shopping_bonus[stat] || 0) + value;
+    }
+    unit._recomputeStats();
   }
-  unit._recomputeStats();
+  if (shieldTotal > 0) unit.applyShield(shieldTotal);
 }
 
 function _removeFromHand(hand, cardId, atIdx = null) {
