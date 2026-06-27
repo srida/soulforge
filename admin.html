@@ -1013,6 +1013,7 @@ function addOptionMaterial(idx, id) {
 
 function filterOptionMaterialSearch(idx) {
   const q = document.getElementById(`opt-material-search-${idx}`)?.value.toLowerCase() || '';
+  const summonType = document.getElementById(`opt-summon-${idx}`)?.value;
   const current = selectedCard.summon_options[idx]?.cost?.materials || [];
 
   const matchedCards = cards
@@ -1021,13 +1022,17 @@ function filterOptionMaterialSearch(idx) {
     .slice(0, 20)
     .map(x => ({ ...x, _matType: 'card' }));
 
-  const matchedAttrs = attributes
-    .filter(a => !current.includes(a.id))
-    .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
-    .slice(0, 10)
-    .map(a => ({ ...a, _matType: 'attribute' }));
+  let results = matchedCards;
+  if (summonType === 'heritage') {
+    const matchedAttrs = attributes
+      .filter(a => !current.includes(a.id))
+      .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+      .slice(0, 10)
+      .map(a => ({ ...a, _matType: 'attribute' }));
+    results = [...matchedAttrs, ...matchedCards];
+  }
 
-  renderOptionMaterialDropdown(idx, [...matchedAttrs, ...matchedCards]);
+  renderOptionMaterialDropdown(idx, results);
 }
 
 function renderOptionMaterialDropdown(idx, results) {
