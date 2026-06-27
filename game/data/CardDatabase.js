@@ -49,6 +49,7 @@ export function illustrationUrl(id) {
 }
 
 export function costHint(card) {
+  if (Array.isArray(card.summon_options) && card.summon_options.length > 0) return '🔀';
   if (card.summon_type === 'sacrifice') {
     const n = card.cost?.sacrifice ?? 0;
     return n > 0 ? `×${n}💀` : null;

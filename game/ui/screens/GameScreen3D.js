@@ -23,6 +23,7 @@ import {
   materialCandidateGraveyard as _materialCandidateGraveyardRule,
   isPlayable as _isPlayable,
   validCells as _validCellsRule,
+  summonOptionsStatus as _summonOptionsStatus,
 } from '../../logic/InvocationRules.js';
 import { tiersForRound as _tiersForRound, drawHand as _drawHand } from '../../logic/Draw.js';
 import { createBoard3D } from '../components/Board3D.js';
@@ -73,6 +74,7 @@ export async function mount(container, params = {}) {
   let selectedMaterials = [];  // Unit[] — board or graveyard units selected as material/tribute
   let _shoppingUnitCallback = null;      // set during shopping unit-selection mode
   let _shoppingGraveyardCallback = null; // set during shopping graveyard-selection mode
+  let _summonOptionMenuEl = null;        // set while the summon_options choice pill menu is open
 
   // ── Shell ────────────────────────────────────────────────────────────────
 
@@ -216,10 +218,29 @@ export async function mount(container, params = {}) {
   // ── Interaction ──────────────────────────────────────────────────────────
 
   function handleCardSelect(card) {
-    selectedCard = card;
+    _closeSummonOptionMenu();
     selectedMaterials = [];
     selectedBoardPos = null;
     board3D.setSelectedPos(null);
+
+    if (card && InvocationManager.hasSummonOptions(card)) {
+      const statuses = _summonOptionsStatus(card, board, graveyard, gameState.player_board_slots) || [];
+      const playable = statuses.filter(s => s.ok);
+      if (playable.length > 1) {
+        // Several alternatives are playable at once — let the player choose before entering
+        // material-selection mode for one specific summon_type/cost.
+        selectedCard = null;
+        board3D.clearHighlight();
+        board3D.clearMaterialHighlight();
+        _openSummonOptionMenu(card, playable);
+        return;
+      }
+      // Exactly one playable option (or none, to surface the right error on placement) — skip the menu.
+      const chosen = playable[0] ?? statuses[0];
+      card = chosen ? _effectiveCardForOption(card, chosen.index) : card;
+    }
+
+    selectedCard = card;
     if (card) {
       board3D.setHighlight(_validCells(card));
       board3D.setMaterialCandidates([..._materialCandidateCells(card, [], board), ..._transformTargetCells(card, board)]);
@@ -230,8 +251,47 @@ export async function mount(container, params = {}) {
     _refreshGraveyard();
   }
 
+  // Builds a plain card-shaped object carrying one summon_options alternative's summon_type/cost,
+  // so the rest of the placement/material pipeline can treat it like any classic card.
+  function _effectiveCardForOption(card, idx) {
+    const opt = card.summon_options[idx];
+    const { summon_options, ...rest } = card;
+    return { ...rest, summon_type: opt.summon_type, cost: opt.cost };
+  }
+
+  const _SUMMON_TYPE_LABELS = { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Heritage', transformation: 'Transformation' };
+
+  function _openSummonOptionMenu(card, options) {
+    const menu = document.createElement('div');
+    menu.className = 'summon-option-banner';
+    menu.innerHTML = `
+      <div class="summon-option-title">${card.name} — Choisissez le mode d'invocation</div>
+      <div class="summon-option-pills">
+        ${options.map(o => `<button type="button" class="summon-option-pill" data-idx="${o.index}">${_SUMMON_TYPE_LABELS[o.summon_type] || o.summon_type}</button>`).join('')}
+      </div>
+    `;
+    container.appendChild(menu);
+    _summonOptionMenuEl = menu;
+    menu.querySelectorAll('.summon-option-pill').forEach(btn => {
+      btn.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        const idx = +btn.dataset.idx;
+        _closeSummonOptionMenu();
+        const effCard = _effectiveCardForOption(card, idx);
+        selectedCard = effCard;
+        board3D.setHighlight(_validCells(effCard));
+        board3D.setMaterialCandidates([..._materialCandidateCells(effCard, [], board), ..._transformTargetCells(effCard, board)]);
+        _refreshGraveyard();
+      });
+    });
+  }
+
+  function _closeSummonOptionMenu() {
+    if (_summonOptionMenuEl) { _summonOptionMenuEl.remove(); _summonOptionMenuEl = null; }
+  }
+
   function handleCellTap(pos) {
-    if (_shoppingUnitCallback || _shoppingGraveyardCallback) return;
+    if (_shoppingUnitCallback || _shoppingGraveyardCallback || _summonOptionMenuEl) return;
     Tooltip.hide();
     if (selectedCard) {
       if (_needsMaterials(selectedCard, board, graveyard) && !_materialsComplete(selectedCard, selectedMaterials)) {
@@ -245,6 +305,7 @@ export async function mount(container, params = {}) {
   }
 
   function handleUnitTap(unit, pos) {
+    if (_summonOptionMenuEl) return;
     Tooltip.hide();
     if (_shoppingUnitCallback) {
       if (unit.side === 'player') _shoppingUnitCallback(unit);
@@ -659,6 +720,7 @@ export async function mount(container, params = {}) {
     enemyUnits = board.getLivingUnitsOnSide('enemy'); // board is the source of truth
     enemyHand  = enemyAI.getHand();
 
+    _closeSummonOptionMenu();
     selectedCard = null;
     selectedBoardPos = null;
     selectedMaterials = [];
@@ -675,6 +737,7 @@ export async function mount(container, params = {}) {
 
   function runCombat() {
     _stopPrepTimer();
+    _closeSummonOptionMenu();
     selectedCard = null;
     selectedBoardPos = null;
     selectedMaterials = [];
@@ -1127,6 +1190,7 @@ export async function mount(container, params = {}) {
   container.querySelector('.game-layout').addEventListener('pointerdown', e => {
     if (e.target.closest('#board-area') || e.target.closest('#hand-area') ||
         e.target.closest('#graveyard-area') || e.target.closest('.phase-controls')) return;
+    _closeSummonOptionMenu();
     selectedCard = null;
     selectedBoardPos = null;
     selectedMaterials = [];

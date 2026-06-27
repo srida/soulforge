@@ -9,30 +9,57 @@ import { Unit } from './Unit.js';
 
 // Transformation is always 1-for-1 (replaces its target in place), so it never counts against the slot limit.
 // A free_transformation (no target consumed) takes a brand new cell, so it must count like a normal summon.
-export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots) {
-  if (card.summon_type === 'transformation' && !card._free_transformation) return false;
+export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots, type = card.summon_type) {
+  if (type === 'transformation' && !card._free_transformation) return false;
   const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
   const afterPlace = board.getLivingUnitsOnSide('player').length - materialsOnBoard + 1;
   return afterPlace > playerBoardSlots;
 }
 
-export function canSummon(card, pos, board, hand, graveyard = [], selectedMaterials = []) {
+// A card opts into multiple summoning alternatives (e.g. transformation from one specific
+// monster OR sacrifice of several others, for the same resulting monster) via this field.
+// When absent, the card behaves exactly as before via its own summon_type/cost.
+export function hasSummonOptions(card) {
+  return Array.isArray(card.summon_options) && card.summon_options.length > 0;
+}
+
+export function canSummon(card, pos, board, hand, graveyard = [], selectedMaterials = [], optionIndex = null) {
   if (!board.isInBounds(pos)) return fail('Position hors limites');
   if (!board.isPlayerCell(pos)) return fail('Placement uniquement sur le côté joueur (rangées 0–3)');
+
+  if (hasSummonOptions(card)) {
+    if (optionIndex !== null && optionIndex !== undefined) {
+      const opt = card.summon_options[optionIndex];
+      if (!opt) return fail("Option d'invocation invalide");
+      return _canSummonForType(card, opt.summon_type, opt.cost, pos, board, hand, graveyard, selectedMaterials);
+    }
+    // No option chosen yet: report the playability of every alternative for this cell.
+    return {
+      options: card.summon_options.map((opt, index) => {
+        const res = _canSummonForType(card, opt.summon_type, opt.cost, pos, board, hand, graveyard, selectedMaterials);
+        return { index, summon_type: opt.summon_type, cost: opt.cost, ok: res.ok, reason: res.reason };
+      }),
+    };
+  }
+
+  return _canSummonForType(card, card.summon_type, card.cost, pos, board, hand, graveyard, selectedMaterials);
+}
+
+function _canSummonForType(card, type, cost, pos, board, hand, graveyard, selectedMaterials) {
   // La transformation place la carte sur la case de la cible (déjà occupée)
-  if (card.summon_type !== 'transformation' && board.isOccupied(pos)) return fail('Case occupée');
+  if (type !== 'transformation' && board.isOccupied(pos)) return fail('Case occupée');
   // Pas de doublon (même card_id) sur le terrain joueur — uniquement pour un placement normal :
   // sacrifice/fusion/heritage/transformation peuvent légitimement se jouer par-dessus un doublon existant
-  if (card.summon_type === 'normal') {
+  if (type === 'normal') {
     const duplicate = board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id);
     if (duplicate) return fail('Cette carte est déjà présente sur le terrain');
   }
-  switch (card.summon_type) {
+  switch (type) {
     case 'normal':
       return ok();
 
     case 'sacrifice': {
-      const needed = card.cost?.sacrifice ?? 0;
+      const needed = cost?.sacrifice ?? 0;
       if (needed === 0) return ok();
       // Si un doublon de la carte invoquée est déjà vivant sur le terrain, il doit être
       // sélectionné comme matériau (sinon on se retrouverait avec deux exemplaires vivants).
@@ -46,7 +73,7 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
     }
 
     case 'fusion': {
-      const materials = card.cost?.materials ?? [];
+      const materials = cost?.materials ?? [];
       if (materials.length === 0) return ok();
       const playerUnits = board.getUnitsOnSide('player');
       for (const matId of materials) {
@@ -59,8 +86,8 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
     }
 
     case 'heritage': {
-      const required = card.cost?.materials ?? [];
-      const sacrifice = card.cost?.sacrifice ?? 0;
+      const required = cost?.materials ?? [];
+      const sacrifice = cost?.sacrifice ?? 0;
       const allUnits = [...board.getUnitsOnSide('player'), ...graveyard];
       // sacrifice = total material slots to consume; materials = constraints among those units
       if (_sumMaterialValue(allUnits) < sacrifice)
@@ -80,7 +107,7 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
         if (board.isOccupied(pos)) return fail('Case occupée');
         return ok();
       }
-      const targetId = card.cost?.materials?.[0];
+      const targetId = cost?.materials?.[0];
       if (!targetId) return fail('Pas de cible de transformation définie');
       const onBoard = board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
       const inGrave = graveyard.find(u => _materialLineageMatches(u, targetId, [targetId]));
@@ -96,7 +123,7 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
     }
 
     default:
-      return fail(`Type d'invocation inconnu : ${card.summon_type}`);
+      return fail(`Type d'invocation inconnu : ${type}`);
   }
 }
 
@@ -108,19 +135,24 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
  * @param {Card[]} hand  - mutable hand array
  * @param {Card[][]} sacrificeTargets - for sacrifice/heritage: which board units to remove
  *        (if null, removes the first N living player units)
+ * @param {number} handIdx
+ * @param {number} optionIndex - when card.summon_options exists, the chosen alternative's index
  * @returns {Unit}
  */
-export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx = null) {
+export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx = null, optionIndex = null) {
+  const opt = hasSummonOptions(card) ? card.summon_options[optionIndex ?? 0] : null;
+  const type = opt ? opt.summon_type : card.summon_type;
+  const cost = opt ? opt.cost : card.cost;
   const unit = new Unit(card, 'player');
 
-  switch (card.summon_type) {
+  switch (type) {
     case 'normal':
       _removeFromHand(hand, card.id, handIdx);
       break;
 
     case 'sacrifice': {
       _removeFromHand(hand, card.id, handIdx);
-      const needed = card.cost?.sacrifice ?? 0;
+      const needed = cost?.sacrifice ?? 0;
       const toRemove = sacrificeTargets
         ? _takeByMaterialValue(sacrificeTargets, needed)
         : _takeByMaterialValue(board.getLivingUnitsOnSide('player'), needed);
@@ -137,14 +169,14 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         for (const u of sacrificeTargets) { board.removeUnit(u); consumed.push(u); }
       } else {
         // AI fallback: auto-select matching units
-        const fusionMaterials = card.cost?.materials ?? [];
+        const fusionMaterials = cost?.materials ?? [];
         const fusionUnits = board.getUnitsOnSide('player');
         for (const matId of fusionMaterials) {
           const mat = fusionUnits.find(u => _materialLineageMatches(u, matId, fusionMaterials) && u.isAlive() && !consumed.includes(u));
           if (mat) { board.removeUnit(mat); consumed.push(mat); }
         }
       }
-      unit.material_value = (card.cost?.materials ?? []).length || 1;
+      unit.material_value = (cost?.materials ?? []).length || 1;
       unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
@@ -158,10 +190,10 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         for (const u of sacrificeTargets) board.removeUnit(u);
       } else {
         // AI fallback: pick required materials first, fill remaining slots with any unit
-        const sacrifice = card.cost?.sacrifice ?? 0;
+        const sacrifice = cost?.sacrifice ?? 0;
         const pool = board.getLivingUnitsOnSide('player').slice();
         const toConsume = [];
-        for (const matId of (card.cost?.materials ?? [])) {
+        for (const matId of (cost?.materials ?? [])) {
           const idx = pool.findIndex(u => _matchesMaterial(u, matId));
           if (idx !== -1) { toConsume.push(pool[idx]); pool.splice(idx, 1); }
         }
@@ -174,7 +206,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         for (const u of toConsume) board.removeUnit(u);
         consumed = toConsume;
       }
-      unit.material_value = card.cost?.sacrifice || 1;
+      unit.material_value = cost?.sacrifice || 1;
       unit.represented_ids = [...new Set([card.id, ...consumed.flatMap(u => u.represented_ids)])];
       _transferShoppingBonuses(unit, consumed);
       break;
@@ -183,13 +215,13 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
     case 'transformation': {
       _removeFromHand(hand, card.id, handIdx);
       if (!card._free_transformation) {
-        const targetId = card.cost?.materials?.[0];
+        const targetId = cost?.materials?.[0];
         // Prefer the explicitly-passed unit (fixes same-name ambiguity). Otherwise fall back to
         // the exact same resolution the UI used to pick/highlight the target cell — using a
         // plain "first match" here instead would silently consume a different unit than the one
         // the player tapped, losing whatever Shopping Phase bonus was on the intended unit.
         const targetUnit = sacrificeTargets?.find(u => _materialLineageMatches(u, targetId, [targetId]))
-          ?? resolveTransformationTarget(card, board);
+          ?? resolveTransformationTarget({ ...card, cost }, board);
         if (targetUnit) {
           // Une unité encore sur le board cède sa case ; une unité du cimetière n'a plus
           // de case valide (sa .position est l'ancienne position de combat) — garder le pos

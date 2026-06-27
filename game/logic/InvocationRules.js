@@ -1,6 +1,17 @@
-import { matchesMaterial, materialLineageLegit, materialLineageMatches, sumMaterialValue, canSummon, exceedsBoardSlots, resolveTransformationTarget } from './InvocationManager.js';
+import { matchesMaterial, materialLineageLegit, materialLineageMatches, sumMaterialValue, canSummon, exceedsBoardSlots, resolveTransformationTarget, hasSummonOptions } from './InvocationManager.js';
 
-export function needsMaterials(card, board = null, graveyard = []) {
+// When a card has summon_options and an option was already chosen (optionIndex given), resolve a
+// plain card-shaped object carrying that option's summon_type/cost so the rest of this module
+// (which only ever reasons in terms of summon_type/cost) can stay untouched. Without an
+// optionIndex, returns the card unchanged — classic cards behave exactly as before.
+function _resolved(card, optionIndex) {
+  if (optionIndex === null || optionIndex === undefined || !hasSummonOptions(card)) return card;
+  const opt = card.summon_options[optionIndex];
+  return opt ? { ...card, summon_type: opt.summon_type, cost: opt.cost } : card;
+}
+
+export function needsMaterials(card, board = null, graveyard = [], optionIndex = null) {
+  card = _resolved(card, optionIndex);
   if (card.summon_type === 'sacrifice') return (card.cost?.sacrifice ?? 0) > 0;
   if (card.summon_type === 'fusion')   return (card.cost?.materials?.length ?? 0) > 0;
   if (card.summon_type === 'heritage')   return (card.cost?.materials?.length ?? 0) > 0 || (card.cost?.sacrifice ?? 0) > 0;
@@ -14,7 +25,8 @@ export function needsMaterials(card, board = null, graveyard = []) {
   return false;
 }
 
-export function materialsComplete(card, mats) {
+export function materialsComplete(card, mats, optionIndex = null) {
+  card = _resolved(card, optionIndex);
   if (card.summon_type === 'sacrifice') {
     return sumMaterialValue(mats) >= (card.cost?.sacrifice ?? 0);
   }
@@ -39,7 +51,8 @@ export function materialsComplete(card, mats) {
 }
 
 // Returns the position of the on-board unit a transformation will replace (tap-to-transform target).
-export function transformTargetCells(card, board) {
+export function transformTargetCells(card, board, optionIndex = null) {
+  card = _resolved(card, optionIndex);
   if (card.summon_type !== 'transformation' || card._free_transformation) return [];
   const targetId = card.cost?.materials?.[0];
   if (!targetId) return [];
@@ -48,7 +61,8 @@ export function transformTargetCells(card, board) {
 }
 
 // Returns positions of units that can still be selected as material for the given card.
-export function materialCandidateCells(card, alreadySelected, board) {
+export function materialCandidateCells(card, alreadySelected, board, optionIndex = null) {
+  card = _resolved(card, optionIndex);
   if (!needsMaterials(card)) return [];
   const units = board.getLivingUnitsOnSide('player');
   const selected = new Set(alreadySelected);
@@ -87,7 +101,8 @@ export function materialCandidateCells(card, alreadySelected, board) {
 }
 
 // Returns graveyard units that are valid material candidates for the card
-export function materialCandidateGraveyard(card, alreadySelected, graveyard, board) {
+export function materialCandidateGraveyard(card, alreadySelected, graveyard, board, optionIndex = null) {
+  card = _resolved(card, optionIndex);
   if (!graveyard.length) return [];
   const selected = new Set(alreadySelected);
   const avail = graveyard.filter(u => !selected.has(u));
@@ -128,10 +143,27 @@ export function materialCandidateGraveyard(card, alreadySelected, graveyard, boa
   return [];
 }
 
+// Returns the per-option playability of a summon_options card — used to build the in-hand
+// choice menu (before any cell/material is picked) and to feed isPlayable() below.
+export function summonOptionsStatus(card, board, graveyard = [], maxSlots = Infinity) {
+  if (!hasSummonOptions(card)) return null;
+  return card.summon_options.map((opt, index) => ({
+    index,
+    summon_type: opt.summon_type,
+    cost: opt.cost,
+    ok: isPlayable({ ...card, summon_type: opt.summon_type, cost: opt.cost, summon_options: undefined }, board, graveyard, maxSlots),
+  }));
+}
+
 // Returns true if the card can potentially be played given the current board state.
 // Used to grey out unplayable cards in hand. Intentionally lenient: doesn't check
 // for empty cells when materials will be freed by the summon itself.
 export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
+  if (hasSummonOptions(card)) {
+    return card.summon_options.some((opt, index) =>
+      isPlayable({ ...card, summon_type: opt.summon_type, cost: opt.cost, summon_options: undefined }, board, graveyard, maxSlots)
+    );
+  }
   if (card.summon_type === 'normal') {
     if (board.getLivingUnitsOnSide('player').length >= maxSlots) return false;
     if (board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id)) return false; // doublon
@@ -189,7 +221,8 @@ export function hasEmptyPlayerCell(board) {
 
 // Returns the set of board cells where `card` can currently be placed, given the
 // in-progress material selection. Mirrors canSummon()'s rules per summon type.
-export function validCells(card, { board, hand, graveyard, selectedMaterials, playerBoardSlots }) {
+export function validCells(card, { board, hand, graveyard, selectedMaterials, playerBoardSlots, optionIndex = null }) {
+  card = _resolved(card, optionIndex);
   // Don't show placement cells until required materials are selected
   if (needsMaterials(card, board, graveyard) && !materialsComplete(card, selectedMaterials)) return [];
 

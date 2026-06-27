@@ -60,22 +60,41 @@ export function cardHtml(card, powerDb = null, attributeDb = null, cardDb = null
   const summonLabels = { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Heritage', transformation: 'Transformation' };
   const attributeNames = (card.attributes || []).map(id => attributeDb?.getAttribute(id)?.name ?? id);
   const power = card.power?.id && powerDb ? powerDb.getPower(card.power.id) : null;
-  const costLines = [];
-  if (card.cost?.sacrifice) costLines.push(`Sacrifice : ${card.cost.sacrifice}`);
-  if (card.cost?.materials?.length) {
-    const matNames = card.cost.materials.map(id => {
-      if (id.startsWith('ARCH_')) return attributeDb?.getAttribute(id)?.name ?? id;
-      return cardDb?.getCard(id)?.name ?? id;
-    });
-    costLines.push(`Matériaux : ${matNames.join(', ')}`);
-  }
+
+  const costLinesFor = (cost) => {
+    const lines = [];
+    if (cost?.sacrifice) lines.push(`Sacrifice : ${cost.sacrifice}`);
+    if (cost?.materials?.length) {
+      const matNames = cost.materials.map(id => {
+        if (id.startsWith('ARCH_')) return attributeDb?.getAttribute(id)?.name ?? id;
+        return cardDb?.getCard(id)?.name ?? id;
+      });
+      lines.push(`Matériaux : ${matNames.join(', ')}`);
+    }
+    return lines;
+  };
+
+  const hasOptions = Array.isArray(card.summon_options) && card.summon_options.length > 0;
+  const costLines = hasOptions ? [] : costLinesFor(card.cost);
+
+  const optionsHtml = hasOptions ? `
+    <div class="tip-summon-options">
+      ${card.summon_options.map(opt => {
+        const lines = costLinesFor(opt.cost);
+        return `<div class="tip-summon-option">
+          <span class="tip-summon-option-type">${esc(summonLabels[opt.summon_type] || opt.summon_type)}</span>
+          ${lines.length ? `<span class="tip-summon-option-cost">${lines.map(esc).join(' · ')}</span>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  ` : '';
 
   return `
     <div class="tip-header">
       <span class="tip-name">${esc(card.name)}</span>
       <span class="badge badge-tier${card.tier}">T${card.tier}</span>
     </div>
-    <div class="tip-type">${esc(summonLabels[card.summon_type] || card.summon_type)}</div>
+    <div class="tip-type">${hasOptions ? 'Invocation multiple' : esc(summonLabels[card.summon_type] || card.summon_type)}</div>
     <div class="tip-stats">
       <span title="ATK">⚔ ${card.stats.atk}</span>
       <span title="HP">♥ ${card.stats.hp}</span>
@@ -86,6 +105,7 @@ export function cardHtml(card, powerDb = null, attributeDb = null, cardDb = null
     ${attributeNames.length ? `<div class="tip-attributes">${attributeNames.map(n => `<span class="badge">${esc(n)}</span>`).join('')}</div>` : ''}
     ${power ? `<div class="tip-power">✨ ${esc(power.name || card.power.id)}</div>` : ''}
     ${costLines.length ? `<div class="tip-cost">${costLines.map(l => `<span>${esc(l)}</span>`).join('')}</div>` : ''}
+    ${optionsHtml}
   `;
 }
 
