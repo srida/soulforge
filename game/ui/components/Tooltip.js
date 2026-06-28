@@ -1,4 +1,5 @@
 import { STAT_NAMES } from '../../logic/MagieEffect.js';
+import { VETERANCY_THRESHOLD, VETERANCY_ATK_PER_POINT, VETERANCY_HP_PER_POINT } from '../../logic/AttributeManager.js';
 
 let _el = null;
 
@@ -133,6 +134,7 @@ export function unitHtml(unit, powerDb = null, attributeDb = null, cardDb = null
     ${powerName ? `<div class="tip-power">✨ ${esc(powerName)} ${unit.power_gauge}/${unit.power_speed}</div>` : ''}
     ${_lineageHtml(unit, cardDb)}
     ${_shoppingBonusHtml(unit)}
+    ${_veterancyHtml(unit)}
   `;
 }
 
@@ -155,6 +157,17 @@ function _shoppingBonusHtml(unit) {
     .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${STAT_NAMES[stat] || stat}`);
   if (!parts.length) return '';
   return `<div class="tip-power">🎁 Bonus Shopping : ${parts.map(esc).join(', ')}</div>`;
+}
+
+// Veterancy: +1 point per combat survived without being neutralized. From 2 points
+// onward, granted a permanent atk/hp bonus (applied/reset alongside attribute bonuses,
+// see AttributeManager._applyVeterancyBonuses).
+function _veterancyHtml(unit) {
+  const points = unit.veterancy_points ?? 0;
+  if (points < VETERANCY_THRESHOLD) return '';
+  const atkBonus = points * VETERANCY_ATK_PER_POINT;
+  const hpBonus = points * VETERANCY_HP_PER_POINT;
+  return `<div class="tip-power">⭐ Vétéran (${points}) : +${atkBonus} ATK / +${hpBonus} HP</div>`;
 }
 
 // Builds tooltip HTML for an attribute synergy chip

@@ -846,6 +846,8 @@ export async function mount(container, params = {}) {
     const winner = combat.winner ?? 'draw';
     const playerSurvivors = playerUnits.filter(u => !u.is_neutralized);
     const enemySurvivors  = enemyUnits.filter(u => !u.is_neutralized);
+    // Veterancy: a unit still active at the end of combat gains a point.
+    for (const u of [...playerSurvivors, ...enemySurvivors]) u.veterancy_points++;
     const playerSurvivorsAtk = playerSurvivors.reduce((s, u) => s + u.atk, 0);
     const enemySurvivorsAtk  = enemySurvivors.reduce((s, u) => s + u.atk, 0);
     gameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult);

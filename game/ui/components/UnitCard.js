@@ -74,6 +74,8 @@ function _statusIcons(unit) {
     html += `<span class="status-icon si-taunt">😡</span>`;
   if (unit.is_power_blocked)
     html += `<span class="status-icon si-block">🔇</span>`;
+  if ((unit.veterancy_points ?? 0) >= 2)
+    html += `<span class="status-icon si-veteran">⭐ ${unit.veterancy_points}</span>`;
   return html;
 }
 

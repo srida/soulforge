@@ -59,6 +59,12 @@ export class Unit {
     this.initial_position = null;
     this.is_neutralized = false;
 
+    // Number of past combats this unit survived without being neutralized.
+    // Lost when the unit is neutralized and never consumed as summon material
+    // before the next combat (it simply stops existing). Carried over to
+    // composite units the same way as Shopping Phase bonuses (see InvocationManager).
+    this.veterancy_points = 0;
+
     // Internal action timers (tick up each step)
     this.attack_timer = 0;
     this.move_timer = 0;

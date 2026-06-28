@@ -8,6 +8,14 @@
  *
  * Designed to be stateless between rounds: reconstruct each combat.
  */
+
+// Veterancy: a unit that survives a combat without being neutralized gains 1 point
+// (GameScreen3D._finishCombat). From 2 cumulated points onward it gets a permanent
+// atk/hp bonus, scaling with the point count, applied/reset alongside start_of_combat
+// attribute bonuses (see applyVeterancyBonuses below).
+export const VETERANCY_THRESHOLD = 2;
+export const VETERANCY_ATK_PER_POINT = 2;
+export const VETERANCY_HP_PER_POINT = 15;
 export class AttributeManager {
   /**
    * @param {Object[]} attributeList   - raw data from AttributeDatabase
@@ -56,7 +64,23 @@ export class AttributeManager {
   applyStartOfCombat() {
     this._applyStartForSide(this.playerUnits);
     this._applyStartForSide(this.enemyUnits);
+    this._applyVeterancyBonuses();
     this._lockDuringCombatThresholds();
+  }
+
+  // Permanent atk/hp bonus for units with enough veterancy points, applied the same
+  // way as attribute stat_bonus effects (so it's wiped by resetCombatStats and
+  // recomputed each combat, and restored by reapplyBonuses() after POWER_DEBUFF).
+  _applyVeterancyBonuses() {
+    for (const u of [...this.playerUnits, ...this.enemyUnits]) {
+      if (!u.isAlive() || u.veterancy_points < VETERANCY_THRESHOLD) continue;
+      const atkBonus = u.veterancy_points * VETERANCY_ATK_PER_POINT;
+      const hpBonus = u.veterancy_points * VETERANCY_HP_PER_POINT;
+      u.applyStatBonus('atk', atkBonus);
+      this._recordBonus(u, 'atk', atkBonus);
+      u.applyStatBonus('hp', hpBonus);
+      this._recordBonus(u, 'hp', hpBonus);
+    }
   }
 
   // Snapshot which during_combat attributes are active on each side at combat start.

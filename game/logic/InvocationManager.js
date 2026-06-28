@@ -242,10 +242,13 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
 // Carries Shopping Phase bonuses from consumed/replaced units onto the resulting composite
 // unit: permanent stat bonuses (stat_bonus/stat_modifier magies — including any negative
 // stat traded off against another, e.g. -5 attack_speed for +15 atk) plus any still-unused
-// shield (shield magie), which would otherwise be silently lost.
+// shield (shield magie), which would otherwise be silently lost. Also carries over
+// veterancy points the same way, so a composite unit inherits the veterancy its materials
+// had earned.
 function _transferShoppingBonuses(unit, consumedUnits) {
   const summed = {};
   let shieldTotal = 0;
+  let veterancyTotal = 0;
   for (const u of consumedUnits) {
     const bonus = u._shopping_bonus;
     if (bonus) {
@@ -254,6 +257,7 @@ function _transferShoppingBonuses(unit, consumedUnits) {
       }
     }
     shieldTotal += u.shield || 0;
+    veterancyTotal += u.veterancy_points || 0;
   }
   const entries = Object.entries(summed);
   if (entries.length > 0) {
@@ -265,6 +269,7 @@ function _transferShoppingBonuses(unit, consumedUnits) {
     unit._recomputeStats();
   }
   if (shieldTotal > 0) unit.applyShield(shieldTotal);
+  if (veterancyTotal > 0) unit.veterancy_points += veterancyTotal;
 }
 
 function _removeFromHand(hand, cardId, atIdx = null) {
