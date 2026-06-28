@@ -20,7 +20,7 @@ const BURN_ATTACKS = 3;              // number of the target's own attacks befor
 // going after this many ticks (60s of real time at ×1) is cut short by a timeout.
 const BASE_TICK_MS = 180;
 const COMBAT_TIMEOUT_MS = 60_000;
-const MAX_COMBAT_TICKS = Math.round(COMBAT_TIMEOUT_MS / BASE_TICK_MS);
+export const MAX_COMBAT_TICKS = Math.round(COMBAT_TIMEOUT_MS / BASE_TICK_MS);
 
 export class CombatManager {
   /**
@@ -37,6 +37,11 @@ export class CombatManager {
     this.isOver = false;
     this.winner = null; // 'player' | 'enemy' | 'draw' | 'timeout'
     this._stepCount = 0;
+  }
+
+  // Ticks left before the combat is cut short by the timeout (see _checkTimeout).
+  remainingTicks() {
+    return Math.max(0, MAX_COMBAT_TICKS - this._stepCount);
   }
 
   /**

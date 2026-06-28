@@ -12,7 +12,7 @@ import { Board } from '../../logic/Board.js';
 import { GameState, Phase } from '../../logic/GameState.js';
 import { EnemyAI } from '../../logic/EnemyAI.js';
 import { AttributeManager } from '../../logic/AttributeManager.js';
-import { CombatManager } from '../../logic/CombatManager.js';
+import { CombatManager, MAX_COMBAT_TICKS } from '../../logic/CombatManager.js';
 import * as InvocationManager from '../../logic/InvocationManager.js';
 import { matchesMaterial as _matchesMaterial } from '../../logic/InvocationManager.js';
 import {
@@ -106,6 +106,7 @@ export async function mount(container, params = {}) {
       <div class="hand-area" id="hand-area"></div>
       <div class="phase-controls">
         <div class="prep-timer" id="prep-timer" style="display:none"></div>
+        <div class="prep-timer" id="combat-timer" style="display:none"></div>
         <button class="btn btn-primary btn-full" id="btn-combat">Lancer le combat</button>
         <div class="combat-speed-controls" id="speed-controls" style="display:none">
           <span class="speed-label">Vitesse</span>
@@ -123,9 +124,16 @@ export async function mount(container, params = {}) {
   const btnCombat  = container.querySelector('#btn-combat');
   const phaseLabel = container.querySelector('#phase-label');
   const prepTimerEl = container.querySelector('#prep-timer');
+  const combatTimerEl = container.querySelector('#combat-timer');
 
   const PREP_DURATION_S = 60;
+  const COMBAT_TIMEOUT_S = 60; // mirrors CombatManager's MAX_COMBAT_TICKS (60s of ticks at speed ×1)
   let _prepInterval = null;
+
+  function _updateCombatTimer(combat) {
+    const remaining = Math.ceil(COMBAT_TIMEOUT_S * combat.remainingTicks() / MAX_COMBAT_TICKS);
+    combatTimerEl.textContent = `⏱ ${remaining}s`;
+  }
 
   function _stopPrepTimer() {
     if (_prepInterval) clearInterval(_prepInterval);
@@ -782,12 +790,15 @@ export async function mount(container, params = {}) {
     btnCombat.style.display = 'none';
     const speedControls = container.querySelector('#speed-controls');
     speedControls.style.display = '';
+    combatTimerEl.style.display = '';
+    _updateCombatTimer(combat);
 
     // Wire speed buttons (once per combat) — réutilise la vitesse choisie au tour précédent
     const animator = new CombatAnimator3D(combat, board3D, {
       onFinished: () => _finishCombat(combat, playerUnits, attributeManager),
       onStep: (events) => {
         if (events.some(e => e.type === 'stat_change')) _flashAttributeChips();
+        _updateCombatTimer(combat);
       },
     });
     animator.setSpeed(combatSpeed);
@@ -912,6 +923,7 @@ export async function mount(container, params = {}) {
       _hideCombatMultipliers();
       board3D.exitCombatMode();
       handArea.style.display = '';
+      combatTimerEl.style.display = 'none';
       const sc = container.querySelector('#speed-controls');
       sc.style.display = 'none';
       const bp = sc.querySelector('#btn-pause');
