@@ -369,7 +369,8 @@ export async function mount(container) {
         const result = document.createElement('div');
         result.style.cssText = 'text-align:center;padding:8px;font-weight:700;color:var(--accent)';
         result.textContent = combat.winner === 'player' ? '🏆 Joueur gagne'
-          : combat.winner === 'enemy' ? '💀 Ennemi gagne' : '⚖ Égalité';
+          : combat.winner === 'enemy' ? '💀 Ennemi gagne'
+          : combat.winner === 'timeout' ? '⏱ Temps écoulé' : '⚖ Égalité';
         container.querySelector('#tb-inspector').prepend(result);
         setTimeout(() => result.remove(), 3000);
         stopCombat(true);

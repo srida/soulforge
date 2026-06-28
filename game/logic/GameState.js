@@ -55,7 +55,7 @@ export class GameState {
 
   /**
    * Apply the result of a finished combat round.
-   * @param {'player'|'enemy'|'draw'} winner
+   * @param {'player'|'enemy'|'draw'|'timeout'} winner
    * @param {number} playerSurvivorsAtk  - sum of ATK of surviving player units
    * @param {number} enemySurvivorsAtk   - sum of ATK of surviving enemy units
    * @param {Object} attributeResult     - from AttributeManager.applyEndOfCombat()
@@ -63,10 +63,11 @@ export class GameState {
   applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult = {}) {
     this.phase = Phase.END_ROUND;
 
-    if (winner === 'player') {
+    if (winner === 'player' || winner === 'timeout') {
       const mult = this.player_multiplier + (attributeResult.damage_multiplier_bonus || 0);
       this.enemy_hp -= Math.round(playerSurvivorsAtk * mult);
-    } else if (winner === 'enemy') {
+    }
+    if (winner === 'enemy' || winner === 'timeout') {
       this.player_hp -= Math.round(enemySurvivorsAtk * this.enemy_multiplier);
     }
     // draw: no damage

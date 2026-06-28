@@ -15,6 +15,13 @@ const DOT_PULSES = 5;
 const BURN_DAMAGE_DIVISOR = 2;
 const BURN_ATTACKS = 3;              // number of the target's own attacks before the curse expires
 
+// Mirrors CombatAnimator3D's BASE_TICK_MS (180ms/tick at speed ×1) — kept in
+// sync manually since logic/ never imports from ui/. A combat that's still
+// going after this many ticks (60s of real time at ×1) is cut short by a timeout.
+const BASE_TICK_MS = 180;
+const COMBAT_TIMEOUT_MS = 60_000;
+const MAX_COMBAT_TICKS = Math.round(COMBAT_TIMEOUT_MS / BASE_TICK_MS);
+
 export class CombatManager {
   /**
    * @param {Board} board
@@ -28,7 +35,7 @@ export class CombatManager {
     this.enemyUnits = enemyUnits;
     this.attributeManager = attributeManager;
     this.isOver = false;
-    this.winner = null; // 'player' | 'enemy' | 'draw'
+    this.winner = null; // 'player' | 'enemy' | 'draw' | 'timeout'
     this._stepCount = 0;
   }
 
@@ -160,7 +167,7 @@ export class CombatManager {
 
     // ── 5. Deaths from attacks ──
     this._checkDeaths(allUnits, events);
-    this._checkEnd(events);
+    if (!this._checkEnd(events)) this._checkTimeout(events);
 
     // ── 6. During-combat attribute triggers (stat_modifier) ──
     // stat_modifier triggers are fired from CombatManager via AttributeManager callbacks
@@ -440,6 +447,19 @@ export class CombatManager {
     else if (eAlive)  this.winner = 'enemy';
     else              this.winner = 'draw';
 
+    events.push({ type: 'combat_end', winner: this.winner });
+    return true;
+  }
+
+  // Cuts the combat short once it has run for MAX_COMBAT_TICKS without either
+  // side being fully neutralized (both sides still have a living unit, since
+  // _checkEnd already returned false). Both players are treated as having
+  // lost the round — see GameState.applyEndOfCombat('timeout', ...).
+  _checkTimeout(events) {
+    if (this._stepCount < MAX_COMBAT_TICKS) return false;
+
+    this.isOver = true;
+    this.winner = 'timeout';
     events.push({ type: 'combat_end', winner: this.winner });
     return true;
   }

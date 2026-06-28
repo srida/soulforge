@@ -1085,12 +1085,9 @@ export async function mount(container, params = {}) {
 
   // ── End of round overlay ─────────────────────────────────────────────────
 
-  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors = [], enemySurvivors = [], damageMultiplierBonus = 0) {
-    if (winner !== 'player' && winner !== 'enemy') return '';
-    const atk = winner === 'player' ? playerSurvivorsAtk : enemySurvivorsAtk;
-    const survivors = winner === 'player' ? playerSurvivors : enemySurvivors;
-    const unitMultiplier = winner === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
-    const bonus = winner === 'player' ? (damageMultiplierBonus || 0) : 0;
+  function _singleDamageBreakdownHtml(side, atk, survivors, damageMultiplierBonus = 0) {
+    const unitMultiplier = side === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
+    const bonus = side === 'player' ? (damageMultiplierBonus || 0) : 0;
     const total = Math.round(atk * (unitMultiplier * gameState.round + bonus));
     const unitRows = survivors
       .map(u => ({ name: CardDatabase.getCard(u.card_id)?.name, atk: u.atk }))
@@ -1101,32 +1098,56 @@ export async function mount(container, params = {}) {
         </div>`)
       .join('');
     return `
+      ${unitRows}
+      <div class="end-round-breakdown-row end-round-breakdown-subtotal">
+        <span>ATK des survivants</span><span>${atk}</span>
+      </div>
+      <div class="end-round-breakdown-row">
+        <span>Multiplicateur d'unités</span><span>×${unitMultiplier}</span>
+      </div>
+      <div class="end-round-breakdown-row">
+        <span>Multiplicateur de tour</span><span>×${gameState.round}</span>
+      </div>
+      ${bonus ? `
+      <div class="end-round-breakdown-row">
+        <span>Bonus d'attribut</span><span>+${bonus}</span>
+      </div>` : ''}
+      <div class="end-round-breakdown-row end-round-breakdown-total">
+        <span>Total</span><span>${total}</span>
+      </div>
+    `;
+  }
+
+  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors = [], enemySurvivors = [], damageMultiplierBonus = 0) {
+    if (winner !== 'player' && winner !== 'enemy' && winner !== 'timeout') return '';
+
+    if (winner === 'timeout') {
+      return `
+        <details class="end-round-breakdown">
+          <summary><span class="end-round-breakdown-arrow">▶</span>Dégâts infligés à l'ennemi</summary>
+          ${_singleDamageBreakdownHtml('player', playerSurvivorsAtk, playerSurvivors, damageMultiplierBonus)}
+        </details>
+        <details class="end-round-breakdown">
+          <summary><span class="end-round-breakdown-arrow">▶</span>Dégâts subis par le joueur</summary>
+          ${_singleDamageBreakdownHtml('enemy', enemySurvivorsAtk, enemySurvivors)}
+        </details>
+      `;
+    }
+
+    const side = winner === 'player' ? 'player' : 'enemy';
+    const atk = winner === 'player' ? playerSurvivorsAtk : enemySurvivorsAtk;
+    const survivors = winner === 'player' ? playerSurvivors : enemySurvivors;
+    return `
       <details class="end-round-breakdown">
         <summary><span class="end-round-breakdown-arrow">▶</span>Détail des dégâts infligés</summary>
-        ${unitRows}
-        <div class="end-round-breakdown-row end-round-breakdown-subtotal">
-          <span>ATK des survivants</span><span>${atk}</span>
-        </div>
-        <div class="end-round-breakdown-row">
-          <span>Multiplicateur d'unités</span><span>×${unitMultiplier}</span>
-        </div>
-        <div class="end-round-breakdown-row">
-          <span>Multiplicateur de tour</span><span>×${gameState.round}</span>
-        </div>
-        ${bonus ? `
-        <div class="end-round-breakdown-row">
-          <span>Bonus d'attribut</span><span>+${bonus}</span>
-        </div>` : ''}
-        <div class="end-round-breakdown-row end-round-breakdown-total">
-          <span>Total</span><span>${total}</span>
-        </div>
+        ${_singleDamageBreakdownHtml(side, atk, survivors, damageMultiplierBonus)}
       </details>
     `;
   }
 
   function _showEndRound(winner, playerSurvivorsAtk = 0, enemySurvivorsAtk = 0, playerSurvivors = [], enemySurvivors = [], damageMultiplierBonus = 0) {
     _updateHUD();
-    const msgMap = { player: '🏆 Victoire du round !', enemy: '💀 Défaite du round', draw: '⚖ Égalité' };
+    const msgMap = { player: '🏆 Victoire du round !', enemy: '💀 Défaite du round', draw: '⚖ Égalité', timeout: '⏱ Temps écoulé' };
     const isOver = gameState.isGameOver();
 
     const overlay = document.createElement('div');
