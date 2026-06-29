@@ -1008,26 +1008,55 @@ export async function mount(container, params = {}) {
     const overlay = document.createElement('div');
     overlay.className = 'shopping-overlay';
     overlay.innerHTML = `
-      <div class="shopping-title">✨ Phase Shopping</div>
-      <div class="shopping-subtitle">Choisissez une magie</div>
-      <div class="shopping-timer" id="shopping-timer">⏱ ${SHOPPING_DURATION_S}s</div>
-      <div class="shopping-magies-row">
-        ${offered.map((m, i) => `
-          <div class="shopping-magie-card" data-idx="${i}">
-            <div class="shopping-magie-illus">
-              ${m._has_illustration
-                ? `<img src="/illustrations/${m.id}" alt="" loading="lazy">`
-                : '✨'}
+      <div class="shopping-modal">
+        <div class="shopping-modal-bg"></div>
+        <div class="shopping-top-bar"></div>
+        <div class="shopping-shine"></div>
+        <div class="shopping-inner">
+          <div class="shopping-header">
+            <div class="shopping-title-row">
+              <span class="shopping-sparkle">✦</span>
+              <span class="shopping-title">PHASE SHOPPING</span>
+              <span class="shopping-sparkle">✦</span>
             </div>
-            <div class="shopping-magie-name">${m.name}</div>
-            <div class="shopping-magie-effect">${magieEffectLabel(m)}</div>
+            <div class="shopping-subtitle">Choisissez une magie</div>
           </div>
-        `).join('')}
+          <div class="shopping-timer">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="7.5" stroke="#a78bfa" stroke-width="1.5"></circle>
+              <polyline points="9,5 9,9 12,11" stroke="#a78bfa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            </svg>
+            <span class="shopping-timer-num" id="shopping-timer-num">${SHOPPING_DURATION_S}<span>s</span></span>
+          </div>
+          <div class="shopping-magies-row">
+            ${offered.map((m, i) => `
+              <div class="shopping-magie-card" data-idx="${i}">
+                <div class="shopping-magie-card-hover"></div>
+                <div class="shopping-magie-illus">
+                  ${m._has_illustration
+                    ? `<img src="/illustrations/${m.id}" alt="" loading="lazy">`
+                    : `<div class="shopping-magie-illus-placeholder">
+                        <div class="shopping-magie-illus-icon">✨</div>
+                        <div class="shopping-magie-illus-label">ART MAGIE</div>
+                      </div>`}
+                </div>
+                <div class="shopping-magie-body">
+                  <div class="shopping-magie-name">${m.name}</div>
+                  <div class="shopping-magie-effect">${magieEffectLabel(m)}</div>
+                </div>
+                <div class="shopping-magie-bar"></div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="shopping-skip">
+            <button class="shopping-skip-btn" id="shopping-skip-btn">Passer cette phase →</button>
+          </div>
+        </div>
       </div>
     `;
     container.appendChild(overlay);
 
-    const timerEl = overlay.querySelector('#shopping-timer');
+    const timerEl = overlay.querySelector('#shopping-timer-num');
     let remaining = SHOPPING_DURATION_S;
     const shoppingInterval = setInterval(() => {
       remaining -= 1;
@@ -1039,7 +1068,7 @@ export async function mount(container, params = {}) {
         _applyChosenMagie(chosen, winner);
         return;
       }
-      timerEl.textContent = `⏱ ${remaining}s`;
+      timerEl.innerHTML = `${remaining}<span>s</span>`;
     }, 1000);
 
     overlay.querySelectorAll('.shopping-magie-card').forEach(card => {
@@ -1050,6 +1079,14 @@ export async function mount(container, params = {}) {
         overlay.remove();
         _applyChosenMagie(chosen, winner);
       });
+    });
+
+    overlay.querySelector('#shopping-skip-btn').addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      clearInterval(shoppingInterval);
+      overlay.remove();
+      gameState.nextRound();
+      startPreparation();
     });
   }
 

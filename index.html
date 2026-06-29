@@ -1217,46 +1217,104 @@
 .end-round-hps { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 20px; font-weight: 700; }
 
 /* ── Shopping phase ─────────────────────────────────────────── */
+@keyframes shopping-pop-in { 0%{ opacity:0; transform:scale(.9) translateY(12px); } 100%{ opacity:1; transform:scale(1) translateY(0); } }
+@keyframes shopping-shine{ 0%{ transform:translateX(-180%); } 70%,100%{ transform:translateX(280%); } }
+@keyframes shopping-timer-pulse{ 0%,100%{ opacity:.7; } 50%{ opacity:1; } }
+@keyframes shopping-card-glow{ 0%,100%{ box-shadow:0 0 0 1px rgba(167,139,250,.35), 0 12px 32px -8px rgba(124,92,255,.4); } 50%{ box-shadow:0 0 0 1px rgba(167,139,250,.6), 0 16px 42px -6px rgba(124,92,255,.65); } }
+@keyframes shopping-sparkle{ 0%,100%{ transform:scale(1) rotate(0deg); opacity:.9; } 50%{ transform:scale(1.15) rotate(15deg); opacity:1; } }
+
 .shopping-overlay {
   position: absolute; inset: 0;
-  background: rgba(8,6,16,.92);
-  backdrop-filter: blur(16px);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  z-index: 48; padding: 20px; gap: 16px;
-}
-.shopping-title {
-  font-size: 1.4rem; font-weight: 800;
-  font-family: var(--font-display);
-  background: linear-gradient(135deg, var(--sf-violet-500), var(--sf-ink-1));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-.shopping-subtitle { font-size: .82rem; color: var(--muted); margin-top: -8px; }
-.shopping-timer { font-size: 1.1rem; font-weight: 800; color: var(--sf-violet-500); }
-.shopping-magies-row {
-  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
-  width: 100%; max-width: 600px;
-}
-.shopping-magie-card {
-  background: var(--sf-surface-2); border: 1px solid var(--sf-border-2);
-  border-radius: var(--radius-lg); padding: 14px 10px;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  cursor: pointer; flex: 1; min-width: 140px; max-width: 180px;
-  text-align: center; touch-action: manipulation;
-  transition: border-color .15s, transform .1s, box-shadow .15s;
-}
-.shopping-magie-card:active { border-color: var(--sf-border-3); transform: scale(.97); }
-@media (hover: hover) {
-  .shopping-magie-card:hover { border-color: var(--sf-border-3); transform: translateY(-2px); box-shadow: 0 0 20px rgba(124,92,255,.3); }
-}
-.shopping-magie-illus {
-  width: 68px; height: 68px; border-radius: var(--radius);
-  background: var(--sf-surface-3);
+  background: radial-gradient(120% 55% at 50% 44%, rgba(60,76,130,.2), transparent 60%),
+              radial-gradient(90% 45% at 50% -8%, rgba(124,92,255,.14), transparent 55%),
+              rgba(4,2,10,.82);
   display: flex; align-items: center; justify-content: center;
-  font-size: 2rem; overflow: hidden; flex-shrink: 0;
+  z-index: 48; padding: 16px;
+}
+.shopping-modal {
+  position: relative; width: 100%; max-width: 680px; border-radius: 24px; overflow: hidden;
+  animation: shopping-pop-in .4s cubic-bezier(.22,1,.36,1) both,
+             shopping-card-glow 3.5s ease-in-out infinite;
+}
+.shopping-modal-bg {
+  position: absolute; inset: 0; border-radius: 24px;
+  background: radial-gradient(130% 80% at 50% -12%, rgba(124,92,255,.18), transparent 58%),
+              linear-gradient(180deg, rgba(18,12,30,.98) 0%, rgba(10,7,20,.98) 100%);
+  border: 1px solid rgba(139,92,246,.32);
+}
+.shopping-top-bar {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, #7c5cff 30%, #c9b6ff 65%, transparent);
+  border-radius: 24px 24px 0 0;
+}
+.shopping-shine {
+  position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.04), transparent);
+  animation: shopping-shine 6s ease-in-out infinite; pointer-events: none;
+}
+.shopping-inner { position: relative; padding: 36px 36px 32px; }
+.shopping-header { text-align: center; margin-bottom: 8px; }
+.shopping-title-row { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.shopping-sparkle { font-size: 22px; display: inline-block; animation: shopping-sparkle 2.5s ease-in-out infinite; }
+.shopping-sparkle:last-child { animation-delay: .6s; }
+.shopping-title {
+  font: 700 26px 'Chakra Petch'; letter-spacing: .05em;
+  background: linear-gradient(120deg, #c9b6ff, #8b5cf6);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.shopping-subtitle { font: 600 13px 'Manrope'; color: var(--sf-ink-muted); letter-spacing: .06em; text-transform: uppercase; }
+.shopping-timer {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  margin-bottom: 28px; animation: shopping-timer-pulse 1.2s ease-in-out infinite;
+}
+.shopping-timer-num { font: 700 28px 'Chakra Petch'; color: #cdbcff; letter-spacing: .04em; }
+.shopping-timer-num span { font-size: 16px; color: var(--sf-ink-ghost); margin-left: 2px; }
+.shopping-magies-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.shopping-magie-card {
+  position: relative; border-radius: 18px; overflow: hidden; cursor: pointer;
+  border: 1px solid rgba(139,92,246,.22);
+  background: linear-gradient(160deg, rgba(26,18,44,.9), rgba(14,10,24,.9));
+  display: flex; flex-direction: column; touch-action: manipulation;
+  transition: border-color .18s;
+}
+.shopping-magie-card:active { border-color: rgba(167,139,250,.7); transform: scale(.97); }
+@media (hover: hover) {
+  .shopping-magie-card:hover { border-color: rgba(167,139,250,.7); }
+  .shopping-magie-card:hover .shopping-magie-card-hover { background: rgba(124,92,255,.07); }
+}
+.shopping-magie-card-hover { position: absolute; inset: 0; transition: background .18s; }
+.shopping-magie-illus {
+  height: 130px; flex-shrink: 0; overflow: hidden;
+  background: repeating-linear-gradient(135deg, rgba(80,50,120,.25), rgba(80,50,120,.25) 4px, rgba(50,30,80,.25) 4px, rgba(50,30,80,.25) 10px);
+  display: flex; align-items: center; justify-content: center;
+  border-bottom: 1px solid rgba(139,92,246,.15);
 }
 .shopping-magie-illus img { width: 100%; height: 100%; object-fit: cover; }
-.shopping-magie-name { font-weight: 700; font-size: .88rem; font-family: var(--font-display); }
-.shopping-magie-effect { font-size: .73rem; color: var(--muted); line-height: 1.4; }
+.shopping-magie-illus-placeholder { text-align: center; opacity: .45; }
+.shopping-magie-illus-icon { font-size: 32px; margin-bottom: 4px; }
+.shopping-magie-illus-label { font: 600 9px 'Chakra Petch'; letter-spacing: .14em; color: var(--sf-ink-muted); }
+.shopping-magie-body { padding: 14px 14px 16px; flex: 1; }
+.shopping-magie-name { font: 700 15px 'Chakra Petch'; color: var(--sf-ink-1); letter-spacing: .02em; margin-bottom: 5px; }
+.shopping-magie-effect { font: 500 12px 'Manrope'; color: var(--sf-ink-muted); line-height: 1.5; }
+.shopping-magie-bar { height: 2px; background: linear-gradient(90deg, transparent, rgba(167,139,250,.6), transparent); }
+.shopping-skip { text-align: center; margin-top: 20px; }
+.shopping-skip-btn {
+  font: 600 12px 'Manrope'; color: var(--sf-ink-ghost); cursor: pointer;
+  letter-spacing: .04em; background: none; border: none; padding: 8px 16px;
+  min-height: 44px; display: inline-flex; align-items: center; touch-action: manipulation;
+  transition: color .15s;
+}
+@media (hover: hover) { .shopping-skip-btn:hover { color: var(--sf-ink-faint); } }
+@media (max-width: 480px) {
+  .shopping-inner { padding: 24px 14px 20px; }
+  .shopping-magies-row { gap: 8px; }
+  .shopping-magie-illus { height: 90px; }
+  .shopping-magie-body { padding: 10px 10px 12px; }
+  .shopping-magie-name { font-size: 13px; }
+  .shopping-magie-effect { font-size: 11px; }
+  .shopping-title { font-size: 20px; }
+  .shopping-timer-num { font-size: 22px; }
+}
 .shopping-select-banner {
   position: absolute; top: 0; left: 0; right: 0; z-index: 48;
   background: var(--grad-primary); color: #fff;
