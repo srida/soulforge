@@ -208,13 +208,232 @@ export async function mount(container, params = {}) {
   board3D.setBoard(board);
   window.__b3 = board3D;
 
-  container.querySelector('#btn-back').addEventListener('click', () => {
-    navigate('main_menu');
-  }, { once: true });
+  // ── Pause menu ────────────────────────────────────────────────────────────
+
+  let _pauseStep = 'main'; // 'main' | 'abandon'
+  let _musicVol  = parseInt(localStorage.getItem('sf_music_vol') ?? '70', 10);
+  let _sfxVol    = parseInt(localStorage.getItem('sf_sfx_vol')   ?? '85', 10);
+  let _animOn    = localStorage.getItem('sf_anim_on') !== 'false';
+
+  const pauseOverlay = document.createElement('div');
+  pauseOverlay.className = 'pause-overlay';
+  pauseOverlay.style.display = 'none';
+  container.appendChild(pauseOverlay);
+
+  function _pauseSliderHtml(id, val) {
+    return `
+      <div class="pause-slider-track" data-slider="${id}" style="touch-action:none">
+        <div class="pause-slider-fill" id="pm-fill-${id}" style="width:${val}%"></div>
+        <div class="pause-slider-thumb" id="pm-thumb-${id}" style="left:calc(${val}% - 9px)"></div>
+      </div>`;
+  }
+
+  function _renderPauseMenu() {
+    if (_pauseStep === 'abandon') {
+      pauseOverlay.innerHTML = `
+        <div class="pause-modal pause-modal--abandon">
+          <div class="pause-modal-accent"></div>
+          <div class="pause-abandon-body">
+            <div class="pause-abandon-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e07090" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" fill="rgba(232,84,110,.1)"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <circle cx="12" cy="17" r="1" fill="#e07090" stroke="none"></circle>
+              </svg>
+            </div>
+            <div>
+              <div class="pause-abandon-title">ABANDONNER LA PARTIE ?</div>
+              <div class="pause-abandon-text">Cette action est irréversible. La manche en cours sera perdue.</div>
+            </div>
+            <div class="pause-abandon-actions">
+              <button class="pause-confirm-btn" id="pm-confirm-abandon">
+                <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.5H6a1 1 0 00-1 1v11a1 1 0 001 1h6"></path>
+                  <path d="M15.5 9H9M12.5 6l3 3-3 3"></path>
+                </svg>
+                CONFIRMER L'ABANDON
+              </button>
+              <div class="pause-cancel-btn" id="pm-cancel-abandon">ANNULER</div>
+            </div>
+          </div>
+        </div>`;
+
+      pauseOverlay.querySelector('#pm-confirm-abandon').addEventListener('pointerdown', () => {
+        _closePauseMenu();
+        navigate('main_menu');
+      });
+      pauseOverlay.querySelector('#pm-cancel-abandon').addEventListener('pointerdown', () => {
+        _pauseStep = 'main';
+        _renderPauseMenu();
+      });
+      return;
+    }
+
+    // Main menu
+    pauseOverlay.innerHTML = `
+      <div class="pause-modal">
+        <div class="pause-modal-accent"></div>
+        <div class="pause-modal-header">
+          <div class="pause-modal-title-group">
+            <div class="pause-modal-icon">
+              <svg width="21" height="21" viewBox="0 0 22 22" fill="none">
+                <rect x="4" y="3" width="5" height="16" rx="2.5" fill="rgba(167,139,250,.14)" stroke="#a78bfa" stroke-width="1.6"></rect>
+                <rect x="13" y="3" width="5" height="16" rx="2.5" fill="rgba(167,139,250,.14)" stroke="#a78bfa" stroke-width="1.6"></rect>
+              </svg>
+            </div>
+            <div>
+              <div class="pause-modal-title">PAUSE</div>
+              <div class="pause-modal-subtitle">MENU IN-GAME</div>
+            </div>
+          </div>
+          <div class="pause-modal-close" id="pm-close">
+            <svg width="12" height="12" viewBox="0 0 14 14" stroke="#7c7596" stroke-width="2.2" stroke-linecap="round" fill="none">
+              <line x1="2" y1="2" x2="12" y2="12"></line><line x1="12" y1="2" x2="2" y2="12"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="pause-modal-body">
+          <button class="pause-resume-btn" id="pm-resume">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="white"><polygon points="3,2 12,7 3,12"></polygon></svg>
+            REPRENDRE LA PARTIE
+          </button>
+
+          <div class="pause-section-sep"></div>
+          <div class="pause-section-label">PARAMÈTRES</div>
+
+          <div class="pause-setting-row">
+            <div class="pause-setting-icon">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7H2.5a.5.5 0 00-.5.5v5a.5.5 0 00.5.5H4l5 4V3L4 7z" fill="rgba(167,139,250,.12)"></path>
+                <path d="M13 7a5 5 0 010 6"></path>
+                <path d="M15.5 4.5a9 9 0 010 11" stroke="rgba(167,139,250,.38)" stroke-width="1.2"></path>
+              </svg>
+            </div>
+            <div class="pause-setting-content">
+              <div class="pause-setting-label-row">
+                <span class="pause-setting-name">Musique</span>
+                <span class="pause-setting-val" id="pm-music-val">${_musicVol}%</span>
+              </div>
+              ${_pauseSliderHtml('music', _musicVol)}
+            </div>
+          </div>
+
+          <div class="pause-setting-row">
+            <div class="pause-setting-icon">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7H2.5a.5.5 0 00-.5.5v5a.5.5 0 00.5.5H4l5 4V3L4 7z" fill="rgba(167,139,250,.12)"></path>
+                <path d="M13 7a5 5 0 010 6"></path>
+              </svg>
+            </div>
+            <div class="pause-setting-content">
+              <div class="pause-setting-label-row">
+                <span class="pause-setting-name">Effets sonores</span>
+                <span class="pause-setting-val" id="pm-sfx-val">${_sfxVol}%</span>
+              </div>
+              ${_pauseSliderHtml('sfx', _sfxVol)}
+            </div>
+          </div>
+
+          <div class="pause-setting-row">
+            <div class="pause-setting-icon">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round">
+                <circle cx="10" cy="10" r="7" fill="rgba(167,139,250,.08)"></circle>
+                <path d="M10 6v5l2.5 2.5"></path>
+              </svg>
+            </div>
+            <div class="pause-setting-content">
+              <div class="pause-toggle-row">
+                <div class="pause-toggle-info">
+                  <div class="pause-setting-name">Animations de combat</div>
+                  <div class="pause-toggle-sub">Désactiver pour améliorer les perfs</div>
+                </div>
+                <div class="pause-toggle ${_animOn ? 'on' : 'off'}" id="pm-anim-toggle">
+                  <div class="pause-toggle-dot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pause-danger-sep"></div>
+
+          <button class="pause-abandon-btn" id="pm-abandon">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="#e07090" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2.5H6a1 1 0 00-1 1v11a1 1 0 001 1h6"></path>
+              <path d="M15.5 9H9M12.5 6l3 3-3 3"></path>
+            </svg>
+            ABANDONNER LA PARTIE
+          </button>
+        </div>
+      </div>`;
+
+    pauseOverlay.querySelector('#pm-resume').addEventListener('pointerdown', _closePauseMenu);
+    pauseOverlay.querySelector('#pm-close').addEventListener('pointerdown', _closePauseMenu);
+    pauseOverlay.querySelector('#pm-abandon').addEventListener('pointerdown', () => {
+      _pauseStep = 'abandon';
+      _renderPauseMenu();
+    });
+    pauseOverlay.querySelector('#pm-anim-toggle').addEventListener('pointerdown', () => {
+      _animOn = !_animOn;
+      localStorage.setItem('sf_anim_on', _animOn);
+      const toggle = pauseOverlay.querySelector('#pm-anim-toggle');
+      toggle.className = `pause-toggle ${_animOn ? 'on' : 'off'}`;
+    });
+
+    _bindSlider('music', v => {
+      _musicVol = v;
+      localStorage.setItem('sf_music_vol', v);
+      const el = pauseOverlay.querySelector('#pm-music-val');
+      if (el) el.textContent = `${v}%`;
+    });
+    _bindSlider('sfx', v => {
+      _sfxVol = v;
+      localStorage.setItem('sf_sfx_vol', v);
+      const el = pauseOverlay.querySelector('#pm-sfx-val');
+      if (el) el.textContent = `${v}%`;
+    });
+  }
+
+  function _bindSlider(id, onChange) {
+    const track = pauseOverlay.querySelector(`[data-slider="${id}"]`);
+    if (!track) return;
+    const fill  = pauseOverlay.querySelector(`#pm-fill-${id}`);
+    const thumb = pauseOverlay.querySelector(`#pm-thumb-${id}`);
+
+    function setVal(clientX) {
+      const rect = track.getBoundingClientRect();
+      const pct  = Math.round(Math.max(0, Math.min(100, (clientX - rect.left) / rect.width * 100)));
+      fill.style.width  = `${pct}%`;
+      thumb.style.left  = `calc(${pct}% - 9px)`;
+      onChange(pct);
+    }
+
+    track.addEventListener('pointerdown', e => {
+      track.setPointerCapture(e.pointerId);
+      setVal(e.clientX);
+      track.addEventListener('pointermove', onMove);
+      track.addEventListener('pointerup', onUp, { once: true });
+    });
+
+    function onMove(e) { setVal(e.clientX); }
+    function onUp()    { track.removeEventListener('pointermove', onMove); }
+  }
+
+  function _openPauseMenu() {
+    _pauseStep = 'main';
+    _renderPauseMenu();
+    pauseOverlay.style.display = 'flex';
+  }
+
+  function _closePauseMenu() {
+    pauseOverlay.style.display = 'none';
+  }
+
+  container.querySelector('#btn-back').addEventListener('click', _openPauseMenu);
 
   _activeUnmount = () => {
     board3D.destroy();
     _stopPrepTimer();
+    _closePauseMenu();
   };
 
   // Board indicator tap → tooltip
