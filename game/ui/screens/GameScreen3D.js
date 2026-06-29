@@ -79,52 +79,89 @@ export async function mount(container, params = {}) {
   // ── Shell ────────────────────────────────────────────────────────────────
 
   container.innerHTML = `
-    <div class="topbar">
-      <button class="topbar-back" id="btn-back">←</button>
-      <span class="topbar-title" id="phase-label">Préparation</span>
-      <div class="game-hud">
-        <span class="hud-hp player" id="hud-player">♥ 1000</span>
-        <span class="hud-mult player" id="hud-player-mult" style="display:none">×1.0</span>
-        <span class="hud-round" id="hud-round">1/5</span>
-        <span class="hud-mult enemy" id="hud-enemy-mult" style="display:none">×1.0</span>
-        <span class="hud-hp enemy" id="hud-enemy">♥ 1000</span>
+    <div class="gs-topbar">
+      <button class="gs-menu-btn" id="btn-back">
+        <svg width="15" height="15" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none">
+          <line x1="3" y1="5" x2="13" y2="5"></line>
+          <line x1="3" y1="8" x2="13" y2="8"></line>
+          <line x1="3" y1="11" x2="13" y2="11"></line>
+        </svg>
+      </button>
+      <div class="gs-title-group">
+        <span class="gs-title" id="phase-label">PRÉPARATION</span>
+        <span class="gs-round-badge" id="gs-round-badge">TOUR 1</span>
+      </div>
+      <div class="gs-hud">
+        <div style="text-align:right">
+          <div class="gs-hud-hp-row" style="justify-content:flex-end">
+            <span class="gs-hud-dot player"></span>
+            <span class="gs-hud-val player" id="hud-player">1000</span>
+          </div>
+          <div class="gs-hud-label-row" style="justify-content:flex-end">
+            <span class="gs-hud-label">VOUS</span>
+            <span class="gs-hud-mult player" id="hud-player-mult" style="display:none">×1.0</span>
+          </div>
+        </div>
+        <div class="gs-hud-round-badge">
+          <span class="gs-hud-round" id="hud-round">1 / 5</span>
+          <span class="gs-hud-round-label">MANCHE</span>
+        </div>
+        <div>
+          <div class="gs-hud-hp-row">
+            <span class="gs-hud-val enemy" id="hud-enemy">1000</span>
+            <span class="gs-hud-dot enemy"></span>
+          </div>
+          <div class="gs-hud-label-row">
+            <span class="gs-hud-mult enemy" id="hud-enemy-mult" style="display:none">×1.0</span>
+            <span class="gs-hud-label enemy">ADV.</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="game-layout">
-      <div class="game-header-row">
+      <div class="gs-synergy-row">
+        <span class="gs-synergy-label">SYNERGIES ACTIVES</span>
         <div class="attribute-panel" id="attribute-panel"></div>
-        <div id="slot-indicator" class="board-ind" style="display:none"></div>
+        <div id="slot-indicator" class="gs-slot-indicator" style="display:none"></div>
         <div id="board-indicator" class="board-ind" style="display:none"></div>
       </div>
       <div class="game3d-wrap" id="board-area">
         <div class="game3d-3d" id="board3d-mount"></div>
       </div>
-      <div class="graveyard-area" id="graveyard-area" style="display:none">
-        <span class="graveyard-label">Cimetière</span>
-        <div class="graveyard-units" id="graveyard-units"></div>
-      </div>
-      <div class="hand-area" id="hand-area"></div>
       <div class="phase-controls">
-        <div class="prep-timer" id="prep-timer" style="display:none"></div>
+        <div class="gs-graveyard" id="graveyard-area" style="display:none">
+          <div class="gs-graveyard-label-col">
+            <span class="gs-graveyard-label">CIMETIÈRE</span>
+          </div>
+          <div class="graveyard-units" id="graveyard-units"></div>
+        </div>
+        <div id="hand-area"></div>
         <div class="prep-timer" id="combat-timer" style="display:none"></div>
-        <button class="btn btn-primary btn-full" id="btn-combat">Lancer le combat</button>
+        <button class="btn btn-primary btn-full gs-combat-btn" id="btn-combat">⚔ LANCER LE COMBAT</button>
         <div class="combat-speed-controls" id="speed-controls" style="display:none">
-          <span class="speed-label">Vitesse</span>
-          <button class="btn btn-secondary speed-btn active" data-speed="1">×1</button>
-          <button class="btn btn-secondary speed-btn" data-speed="2">×2</button>
-          <button class="btn btn-secondary speed-btn" data-speed="4">×4</button>
+          <span class="speed-label">VITESSE</span>
+          <div class="speed-seg-wrap">
+            <button class="speed-btn active" data-speed="1">×1</button>
+            <button class="speed-btn" data-speed="2">×2</button>
+            <button class="speed-btn" data-speed="4">×4</button>
+          </div>
           <div style="flex:1"></div>
-          <button class="btn btn-secondary speed-btn" id="btn-pause">⏸</button>
+          <span class="speed-auto-label">La résolution se joue automatiquement</span>
+          <button class="gs-pause-btn" id="btn-pause">
+            <span class="gs-pause-icon">⏸</span>
+            <span class="gs-pause-text">Pause</span>
+          </button>
         </div>
       </div>
     </div>
   `;
 
-  const handArea   = container.querySelector('#hand-area');
-  const btnCombat  = container.querySelector('#btn-combat');
-  const phaseLabel = container.querySelector('#phase-label');
-  const prepTimerEl = container.querySelector('#prep-timer');
+  const handArea      = container.querySelector('#hand-area');
+  const btnCombat     = container.querySelector('#btn-combat');
+  const phaseLabel    = container.querySelector('#phase-label');
+  const roundBadge    = container.querySelector('#gs-round-badge');
   const combatTimerEl = container.querySelector('#combat-timer');
+  let prepTimerEl = null; // created after hand UI is set up
 
   const PREP_DURATION_S = 60;
   const COMBAT_TIMEOUT_S = 60; // mirrors CombatManager's MAX_COMBAT_TICKS (60s of ticks at speed ×1)
@@ -138,14 +175,15 @@ export async function mount(container, params = {}) {
   function _stopPrepTimer() {
     if (_prepInterval) clearInterval(_prepInterval);
     _prepInterval = null;
-    prepTimerEl.style.display = 'none';
+    if (prepTimerEl) prepTimerEl.style.display = 'none';
   }
 
   function _startPrepTimer() {
     _stopPrepTimer();
+    if (!prepTimerEl) return;
     let remaining = PREP_DURATION_S;
-    prepTimerEl.style.display = '';
-    prepTimerEl.textContent = `⏱ ${remaining}s`;
+    prepTimerEl.style.display = 'flex';
+    prepTimerEl.querySelector('.gs-timer-val').textContent = `${remaining}s`;
     _prepInterval = setInterval(() => {
       remaining -= 1;
       if (remaining <= 0) {
@@ -153,7 +191,7 @@ export async function mount(container, params = {}) {
         if (gameState.phase === Phase.PREPARATION) runCombat();
         return;
       }
-      prepTimerEl.textContent = `⏱ ${remaining}s`;
+      if (prepTimerEl) prepTimerEl.querySelector('.gs-timer-val').textContent = `${remaining}s`;
     }, 1000);
   }
 
@@ -198,10 +236,19 @@ export async function mount(container, params = {}) {
   handSortBtn.textContent = '⇅';
   const handInner = document.createElement('div');
   handInner.className = 'hand-ui';
+
   handToolbar.appendChild(handGroupBtn);
   handToolbar.appendChild(handSortBtn);
   handArea.appendChild(handToolbar);
   handArea.appendChild(handInner);
+
+  // Timer injected into hand row (right side)
+  prepTimerEl = document.createElement('div');
+  prepTimerEl.id = 'prep-timer';
+  prepTimerEl.className = 'gs-timer';
+  prepTimerEl.style.display = 'none';
+  prepTimerEl.innerHTML = '<span class="gs-timer-val">60s</span><span class="gs-timer-label">RESTANT</span>';
+  handArea.appendChild(prepTimerEl);
 
   const handUI = new HandUI(handInner, {
     onSelect: handleCardSelect,
@@ -471,7 +518,7 @@ export async function mount(container, params = {}) {
     const el = container.querySelector('#slot-indicator');
     if (!el) return;
     const occupied = board.getLivingUnitsOnSide('player').length;
-    el.innerHTML = `<span style="font-size:18px;flex-shrink:0;line-height:1">🧩</span><span class="board-ind-name">${occupied}/${gameState.player_board_slots}</span>`;
+    el.innerHTML = `<span class="gs-slot-diamond"></span><span class="gs-slot-label">Unités placées</span><span class="gs-slot-val">${occupied}<span class="gs-slot-max"> / ${gameState.player_board_slots}</span></span>`;
     el.style.display = 'flex';
   }
 
@@ -493,6 +540,7 @@ export async function mount(container, params = {}) {
       const label = nextThreshold ? `${count}/${nextThreshold.count}` : `${count}`;
       return `<button class="attribute-chip${isActive ? ' attr-active' : ''}" data-attr-id="${attr.id}" title="${attr.name}">`
         + `<span class="attribute-chip-icon">${attr.icon ?? '?'}</span>`
+        + `<span class="attribute-chip-name">${attr.name}</span>`
         + `<span class="attribute-chip-count">${label}</span>`
         + `</button>`;
     }).join('');
@@ -603,9 +651,9 @@ export async function mount(container, params = {}) {
   // ── HUD ──────────────────────────────────────────────────────────────────
 
   function _updateHUD() {
-    container.querySelector('#hud-player').textContent = `♥ ${gameState.player_hp}`;
-    container.querySelector('#hud-enemy').textContent  = `♥ ${gameState.enemy_hp}`;
-    container.querySelector('#hud-round').textContent  = `${gameState.round}/5`;
+    container.querySelector('#hud-player').textContent = `${gameState.player_hp}`;
+    container.querySelector('#hud-enemy').textContent  = `${gameState.enemy_hp}`;
+    container.querySelector('#hud-round').textContent  = `${gameState.round} / 5`;
   }
 
   function _showCombatMultipliers() {
@@ -624,10 +672,12 @@ export async function mount(container, params = {}) {
 
   function _flashError(msg) {
     const prev = phaseLabel.textContent;
-    const prevColor = phaseLabel.style.color;
     phaseLabel.textContent = '⚠ ' + msg;
-    phaseLabel.style.color = 'var(--red)';
-    setTimeout(() => { phaseLabel.textContent = prev; phaseLabel.style.color = prevColor; }, 2000);
+    phaseLabel.classList.add('gs-error');
+    setTimeout(() => {
+      phaseLabel.textContent = prev;
+      phaseLabel.classList.remove('gs-error');
+    }, 2000);
   }
 
   // ── Board terrain ─────────────────────────────────────────────────────────
@@ -639,8 +689,8 @@ export async function mount(container, params = {}) {
     const el = container.querySelector('#board-indicator');
     if (!el || !boardData) return;
     const thumb = boardData._has_illustration
-      ? `<img src="/illustrations/${boardData.id}" style="width:28px;height:28px;object-fit:cover;border-radius:3px;flex-shrink:0" alt="">`
-      : `<span style="font-size:20px;flex-shrink:0;line-height:1">🗺️</span>`;
+      ? `<img src="/illustrations/${boardData.id}" style="width:26px;height:26px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid rgba(95,182,214,.4)" alt="">`
+      : `<span style="font-size:18px;flex-shrink:0;line-height:1">🗺️</span>`;
     el.innerHTML = `${thumb}<span class="board-ind-name">${boardData.name}</span>`;
     el.style.display = 'flex';
   }
@@ -663,9 +713,10 @@ export async function mount(container, params = {}) {
     board3D.setBlockedCells([]);
     _hideBoardIndicator();
 
-    phaseLabel.textContent = `Prépa — Tour ${gameState.round}`;
-    phaseLabel.style.color = '';
-    btnCombat.textContent = 'Lancer le combat';
+    phaseLabel.textContent = 'PRÉPARATION';
+    phaseLabel.classList.remove('gs-error');
+    if (roundBadge) roundBadge.textContent = `TOUR ${gameState.round}`;
+    btnCombat.textContent = '⚔ LANCER LE COMBAT';
     btnCombat.disabled = false;
 
     // Guaranteed draws occupy slots within the normal hand (not extra cards)
@@ -755,8 +806,8 @@ export async function mount(container, params = {}) {
     graveyard = [];
     enemyGraveyard = [];
     btnCombat.disabled = true;
-    phaseLabel.textContent = `Combat — Tour ${gameState.round}`;
-    phaseLabel.style.color = '';
+    phaseLabel.textContent = 'COMBAT';
+    phaseLabel.classList.remove('gs-error');
 
     // ── Board selection ───────────────────────────────────────────────────
     const boardData = BoardDatabase.getRandomBoard();
@@ -806,16 +857,20 @@ export async function mount(container, params = {}) {
       .forEach(b => b.classList.toggle('active', +b.dataset.speed === combatSpeed));
 
     const btnPause = speedControls.querySelector('#btn-pause');
+    const pauseIcon = btnPause.querySelector('.gs-pause-icon');
+    const pauseLabel = btnPause.querySelector('.gs-pause-text');
     let isPaused = false;
     btnPause.addEventListener('click', () => {
       isPaused = !isPaused;
       if (isPaused) {
         animator.pause();
-        btnPause.textContent = '▶';
+        if (pauseIcon) pauseIcon.textContent = '▶';
+        if (pauseLabel) pauseLabel.textContent = 'Reprendre';
         btnPause.classList.add('active');
       } else {
         animator.resume();
-        btnPause.textContent = '⏸';
+        if (pauseIcon) pauseIcon.textContent = '⏸';
+        if (pauseLabel) pauseLabel.textContent = 'Pause';
         btnPause.classList.remove('active');
       }
     });
@@ -929,7 +984,13 @@ export async function mount(container, params = {}) {
       const sc = container.querySelector('#speed-controls');
       sc.style.display = 'none';
       const bp = sc.querySelector('#btn-pause');
-      if (bp) { bp.textContent = '⏸'; bp.classList.remove('active'); }
+      if (bp) {
+        const pi = bp.querySelector('.gs-pause-icon');
+        const pl = bp.querySelector('.gs-pause-text');
+        if (pi) pi.textContent = '⏸';
+        if (pl) pl.textContent = 'Pause';
+        bp.classList.remove('active');
+      }
       btnCombat.style.display = '';
 
       _showEndRound(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors, attributeResult.damage_multiplier_bonus);
