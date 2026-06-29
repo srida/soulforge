@@ -1197,87 +1197,197 @@ export async function mount(container, params = {}) {
 
   // ── End of round overlay ─────────────────────────────────────────────────
 
-  function _singleDamageBreakdownHtml(side, atk, survivors, damageMultiplierBonus = 0) {
-    const unitMultiplier = side === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
+  const _CHEVRON_SVG = color =>
+    `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="${color}" stroke-width="1.6" stroke-linecap="round"><polyline points="2,3.5 4.5,6 7,3.5"/></svg>`;
+
+  const _ARROW_RIGHT =
+    `<svg class="end-round-btn-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="5,3 9,7 5,11"/></svg>`;
+
+  const _ARROW_LEFT =
+    `<svg class="end-round-btn-arrow end-round-btn-arrow--left" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="9,3 5,7 9,11"/></svg>`;
+
+  function _breakdownTotal(side, atk, damageMultiplierBonus = 0) {
+    const mult = side === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
     const bonus = side === 'player' ? (damageMultiplierBonus || 0) : 0;
-    const total = Math.round(atk * (unitMultiplier * gameState.round + bonus));
-    const unitRows = survivors
+    return Math.round(atk * (mult * gameState.round + bonus));
+  }
+
+  function _breakdownBodyHtml(side, atk, survivors, damageMultiplierBonus, isVictory) {
+    const mult = side === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
+    const bonus = side === 'player' ? (damageMultiplierBonus || 0) : 0;
+    const total = Math.round(atk * (mult * gameState.round + bonus));
+    const sign = isVictory ? '+' : '−';
+    const dc = isVictory ? '--victory' : '--defeat';
+
+    const units = survivors
       .map(u => ({ name: CardDatabase.getCard(u.card_id)?.name, atk: u.atk }))
       .filter(u => u.name)
       .map(u => `
-        <div class="end-round-breakdown-row end-round-breakdown-unit">
-          <span>${u.name}</span><span>${u.atk}</span>
-        </div>`)
-      .join('');
+        <div class="end-round-bd-unit">
+          <div class="end-round-bd-avatar"></div>
+          <span class="end-round-bd-name">${u.name}</span>
+          <span class="end-round-bd-dmg end-round-bd-dmg${dc}">${sign}${u.atk}</span>
+        </div>`).join('');
+
     return `
-      ${unitRows}
-      <div class="end-round-breakdown-row end-round-breakdown-subtotal">
-        <span>ATK des survivants</span><span>${atk}</span>
-      </div>
-      <div class="end-round-breakdown-row">
-        <span>Multiplicateur d'unités</span><span>×${unitMultiplier}</span>
-      </div>
-      <div class="end-round-breakdown-row">
-        <span>Multiplicateur de tour</span><span>×${gameState.round}</span>
-      </div>
-      ${bonus ? `
-      <div class="end-round-breakdown-row">
-        <span>Bonus d'attribut</span><span>+${bonus}</span>
-      </div>` : ''}
-      <div class="end-round-breakdown-row end-round-breakdown-total">
-        <span>Total</span><span>${total}</span>
-      </div>
-    `;
-  }
-
-  function _damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors = [], enemySurvivors = [], damageMultiplierBonus = 0) {
-    if (winner !== 'player' && winner !== 'enemy' && winner !== 'timeout') return '';
-
-    if (winner === 'timeout') {
-      return `
-        <details class="end-round-breakdown">
-          <summary><span class="end-round-breakdown-arrow">▶</span>Dégâts infligés à l'ennemi</summary>
-          ${_singleDamageBreakdownHtml('player', playerSurvivorsAtk, playerSurvivors, damageMultiplierBonus)}
-        </details>
-        <details class="end-round-breakdown">
-          <summary><span class="end-round-breakdown-arrow">▶</span>Dégâts subis par le joueur</summary>
-          ${_singleDamageBreakdownHtml('enemy', enemySurvivorsAtk, enemySurvivors)}
-        </details>
-      `;
-    }
-
-    const side = winner === 'player' ? 'player' : 'enemy';
-    const atk = winner === 'player' ? playerSurvivorsAtk : enemySurvivorsAtk;
-    const survivors = winner === 'player' ? playerSurvivors : enemySurvivors;
-    return `
-      <details class="end-round-breakdown">
-        <summary><span class="end-round-breakdown-arrow">▶</span>Détail des dégâts infligés</summary>
-        ${_singleDamageBreakdownHtml(side, atk, survivors, damageMultiplierBonus)}
-      </details>
-    `;
+      <div class="end-round-bd-body">
+        <div class="end-round-bd-section">UNITÉS SURVIVANTES</div>
+        <div class="end-round-bd-units">${units}</div>
+        <div class="end-round-bd-divider"></div>
+        <div class="end-round-bd-rows">
+          <div class="end-round-bd-row">
+            <span class="end-round-bd-row-key">ATK des survivants</span>
+            <span class="end-round-bd-row-val">${atk}</span>
+          </div>
+          <div class="end-round-bd-row">
+            <span class="end-round-bd-row-key">Multiplicateur d'unités</span>
+            <span class="end-round-bd-row-val">×${mult}</span>
+          </div>
+          <div class="end-round-bd-row">
+            <span class="end-round-bd-row-key">Multiplicateur de tour</span>
+            <span class="end-round-bd-row-val">×${gameState.round}</span>
+          </div>
+          ${bonus ? `
+          <div class="end-round-bd-row">
+            <span class="end-round-bd-row-key">Bonus d'attribut</span>
+            <span class="end-round-bd-row-val">+${bonus}</span>
+          </div>` : ''}
+          <div class="end-round-bd-divider" style="margin:8px 0;"></div>
+          <div class="end-round-bd-total end-round-bd-total${dc}">
+            <span class="end-round-bd-total-key">TOTAL</span>
+            <span class="end-round-bd-total-val end-round-bd-total-val${dc}">
+              ${sign}${total}&thinsp;<span class="end-round-bd-total-pv end-round-bd-total-pv${dc}">PV</span>
+            </span>
+          </div>
+        </div>
+      </div>`;
   }
 
   function _showEndRound(winner, playerSurvivorsAtk = 0, enemySurvivorsAtk = 0, playerSurvivors = [], enemySurvivors = [], damageMultiplierBonus = 0) {
     _updateHUD();
-    const msgMap = { player: '🏆 Victoire du round !', enemy: '💀 Défaite du round', draw: '⚖ Égalité', timeout: '⏱ Temps écoulé' };
     const isOver = gameState.isGameOver();
+    const btnLabel = isOver ? 'RÉSULTAT FINAL' : 'TOUR SUIVANT';
+
+    let panelHtml;
+
+    if (winner === 'player') {
+      const total = _breakdownTotal('player', playerSurvivorsAtk, damageMultiplierBonus);
+      const body  = _breakdownBodyHtml('player', playerSurvivorsAtk, playerSurvivors, damageMultiplierBonus, true);
+      panelHtml = `
+        <div class="end-round-panel end-round-panel--victory">
+          <div class="end-round-bg end-round-bg--victory"></div>
+          <div class="end-round-accent end-round-accent--victory"></div>
+          <div class="end-round-inner">
+            <div class="end-round-header">
+              <div class="end-round-icon end-round-icon--victory">⚡</div>
+              <div class="end-round-title end-round-title--victory">VICTOIRE DU ROUND</div>
+            </div>
+            <div class="end-round-hps">
+              <div class="end-round-hp-pill end-round-hp-pill--player-win">
+                <span class="end-round-hp-dot end-round-hp-dot--player"></span>
+                <span class="end-round-hp-val end-round-hp-val--player">${gameState.player_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
+              </div>
+              <span class="end-round-vs">VS</span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy-dim">
+                <span class="end-round-hp-val end-round-hp-val--enemy-dim">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy-dim">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy-dim"></span>
+              </div>
+            </div>
+            <details class="end-round-breakdown end-round-breakdown--victory">
+              <summary>
+                <div class="end-round-bd-chevron">${_CHEVRON_SVG('#7fe6b6')}</div>
+                <span class="end-round-bd-label">Détail des dégâts infligés</span>
+                <span class="end-round-bd-badge end-round-bd-badge--victory">+${total} PV</span>
+              </summary>
+              ${body}
+            </details>
+            <button class="end-round-btn" id="btn-next">
+              <div class="end-round-btn-shine"></div>
+              <span class="end-round-btn-label">${btnLabel}</span>
+              ${_ARROW_RIGHT}
+            </button>
+          </div>
+        </div>`;
+
+    } else if (winner === 'enemy') {
+      const total = _breakdownTotal('enemy', enemySurvivorsAtk, 0);
+      const body  = _breakdownBodyHtml('enemy', enemySurvivorsAtk, enemySurvivors, 0, false);
+      panelHtml = `
+        <div class="end-round-panel end-round-panel--defeat">
+          <div class="end-round-bg end-round-bg--defeat"></div>
+          <div class="end-round-accent end-round-accent--defeat"></div>
+          <div class="end-round-inner">
+            <div class="end-round-header">
+              <div class="end-round-icon end-round-icon--defeat">💀</div>
+              <div class="end-round-title end-round-title--defeat">DÉFAITE DU ROUND</div>
+            </div>
+            <div class="end-round-hps">
+              <div class="end-round-hp-pill end-round-hp-pill--player">
+                <span class="end-round-hp-dot end-round-hp-dot--player"></span>
+                <span class="end-round-hp-val end-round-hp-val--player">${gameState.player_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
+              </div>
+              <span class="end-round-vs">VS</span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy">
+                <span class="end-round-hp-val end-round-hp-val--enemy">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy"></span>
+              </div>
+            </div>
+            <details class="end-round-breakdown end-round-breakdown--defeat">
+              <summary>
+                <div class="end-round-bd-chevron">${_CHEVRON_SVG('#a78bfa')}</div>
+                <span class="end-round-bd-label">Détail des dégâts infligés</span>
+                <span class="end-round-bd-badge end-round-bd-badge--defeat">−${total} PV</span>
+              </summary>
+              ${body}
+            </details>
+            <button class="end-round-btn" id="btn-next">
+              <div class="end-round-btn-shine"></div>
+              <span class="end-round-btn-label">${btnLabel}</span>
+              ${_ARROW_RIGHT}
+            </button>
+          </div>
+        </div>`;
+
+    } else {
+      // draw / timeout — aucun damage à afficher
+      panelHtml = `
+        <div class="end-round-panel">
+          <div class="end-round-bg end-round-bg--draw"></div>
+          <div class="end-round-accent end-round-accent--draw"></div>
+          <div class="end-round-inner">
+            <div class="end-round-header">
+              <div class="end-round-icon end-round-icon--draw">⚖️</div>
+              <div class="end-round-title">ÉGALITÉ</div>
+            </div>
+            <div class="end-round-hps">
+              <div class="end-round-hp-pill end-round-hp-pill--player">
+                <span class="end-round-hp-dot end-round-hp-dot--player"></span>
+                <span class="end-round-hp-val end-round-hp-val--player">${gameState.player_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
+              </div>
+              <span class="end-round-vs">VS</span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy-dim">
+                <span class="end-round-hp-val end-round-hp-val--enemy-dim">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy-dim">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy-dim"></span>
+              </div>
+            </div>
+            <button class="end-round-btn" id="btn-next">
+              <div class="end-round-btn-shine"></div>
+              <span class="end-round-btn-label">${btnLabel}</span>
+              ${_ARROW_RIGHT}
+            </button>
+          </div>
+        </div>`;
+    }
 
     const overlay = document.createElement('div');
     overlay.className = 'end-round-overlay';
-    overlay.innerHTML = `
-      <div class="end-round-panel">
-        <p class="end-round-result">${msgMap[winner] || '⚖ Fin'}</p>
-        <div class="end-round-hps">
-          <span class="hud-hp player">♥ ${gameState.player_hp}</span>
-          <span style="color:var(--muted)">vs</span>
-          <span class="hud-hp enemy">♥ ${gameState.enemy_hp}</span>
-        </div>
-        ${_damageBreakdownHtml(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors, damageMultiplierBonus)}
-        <button class="btn btn-primary" id="btn-next">
-          ${isOver ? 'Résultat final' : 'Tour suivant'}
-        </button>
-      </div>
-    `;
+    overlay.innerHTML = panelHtml;
     container.appendChild(overlay);
     overlay.querySelector('#btn-next').addEventListener('click', () => {
       overlay.remove();
@@ -1292,20 +1402,109 @@ export async function mount(container, params = {}) {
   function _showGameOver() {
     _updateHUD();
     const winner = gameState.getWinner();
-    const msgMap = { player: '🏆 Victoire !', enemy: '💀 Défaite', draw: '⚖ Égalité' };
+
+    let panelHtml;
+
+    if (winner === 'player') {
+      panelHtml = `
+        <div class="end-round-panel end-round-panel--gameover-victory">
+          <div class="end-round-bg end-round-bg--gameover-victory"></div>
+          <div class="end-round-accent end-round-accent--gameover-victory"></div>
+          <div class="end-round-inner end-round-inner--gameover">
+            <div class="end-round-header">
+              <div class="end-round-icon end-round-icon--victory end-round-icon--gameover">🏆</div>
+              <div class="end-round-title end-round-title--victory end-round-title--gameover">VICTOIRE</div>
+              <div class="end-round-sub end-round-sub--victory">FIN DE PARTIE</div>
+            </div>
+            <div class="end-round-hps">
+              <div class="end-round-hp-pill end-round-hp-pill--player-win end-round-hp-pill--gameover">
+                <span class="end-round-hp-dot end-round-hp-dot--player"></span>
+                <span class="end-round-hp-val end-round-hp-val--player end-round-hp-val--gameover">${gameState.player_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
+              </div>
+              <span class="end-round-vs">VS</span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy-dim end-round-hp-pill--gameover">
+                <span class="end-round-hp-val end-round-hp-val--enemy-dim end-round-hp-val--gameover">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy-dim">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy-dim"></span>
+              </div>
+            </div>
+            <button class="end-round-btn end-round-btn--gameover-victory" id="btn-menu">
+              <div class="end-round-btn-shine"></div>
+              ${_ARROW_LEFT}
+              <span class="end-round-btn-label">MENU PRINCIPAL</span>
+            </button>
+          </div>
+        </div>`;
+
+    } else if (winner === 'enemy') {
+      panelHtml = `
+        <div class="end-round-panel end-round-panel--gameover-defeat">
+          <div class="end-round-bg end-round-bg--gameover-defeat"></div>
+          <div class="end-round-accent end-round-accent--gameover-defeat"></div>
+          <div class="end-round-inner end-round-inner--gameover">
+            <div class="end-round-header">
+              <div class="end-round-icon end-round-icon--defeat end-round-icon--gameover">💀</div>
+              <div class="end-round-title end-round-title--defeat end-round-title--gameover">DÉFAITE</div>
+              <div class="end-round-sub">FIN DE PARTIE</div>
+            </div>
+            <div class="end-round-hps">
+              <div class="end-round-hp-pill end-round-hp-pill--player-dead end-round-hp-pill--gameover">
+                <span class="end-round-hp-dot end-round-hp-dot--player-dead"></span>
+                <span class="end-round-hp-val end-round-hp-val--player-dead end-round-hp-val--gameover">${gameState.player_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--player-dead">PV</span>
+              </div>
+              <span class="end-round-vs">VS</span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy-win end-round-hp-pill--gameover">
+                <span class="end-round-hp-val end-round-hp-val--enemy end-round-hp-val--gameover">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy"></span>
+              </div>
+            </div>
+            <button class="end-round-btn end-round-btn--gameover-defeat" id="btn-menu">
+              <div class="end-round-btn-shine"></div>
+              ${_ARROW_LEFT}
+              <span class="end-round-btn-label">MENU PRINCIPAL</span>
+            </button>
+          </div>
+        </div>`;
+
+    } else {
+      panelHtml = `
+        <div class="end-round-panel">
+          <div class="end-round-bg end-round-bg--draw"></div>
+          <div class="end-round-accent end-round-accent--draw"></div>
+          <div class="end-round-inner end-round-inner--gameover">
+            <div class="end-round-header">
+              <div class="end-round-icon end-round-icon--draw end-round-icon--gameover">⚖️</div>
+              <div class="end-round-title end-round-title--gameover">ÉGALITÉ</div>
+              <div class="end-round-sub" style="color:#5d5878;">FIN DE PARTIE</div>
+            </div>
+            <div class="end-round-hps">
+              <div class="end-round-hp-pill end-round-hp-pill--player end-round-hp-pill--gameover">
+                <span class="end-round-hp-dot end-round-hp-dot--player"></span>
+                <span class="end-round-hp-val end-round-hp-val--player end-round-hp-val--gameover">${gameState.player_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
+              </div>
+              <span class="end-round-vs">VS</span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy-dim end-round-hp-pill--gameover">
+                <span class="end-round-hp-val end-round-hp-val--enemy-dim end-round-hp-val--gameover">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy-dim">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy-dim"></span>
+              </div>
+            </div>
+            <button class="end-round-btn" id="btn-menu">
+              <div class="end-round-btn-shine"></div>
+              ${_ARROW_LEFT}
+              <span class="end-round-btn-label">MENU PRINCIPAL</span>
+            </button>
+          </div>
+        </div>`;
+    }
+
     const overlay = document.createElement('div');
     overlay.className = 'end-round-overlay';
-    overlay.innerHTML = `
-      <div class="end-round-panel">
-        <p class="end-round-result" style="font-size:2rem">${msgMap[winner] || '—'}</p>
-        <div class="end-round-hps">
-          <span class="hud-hp player">♥ ${gameState.player_hp}</span>
-          <span style="color:var(--muted)">vs</span>
-          <span class="hud-hp enemy">♥ ${gameState.enemy_hp}</span>
-        </div>
-        <button class="btn btn-primary" id="btn-menu">Menu principal</button>
-      </div>
-    `;
+    overlay.innerHTML = panelHtml;
     container.appendChild(overlay);
     overlay.querySelector('#btn-menu').addEventListener('click', () => navigate('main_menu'));
   }
