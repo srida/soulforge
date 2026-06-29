@@ -8,12 +8,14 @@ export async function mount(container) {
         <img src="/game/logo.png" class="main-menu-logo" alt="Soulforge">
         <h1 class="main-menu-title">Soulforge</h1>
         <p class="main-menu-subtitle">Auto-Chess × Tactiques × Cartes à invoquer</p>
+        <p class="main-menu-season">Saison 1</p>
       </div>
       <div class="main-menu-actions">
-        <button class="btn btn-secondary btn-full" id="btn-testbench3d">TestBench 3D (dev)</button>
-        <button class="btn btn-primary btn-full" id="btn-game3d">Jouer (3D — dev)</button>
+        <button class="btn main-menu-cta btn-full" id="btn-game3d">⚔ Jouer</button>
+        <button class="btn btn-secondary btn-full" id="btn-testbench3d">TestBench (dev)</button>
         <button class="btn btn-secondary btn-full" id="btn-admin">Administration</button>
       </div>
+      <p class="main-menu-watermark">Soulforge v0.1 · Vertical Slice</p>
     </div>
   `;
 

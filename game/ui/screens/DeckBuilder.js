@@ -171,15 +171,26 @@ export async function mount(container, params = {}) {
     cardGrid.innerHTML = '';
     for (const c of filtered) {
       const count = countInTier[c.id] || 0;
-      const costHint = _costHint(c);
       const btn = document.createElement('button');
       btn.className = 'card-item hand-card' + (isFull ? ' full' : '');
       btn.dataset.id = c.id;
+
+      const T = TIER_COLORS[c.tier] || TIER_COLORS[2];
+      btn.style.setProperty('--hc-edge', T.edge);
+      btn.style.setProperty('--hc-ink', T.ink);
+      btn.style.setProperty('--hc-glow', T.glow);
+      btn.style.setProperty('--hc-art', T.art);
+
+      const summon = c.summon_type ?? 'normal';
+      const hasIcon = summon !== 'normal' && !Array.isArray(c.summon_options);
+      const sacrificeCost = summon === 'sacrifice' ? (c.cost?.sacrifice ?? 0) : 0;
+
       btn.innerHTML = `
-        <img src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy" draggable="false">
-        <span class="hand-card-tier badge badge-tier${c.tier}">T${c.tier}</span>
-        <span class="hand-card-name">${esc(c.name)}</span>
-        ${costHint ? `<span class="hand-card-cost">${costHint}</span>` : ''}
+        <img class="hand-card-img" src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy" draggable="false">
+        <div class="hand-card-edge-glow"></div>
+        <div class="hand-card-footer"><span class="hand-card-name">${esc(c.name)}</span></div>
+        <div class="hand-card-tier-badge">T${c.tier}</div>
+        ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}${sacrificeCost > 0 ? `<span class="hand-card-summon-count">×${sacrificeCost}</span>` : ''}</div>` : ''}
         ${count > 0 ? `<span class="card-count">×${count}</span>` : ''}
       `;
 
@@ -304,7 +315,26 @@ export async function mount(container, params = {}) {
   updateSave();
 }
 
-const _costHint = CardDatabase.costHint;
+const TIER_COLORS = {
+  1: { edge:'#46d39a', ink:'#7ef0c0', glow:'rgba(70,211,154,.55)',  art:'linear-gradient(155deg,#1f4a3a,#0e231d)' },
+  2: { edge:'#5fb4e8', ink:'#9ad2f6', glow:'rgba(95,180,232,.55)',  art:'linear-gradient(155deg,#1f3a52,#0e1d2c)' },
+  3: { edge:'#a78bfa', ink:'#cdbcff', glow:'rgba(167,139,250,.55)', art:'linear-gradient(155deg,#352663,#181230)' },
+  4: { edge:'#e8a850', ink:'#f0c48a', glow:'rgba(232,168,80,.55)',  art:'linear-gradient(155deg,#5a3f1c,#2c1d0d)' },
+  5: { edge:'#e85a6e', ink:'#f5a0ad', glow:'rgba(232,90,110,.55)',  art:'linear-gradient(155deg,#5a1f2c,#2c0e15)' },
+};
+
+function _summonSvg(type, ink) {
+  const a = `width="55%" height="55%" viewBox="0 0 24 24" fill="none" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"`;
+  if (type === 'sacrifice')
+    return `<svg ${a}><path d="M12 3c1.6 3 3.6 4.3 3.6 7.6a3.6 3.6 0 0 1-7.2 0c0-1.7.9-2.9 1.7-3.7.2 1.5 1.1 2.1 2 2.3C12.7 8.2 11.4 5.7 12 3z"/></svg>`;
+  if (type === 'fusion')
+    return `<svg ${a}><circle cx="9.5" cy="12" r="5"/><circle cx="14.5" cy="12" r="5"/></svg>`;
+  if (type === 'heritage')
+    return `<svg ${a}><path d="M5 18h14"/><path d="M5 18V8.5l3.4 3 3.6-6 3.6 6 3.4-3V18"/></svg>`;
+  if (type === 'transformation')
+    return `<svg ${a}><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/></svg>`;
+  return '';
+}
 
 function esc(str) {
   return String(str)
