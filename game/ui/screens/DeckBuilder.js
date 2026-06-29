@@ -5,6 +5,11 @@ import * as PowerDatabase from '../../data/PowerDatabase.js';
 import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as Tooltip from '../components/Tooltip.js';
 
+const DECK_COLORS = [
+  '#7c5cff', '#e85a6e', '#46d39a', '#5fb4e8',
+  '#e8a850', '#c084fc', '#f87171', '#34d399',
+];
+
 const DECK_MIN = 20;
 
 const TIER_DEFS = [
@@ -35,6 +40,7 @@ export async function mount(container, params = {}) {
   const editName     = params.deckName || pendingName || null;
 
   let deckName       = editName || '';
+  let deckColor      = DeckRepository.getDeckColor?.(editName || '') ?? null;
   let searchQuery    = '';
   let summonFilter   = '';
   let attributeFilter = '';
@@ -71,6 +77,10 @@ export async function mount(container, params = {}) {
       <div class="db-name-wrap">
         <div class="db-avatar" id="db-avatar"></div>
         <input class="db-name-input" id="db-name" type="text" placeholder="Nom du deck…" value="${esc(deckName)}" maxlength="32">
+      </div>
+      <div class="db-color-swatches" id="db-color-swatches">
+        ${DECK_COLORS.map(c => `<button class="db-color-dot" data-color="${c}" style="background:${c}" aria-label="Couleur ${c}"></button>`).join('')}
+        <button class="db-color-dot db-color-dot--none" data-color="" aria-label="Aucune couleur">✕</button>
       </div>
       <div class="db-meta">
         <div class="db-tags" id="db-tags-d"></div>
@@ -136,9 +146,13 @@ export async function mount(container, params = {}) {
   }
   function updateAvatar() {
     const name = nameInput.value.trim();
-    const color = name ? avatarColor(name) : '#a78bfa';
-    avatarEl.style.background = `linear-gradient(135deg,${color},rgba(167,139,250,.6))`;
+    const base = deckColor ?? (name ? avatarColor(name) : '#a78bfa');
+    avatarEl.style.background = `linear-gradient(135deg,${base},${base}99)`;
     avatarEl.textContent = name ? name.charAt(0).toUpperCase() : '?';
+    // Sync active swatch
+    container.querySelectorAll('.db-color-dot').forEach(dot => {
+      dot.classList.toggle('active', dot.dataset.color === (deckColor ?? ''));
+    });
   }
 
   // ── Tags ──────────────────────────────────────────────────────────────────
@@ -308,6 +322,13 @@ export async function mount(container, params = {}) {
 
   nameInput.addEventListener('input', () => { deckName = nameInput.value; updateMeta(); });
 
+  container.querySelector('#db-color-swatches').addEventListener('click', e => {
+    const dot = e.target.closest('.db-color-dot');
+    if (!dot) return;
+    deckColor = dot.dataset.color || null;
+    updateAvatar();
+  });
+
   container.querySelector('#db-search').addEventListener('input', e => {
     searchQuery = e.target.value;
     renderLibrary();
@@ -351,6 +372,7 @@ export async function mount(container, params = {}) {
     }
     if (editName && editName !== name && DeckRepository.deckExists(editName)) DeckRepository.deleteDeck(editName);
     DeckRepository.saveDeck(name, toSave);
+    if (deckColor) DeckRepository.setDeckColor(name, deckColor);
     navigate('deck_selector');
   });
 

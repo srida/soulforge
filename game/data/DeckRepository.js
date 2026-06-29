@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'soulforge_decks';
 const ACTIVE_KEY = 'soulforge_active_deck';
 const PENDING_EDIT_KEY = 'soulforge_pending_edit';
+const META_KEY = 'soulforge_deck_meta';
 
 function load() {
   try {
@@ -12,6 +13,30 @@ function load() {
 
 function save(decks) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+}
+
+function loadMeta() {
+  try { return JSON.parse(localStorage.getItem(META_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveMeta(meta) {
+  localStorage.setItem(META_KEY, JSON.stringify(meta));
+}
+
+function _deleteMeta(name) {
+  const meta = loadMeta();
+  delete meta[name];
+  saveMeta(meta);
+}
+
+export function getDeckColor(name) {
+  return loadMeta()[name]?.color ?? null;
+}
+
+export function setDeckColor(name, color) {
+  const meta = loadMeta();
+  meta[name] = { ...(meta[name] || {}), color };
+  saveMeta(meta);
 }
 
 // Sauvegarde un deck. Structure : { "1": ["ID", ...], "2": [...], ... }
@@ -29,6 +54,7 @@ export function deleteDeck(name) {
   const decks = load();
   delete decks[name];
   save(decks);
+  _deleteMeta(name);
   if (getActiveDeck() === name) localStorage.removeItem(ACTIVE_KEY);
 }
 
@@ -39,6 +65,8 @@ export function renameDeck(oldName, newName) {
   decks[newName] = decks[oldName];
   delete decks[oldName];
   save(decks);
+  const meta = loadMeta();
+  if (meta[oldName]) { meta[newName] = meta[oldName]; delete meta[oldName]; saveMeta(meta); }
   if (getActiveDeck() === oldName) setActiveDeck(newName);
 }
 

@@ -96,8 +96,12 @@ export class HandUI {
           if (remaining.length > 1) {
             if (countEl) countEl.textContent = `×${remaining.length}`;
             else this._selectedEl.insertAdjacentHTML('beforeend', `<span class="hand-card-count">×${remaining.length}</span>`);
-          } else if (countEl) {
-            countEl.remove();
+          } else {
+            countEl?.remove();
+            // Downgrade: remove stacked visual when only 1 copy remains
+            this._selectedEl.classList.remove('hand-card--grouped');
+            const wrap = this._selectedEl.closest('.hand-card-stack-wrap');
+            if (wrap) wrap.replaceWith(this._selectedEl);
           }
         } else {
           (this._selectedEl.closest('.hand-card-stack-wrap') ?? this._selectedEl).remove();
@@ -126,7 +130,12 @@ export class HandUI {
     const selectedCard = this._selectedIdx !== null ? this._hand[this._selectedIdx] : null;
     this._container.querySelectorAll('.hand-card').forEach(el => {
       el.classList.toggle('selected', el._repCard === selectedCard);
-      if (this._isPlayable) el.classList.toggle('dim', !this._isPlayable(el._repCard));
+      if (this._isPlayable) {
+        const playable = this._isPlayable(el._repCard);
+        const wasDim = el.classList.contains('dim');
+        el.classList.toggle('dim', !playable);
+        if (wasDim !== !playable) _syncPlayabilityEl(el, playable, el._repCard);
+      }
     });
   }
 
@@ -219,6 +228,46 @@ export class HandUI {
         this._container.appendChild(el);
       }
     });
+  }
+}
+
+// Surgically updates lock/overlay/foil/summon-icon when a card's playability changes mid-turn.
+function _syncPlayabilityEl(el, playable, card) {
+  const T = TIER_COLORS[card.tier] || TIER_COLORS[2];
+  const summon = card.summon_type ?? 'normal';
+  const hasIcon = summon !== 'normal' && !Array.isArray(card.summon_options);
+  const sacrificeCost = summon === 'sacrifice' ? (card.cost?.sacrifice ?? 0) : 0;
+
+  const overlay = el.querySelector('.hand-card-dim-overlay');
+  const foil    = el.querySelector('.hand-card-foil');
+  const edge    = el.querySelector('.hand-card-edge-glow');
+  if (playable) {
+    overlay?.remove();
+    if (!foil && edge) edge.insertAdjacentHTML('beforebegin', '<div class="hand-card-foil"></div>');
+  } else {
+    foil?.remove();
+    if (!overlay && edge) edge.insertAdjacentHTML('beforebegin', '<div class="hand-card-dim-overlay"></div>');
+  }
+
+  const lock = el.querySelector('.hand-card-lock');
+  if (playable) {
+    lock?.remove();
+  } else if (!lock) {
+    el.insertAdjacentHTML('beforeend', `<div class="hand-card-lock">${_lockSvg()}</div>`);
+  }
+
+  let icon = el.querySelector('.hand-card-summon-icon');
+  if (playable) {
+    if (hasIcon) {
+      const html = _summonSvg(summon, T.ink) + (sacrificeCost > 0 ? `<span class="hand-card-summon-count">×${sacrificeCost}</span>` : '');
+      if (!icon) el.insertAdjacentHTML('beforeend', `<div class="hand-card-summon-icon">${html}</div>`);
+      else icon.innerHTML = html;
+    } else {
+      icon?.remove();
+    }
+  } else {
+    if (!icon) el.insertAdjacentHTML('beforeend', `<div class="hand-card-summon-icon">${_redrawSvg()}</div>`);
+    else icon.innerHTML = _redrawSvg();
   }
 }
 

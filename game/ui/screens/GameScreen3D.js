@@ -136,7 +136,10 @@ export async function mount(container, params = {}) {
           <div class="graveyard-units" id="graveyard-units"></div>
         </div>
         <div id="hand-area"></div>
-        <div class="prep-timer" id="combat-timer" style="display:none"></div>
+        <div class="gs-timer" id="combat-timer" style="display:none">
+          <span class="gs-timer-val">--</span>
+          <span class="gs-timer-label">COMBAT</span>
+        </div>
         <button class="btn btn-primary btn-full gs-combat-btn" id="btn-combat">⚔ LANCER LE COMBAT</button>
         <div class="combat-speed-controls" id="speed-controls" style="display:none">
           <span class="speed-label">VITESSE</span>
@@ -167,9 +170,14 @@ export async function mount(container, params = {}) {
   const COMBAT_TIMEOUT_S = 60; // mirrors CombatManager's MAX_COMBAT_TICKS (60s of ticks at speed ×1)
   let _prepInterval = null;
 
+  const _isMobile = () => window.innerWidth < 480;
+  const _phaseText = t => _isMobile() && t === 'PRÉPARATION' ? 'PRÉPA' : t;
+  const _roundText = r => _isMobile() ? `T${r}` : `TOUR ${r}`;
+
   function _updateCombatTimer(combat) {
     const remaining = Math.ceil(COMBAT_TIMEOUT_S * combat.remainingTicks() / MAX_COMBAT_TICKS);
-    combatTimerEl.textContent = `⏱ ${remaining}s`;
+    const valEl = combatTimerEl.querySelector('.gs-timer-val');
+    if (valEl) valEl.textContent = `${remaining}s`;
   }
 
   function _stopPrepTimer() {
@@ -214,6 +222,12 @@ export async function mount(container, params = {}) {
   let _musicVol  = parseInt(localStorage.getItem('sf_music_vol') ?? '70', 10);
   let _sfxVol    = parseInt(localStorage.getItem('sf_sfx_vol')   ?? '85', 10);
   let _animOn    = localStorage.getItem('sf_anim_on') !== 'false';
+  let _foilOn    = localStorage.getItem('sf_foil_on') !== 'false';
+
+  function _applyFoilClass() {
+    container.classList.toggle('no-foil', !_foilOn);
+  }
+  _applyFoilClass();
 
   const pauseOverlay = document.createElement('div');
   pauseOverlay.className = 'pause-overlay';
@@ -354,6 +368,25 @@ export async function mount(container, params = {}) {
             </div>
           </div>
 
+          <div class="pause-setting-row">
+            <div class="pause-setting-icon">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round">
+                <polygon points="10,2 12.9,7.6 19,8.5 14.5,12.9 15.6,19 10,16 4.4,19 5.5,12.9 1,8.5 7.1,7.6" fill="rgba(167,139,250,.08)"></polygon>
+              </svg>
+            </div>
+            <div class="pause-setting-content">
+              <div class="pause-toggle-row">
+                <div class="pause-toggle-info">
+                  <div class="pause-setting-name">Effet Foil</div>
+                  <div class="pause-toggle-sub">Animation holographique sur les cartes</div>
+                </div>
+                <div class="pause-toggle ${_foilOn ? 'on' : 'off'}" id="pm-foil-toggle">
+                  <div class="pause-toggle-dot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="pause-danger-sep"></div>
 
           <button class="pause-abandon-btn" id="pm-abandon">
@@ -377,6 +410,14 @@ export async function mount(container, params = {}) {
       localStorage.setItem('sf_anim_on', _animOn);
       const toggle = pauseOverlay.querySelector('#pm-anim-toggle');
       toggle.className = `pause-toggle ${_animOn ? 'on' : 'off'}`;
+    });
+
+    pauseOverlay.querySelector('#pm-foil-toggle').addEventListener('pointerdown', () => {
+      _foilOn = !_foilOn;
+      localStorage.setItem('sf_foil_on', _foilOn);
+      const toggle = pauseOverlay.querySelector('#pm-foil-toggle');
+      toggle.className = `pause-toggle ${_foilOn ? 'on' : 'off'}`;
+      _applyFoilClass();
     });
 
     _bindSlider('music', v => {
@@ -719,10 +760,11 @@ export async function mount(container, params = {}) {
   }
 
   function _refreshMaterialHighlight() {
+    const complete = _materialsComplete(selectedCard, selectedMaterials);
     board3D.setHighlight(_validCells(selectedCard));
     board3D.setMaterialCandidates(_materialCandidateCells(selectedCard, selectedMaterials, board));
     // Only board units have grid positions — graveyard units are highlighted in their own panel
-    board3D.setMaterialSelected(selectedMaterials.filter(u => !graveyard.includes(u)).map(u => ({ ...u.position })));
+    board3D.setMaterialSelected(selectedMaterials.filter(u => !graveyard.includes(u)).map(u => ({ ...u.position })), complete);
     _refreshGraveyard();
   }
 
@@ -800,6 +842,7 @@ export async function mount(container, params = {}) {
 
     const candidates  = new Set(selectedCard ? _materialCandidateGraveyard(selectedCard, selectedMaterials) : []);
     const selectedSet = new Set(selectedMaterials.filter(u => graveyard.includes(u)));
+    const allComplete = selectedCard && _materialsComplete(selectedCard, selectedMaterials);
     const graveyardUidSet = new Set(graveyard.map(u => u.uid));
 
     // Remove elements whose unit is no longer in graveyard
@@ -840,6 +883,7 @@ export async function mount(container, params = {}) {
       } else {
         // Smart update: only toggle CSS classes, never rebuild the <img>
         el.classList.toggle('material-selected',  selectedSet.has(unit));
+        el.classList.toggle('material-complete',  selectedSet.has(unit) && allComplete);
         el.classList.toggle('material-candidate', candidates.has(unit));
         el.classList.toggle('neutralized', unit.is_neutralized);
       }
@@ -932,9 +976,9 @@ export async function mount(container, params = {}) {
     board3D.setBlockedCells([]);
     _hideBoardIndicator();
 
-    phaseLabel.textContent = 'PRÉPARATION';
+    phaseLabel.textContent = _phaseText('PRÉPARATION');
     phaseLabel.classList.remove('gs-error');
-    if (roundBadge) roundBadge.textContent = `TOUR ${gameState.round}`;
+    if (roundBadge) roundBadge.textContent = _roundText(gameState.round);
     btnCombat.textContent = '⚔ LANCER LE COMBAT';
     btnCombat.disabled = false;
 
@@ -1025,7 +1069,7 @@ export async function mount(container, params = {}) {
     graveyard = [];
     enemyGraveyard = [];
     btnCombat.disabled = true;
-    phaseLabel.textContent = 'COMBAT';
+    phaseLabel.textContent = _phaseText('COMBAT');
     phaseLabel.classList.remove('gs-error');
 
     // ── Board selection ───────────────────────────────────────────────────

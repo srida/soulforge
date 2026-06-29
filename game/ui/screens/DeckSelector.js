@@ -22,12 +22,16 @@ function deckCard(opts) {
   const av = avatarIndex(name);
   const letter = esc(name[0].toUpperCase());
   const count  = countCards(name);
+  const deckColor = DeckRepository.getDeckColor?.(name);
+  const avatarStyle = deckColor
+    ? `style="background:linear-gradient(135deg,${deckColor},${deckColor}99)"`
+    : `data-av="${av}"`;
   return `
     <div class="ds-card${isSelected ? ' selected' : ''}" ${dataAttr}>
       <div class="ds-card-sheen"></div>
       <div class="ds-accent-bar"></div>
       <div class="ds-card-inner">
-        <div class="ds-avatar" data-av="${av}">${letter}</div>
+        <div class="ds-avatar" ${avatarStyle}>${letter}</div>
         <div class="ds-card-body">
           <div class="ds-card-title">
             <span class="ds-card-name">${esc(name)}</span>
@@ -68,6 +72,7 @@ export async function mount(container, params = {}) {
   await PublicDeckDatabase.init();
 
   function renderStep1() {
+    const savedScroll = container.querySelector('#ds-list')?.scrollTop ?? 0;
     const names = DeckRepository.listDecks();
     const publicDecks = PublicDeckDatabase.getAllDecks();
     const hasSelection = activeTab === 'private' ? !!selectedPlayer : !!selectedPublic;
@@ -171,6 +176,11 @@ export async function mount(container, params = {}) {
           });
         });
       }
+    }
+
+    if (savedScroll > 0) {
+      const listEl = container.querySelector('#ds-list');
+      if (listEl) listEl.scrollTop = savedScroll;
     }
 
     container.querySelector('#btn-back').addEventListener('click', () => navigate('main_menu'));

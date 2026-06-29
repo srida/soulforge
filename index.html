@@ -256,6 +256,17 @@
 .db-save-btn:disabled { opacity: .35; pointer-events: none; }
 .db-save-btn:active { opacity: .85; }
 
+.db-color-swatches {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.db-color-dot {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; padding: 0; flex-shrink: 0; transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+.db-color-dot:hover { transform: scale(1.2); }
+.db-color-dot.active { border-color: #fff; transform: scale(1.15); }
+.db-color-dot--none { background: var(--sf-surface-3) !important; border: 2px solid var(--sf-border-2) !important; color: var(--sf-ink-dim); font: 600 10px var(--font-body); display: flex; align-items: center; justify-content: center; }
+
 .db-mobile-meta {
   flex-shrink: 0; padding: 6px 16px 4px;
   display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
@@ -353,7 +364,7 @@
 .db-search-wrap input::placeholder { color: var(--sf-ink-faint); }
 .db-lib-grid {
   flex: 1; overflow-y: auto; display: grid;
-  grid-template-columns: repeat(5, 1fr); gap: 8px;
+  grid-template-columns: repeat(4, 1fr); gap: 10px 8px;
   align-content: start; padding-right: 4px; min-height: 0;
 }
 .db-lib-grid::-webkit-scrollbar { width: 5px; }
@@ -587,7 +598,9 @@
 }
 
 .unit-card.material-selected { outline: 3px solid var(--green); }
+.unit-card.material-complete  { outline: 3px solid #ffffff; }
 .unit-card.material-candidate { outline: 3px solid var(--yellow); }
+.graveyard-units .unit-card.material-complete { outline: 3px solid #ffffff; }
 .hand-card.dim { opacity: 1; border-color: rgba(255,255,255,.1) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04) !important; }
 
 /* ── Unit card ── */
@@ -1078,6 +1091,8 @@
   0%   { background-position: 0% 50%; }
   100% { background-position: 300% 50%; }
 }
+.no-foil .hand-card-foil,
+.no-foil .unit-foil { display: none !important; }
 
 /* ── Combat animations ──────────────────────────────────────────── */
 @keyframes anim-shake {
@@ -1154,6 +1169,14 @@
   flex-shrink: 0;
 }
 @media (max-width: 480px) { .speed-auto-label { display: none; } }
+@media (max-width: 480px) {
+  .gs-hud-label, .gs-hud-round-label { display: none; }
+  .gs-synergy-label { display: none; }
+  .attribute-chip-name { display: none; }
+  .gs-slot-label { display: none; }
+  .gs-hud { gap: 10px; }
+  .gs-hud-round-badge { padding: 4px 7px; }
+}
 .gs-pause-btn {
   display: flex; align-items: center; gap: 7px;
   padding: 0 16px; height: 42px; border-radius: 11px; min-height: 42px;

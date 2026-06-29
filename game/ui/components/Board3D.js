@@ -98,6 +98,7 @@ export class Board3D {
     this._highlighted = new Set();
     this._materialCandidates = new Set();
     this._materialSelected = new Set();
+    this._materialsAllSelected = false;
     this._blockedCells = new Set();
     this._selectedPos = null;
     this._combatMode = false;
@@ -273,14 +274,16 @@ export class Board3D {
     this._refreshTileColors();
   }
 
-  setMaterialSelected(cells) {
+  setMaterialSelected(cells, complete = false) {
     this._materialSelected = new Set((cells || []).map(key));
+    this._materialsAllSelected = complete;
     this._refreshTileColors();
   }
 
   clearMaterialHighlight() {
     this._materialCandidates.clear();
     this._materialSelected.clear();
+    this._materialsAllSelected = false;
     this._refreshTileColors();
   }
 
@@ -1062,6 +1065,7 @@ export class Board3D {
     const isMatCandidate = !!(k && this._materialCandidates.has(k));
     el.classList.toggle('selected', isSelected);
     el.classList.toggle('material-selected', isMatSelected);
+    el.classList.toggle('material-complete', isMatSelected && this._materialsAllSelected);
     el.classList.toggle('material-candidate', isMatCandidate);
 
     // An inset box-shadow on the unit-card itself would be hidden behind its own
@@ -1070,7 +1074,8 @@ export class Board3D {
     // CSS_SCALE transform — compensate by sizing the ring in pre-scale px, and
     // allow it to render outside the wrapper's bounds.
     if (isMatSelected) {
-      wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px var(--green)`;
+      const ringColor = this._materialsAllSelected ? '#ffffff' : 'var(--green)';
+      wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px ${ringColor}`;
     } else if (isMatCandidate) {
       wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px var(--yellow)`;
     } else if (isSelected) {
