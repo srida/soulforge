@@ -69,7 +69,8 @@
   --grad-title: linear-gradient(120deg, #c9b6ff, #8b5cf6);
   --grad-gold: linear-gradient(135deg, #ffe9a8, #e6c068);
   --grad-gem: linear-gradient(135deg, #9af2ff, #3fb6cc);
-  --grad-app-bg: radial-gradient(120% 80% at 50% -12%, rgba(124,92,255,.22), transparent 58%),
+  --grad-app-bg: linear-gradient(to bottom, #080610 0px, transparent 60px),
+                 radial-gradient(120% 80% at 50% -12%, rgba(124,92,255,.22), transparent 58%),
                  radial-gradient(70% 60% at 88% 116%, rgba(176,118,255,.16), transparent 60%),
                  linear-gradient(160deg, #0b0910, #08060e 60%, #0a0712);
 
