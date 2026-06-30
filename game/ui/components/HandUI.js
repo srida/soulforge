@@ -176,7 +176,8 @@ export class HandUI {
       }
 
       const summon = card.summon_type ?? 'normal';
-      const hasIcon = summon !== 'normal' && !Array.isArray(card.summon_options);
+      const isMulti = Array.isArray(card.summon_options) && card.summon_options.length > 0;
+      const hasIcon = summon !== 'normal' || isMulti;
       const sacrificeCost = summon === 'sacrifice' ? (card.cost?.sacrifice ?? 0) : 0;
 
       el.innerHTML = `
@@ -188,7 +189,7 @@ export class HandUI {
         <div class="hand-card-tier-badge">T${card.tier}</div>
         ${!playable
           ? `<div class="hand-card-summon-icon">${_redrawSvg()}</div>`
-          : (hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}</div>` : '')
+          : (hasIcon ? `<div class="hand-card-summon-icon">${isMulti ? card.summon_options.map(o => _summonSvg(o.summon_type, T.ink)).join('') : _summonSvg(summon, T.ink)}</div>` : '')
         }
         ${isGrouped ? `<span class="hand-card-count">×${group.length}</span>` : ''}
       `;
@@ -235,7 +236,8 @@ export class HandUI {
 function _syncPlayabilityEl(el, playable, card) {
   const T = TIER_COLORS[card.tier] || TIER_COLORS[2];
   const summon = card.summon_type ?? 'normal';
-  const hasIcon = summon !== 'normal' && !Array.isArray(card.summon_options);
+  const isMulti = Array.isArray(card.summon_options) && card.summon_options.length > 0;
+  const hasIcon = summon !== 'normal' || isMulti;
   const sacrificeCost = summon === 'sacrifice' ? (card.cost?.sacrifice ?? 0) : 0;
 
   const overlay = el.querySelector('.hand-card-dim-overlay');
@@ -259,7 +261,7 @@ function _syncPlayabilityEl(el, playable, card) {
   let icon = el.querySelector('.hand-card-summon-icon');
   if (playable) {
     if (hasIcon) {
-      const html = _summonSvg(summon, T.ink);
+      const html = isMulti ? card.summon_options.map(o => _summonSvg(o.summon_type, T.ink)).join('') : _summonSvg(summon, T.ink);
       if (!icon) el.insertAdjacentHTML('beforeend', `<div class="hand-card-summon-icon">${html}</div>`);
       else icon.innerHTML = html;
     } else {

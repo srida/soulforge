@@ -1485,7 +1485,6 @@ export async function mount(container, params = {}) {
     const mult = side === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
     const bonus = side === 'player' ? (damageMultiplierBonus || 0) : 0;
     const total = Math.round(atk * (mult * gameState.round + bonus));
-    const sign = '−';
     const dc = isVictory ? '--victory' : '--defeat';
 
     const units = survivors
@@ -1495,7 +1494,7 @@ export async function mount(container, params = {}) {
         <div class="end-round-bd-unit">
           <div class="end-round-bd-avatar"></div>
           <span class="end-round-bd-name">${u.name}</span>
-          <span class="end-round-bd-dmg end-round-bd-dmg${dc}">${sign}${u.atk}</span>
+          <span class="end-round-bd-dmg end-round-bd-dmg${dc}">${u.atk}</span>
         </div>`).join('');
 
     return `
@@ -1525,7 +1524,7 @@ export async function mount(container, params = {}) {
           <div class="end-round-bd-total end-round-bd-total${dc}">
             <span class="end-round-bd-total-key">TOTAL</span>
             <span class="end-round-bd-total-val end-round-bd-total-val${dc}">
-              ${sign}${total}&thinsp;<span class="end-round-bd-total-pv end-round-bd-total-pv${dc}">PV</span>
+              ${total}&thinsp;<span class="end-round-bd-total-pv end-round-bd-total-pv${dc}">PV</span>
             </span>
           </div>
         </div>
@@ -1568,7 +1567,7 @@ export async function mount(container, params = {}) {
               <summary>
                 <div class="end-round-bd-chevron">${_CHEVRON_SVG('#7fe6b6')}</div>
                 <span class="end-round-bd-label">Détail des dégâts infligés</span>
-                <span class="end-round-bd-badge end-round-bd-badge--victory">−${total} PV</span>
+                <span class="end-round-bd-badge end-round-bd-badge--victory">${total} PV</span>
               </summary>
               ${body}
             </details>
@@ -1609,7 +1608,7 @@ export async function mount(container, params = {}) {
               <summary>
                 <div class="end-round-bd-chevron">${_CHEVRON_SVG('#a78bfa')}</div>
                 <span class="end-round-bd-label">Détail des dégâts infligés</span>
-                <span class="end-round-bd-badge end-round-bd-badge--defeat">−${total} PV</span>
+                <span class="end-round-bd-badge end-round-bd-badge--defeat">${total} PV</span>
               </summary>
               ${body}
             </details>
