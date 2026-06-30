@@ -363,32 +363,46 @@
 }
 .db-search-wrap input::placeholder { color: var(--sf-ink-faint); }
 .db-lib-grid {
-  flex: 1; overflow-y: auto; display: grid;
-  grid-template-columns: repeat(3, 1fr); gap: 12px 10px;
-  align-content: start; padding-right: 4px; min-height: 0;
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+  gap: 6px; padding-right: 4px; min-height: 0;
 }
 .db-lib-grid::-webkit-scrollbar { width: 5px; }
 .db-lib-grid::-webkit-scrollbar-thumb { background: rgba(139,92,246,.28); border-radius: 4px; }
 .db-lib-grid::-webkit-scrollbar-track { background: transparent; }
 
 .db-lib-card {
-  position: relative; aspect-ratio: 5/7; border-radius: 9px; overflow: hidden;
+  position: relative; height: 58px; border-radius: 10px; overflow: hidden;
   cursor: pointer; border: 2px solid var(--hc-edge, var(--sf-border-2));
   background: var(--hc-art, var(--sf-surface-2));
-  box-shadow: 0 4px 14px -4px var(--hc-glow, rgba(124,92,255,.3));
+  box-shadow: 0 2px 8px -2px var(--hc-glow, rgba(124,92,255,.3));
+  display: flex; align-items: center; width: 100%; padding: 0;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-  padding: 0;
 }
-.db-lib-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px -4px var(--hc-glow, rgba(124,92,255,.5)); }
+.db-lib-card:hover { transform: translateX(2px); box-shadow: 0 4px 16px -4px var(--hc-glow, rgba(124,92,255,.5)); }
 .db-lib-card.tier-full { opacity: .4; pointer-events: none; }
+.db-lib-thumb { width: 42px; height: 100%; flex-shrink: 0; overflow: hidden; border-radius: 7px 0 0 7px; }
+.db-lib-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.db-lib-name {
+  flex: 1; padding: 0 8px; font: 600 12px var(--font-body);
+  color: var(--hc-ink, #cdbcff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.db-lib-tier-pill {
+  font: 700 9px var(--font-display); color: var(--hc-ink, #cdbcff);
+  background: rgba(10,8,18,.7); border: 1px solid var(--hc-edge, #a78bfa);
+  border-radius: 4px; padding: 2px 5px; flex-shrink: 0; margin-right: 4px;
+}
+.db-lib-summon-icon {
+  flex-shrink: 0; width: 22px; height: 22px; display: flex; align-items: center;
+  justify-content: center; margin-right: 4px;
+}
 .db-lib-add {
-  position: absolute; top: 5px; right: 5px; width: 20px; height: 20px;
+  flex-shrink: 0; width: 20px; height: 20px; margin-right: 6px;
   border-radius: 50%; background: rgba(124,92,255,.85);
   border: 1px solid rgba(255,255,255,.5); display: flex;
   align-items: center; justify-content: center;
   font: 700 14px var(--font-body); color: #fff; pointer-events: none;
 }
-.db-empty { color: var(--sf-ink-dim); font-size: 13px; grid-column: 1/-1; padding: 20px 0; }
+.db-empty { color: var(--sf-ink-dim); font-size: 13px; padding: 20px 0; }
 
 /* Mobile */
 @media (max-width: 767px) {
@@ -402,7 +416,7 @@
   .db-slot { border-radius: 5px; }
   .db-slot-diamond { width: 8px; height: 8px; }
   .db-right { width: 100%; flex: 1; border-left: none; border-top: 1px solid var(--sf-border-1); padding: 10px 12px; }
-  .db-lib-grid { grid-template-columns: repeat(3, 1fr); }
+  .db-lib-grid { gap: 5px; }
   .db-autosave { display: none; }
 }
 @media (min-width: 768px) {
@@ -553,7 +567,9 @@
 .attribute-chip.attr-active .attribute-chip-count { color: #7fe6b6; }
 
 .board-area { flex: 1; min-height: 0; padding: 6px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center; }
-.phase-controls { padding: 13px 16px 16px; border-top: 1px solid var(--sf-border-1); background: rgba(8,6,14,.55); flex-shrink: 0; display: flex; flex-direction: column; }
+.phase-controls { padding: 13px 16px 16px; border-top: 1px solid var(--sf-border-1); background: rgba(8,6,14,.55); flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+.gs-prep-row { display: flex; align-items: center; gap: 10px; }
+.gs-prep-row .gs-combat-btn { flex: 1; }
 
 /* Legacy HUD (used in overlays) */
 .game-hud { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; font-family: var(--font-display); }
@@ -759,7 +775,6 @@
   overflow: hidden;
   display: flex;
   align-items: center;
-  margin-bottom: 11px;
 }
 .hand-toolbar {
   flex-shrink: 0;
@@ -1174,6 +1189,7 @@
   .gs-synergy-label { display: none; }
   .attribute-chip-name { display: none; }
   .gs-slot-label { display: none; }
+  .gs-pause-text { display: none; }
   .gs-hud { gap: 10px; }
   .gs-hud-round-badge { padding: 4px 7px; }
 }

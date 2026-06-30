@@ -136,7 +136,9 @@ export async function mount(container, params = {}) {
           <div class="graveyard-units" id="graveyard-units"></div>
         </div>
         <div id="hand-area"></div>
-        <button class="btn btn-primary btn-full gs-combat-btn" id="btn-combat">⚔ LANCER LE COMBAT</button>
+        <div class="gs-prep-row" id="gs-prep-row">
+          <button class="btn btn-primary btn-full gs-combat-btn" id="btn-combat">⚔ LANCER LE COMBAT</button>
+        </div>
         <div class="combat-speed-controls" id="speed-controls" style="display:none">
           <span class="speed-label">VITESSE</span>
           <div class="speed-seg-wrap">
@@ -145,7 +147,6 @@ export async function mount(container, params = {}) {
             <button class="speed-btn" data-speed="4">×4</button>
           </div>
           <div style="flex:1"></div>
-          <span class="speed-auto-label">La résolution se joue automatiquement</span>
           <button class="gs-pause-btn" id="btn-pause">
             <span class="gs-pause-icon">⏸</span>
             <span class="gs-pause-text">Pause</span>
@@ -156,6 +157,7 @@ export async function mount(container, params = {}) {
   `;
 
   const handArea      = container.querySelector('#hand-area');
+  const prepRow       = container.querySelector('#gs-prep-row');
   const btnCombat     = container.querySelector('#btn-combat');
   const phaseLabel    = container.querySelector('#phase-label');
   const roundBadge    = container.querySelector('#gs-round-badge');
@@ -504,14 +506,15 @@ export async function mount(container, params = {}) {
   prepTimerEl.className = 'gs-timer';
   prepTimerEl.style.display = 'none';
   prepTimerEl.innerHTML = '<span class="gs-timer-val">60s</span><span class="gs-timer-label">RESTANT</span>';
-  handArea.appendChild(prepTimerEl);
+  prepRow.appendChild(prepTimerEl);
 
   combatTimerEl = document.createElement('div');
   combatTimerEl.id = 'combat-timer';
   combatTimerEl.className = 'gs-timer';
-  combatTimerEl.style.cssText = 'display:none;margin-left:auto';
+  combatTimerEl.style.display = 'none';
   combatTimerEl.innerHTML = '<span class="gs-timer-val">--</span><span class="gs-timer-label">COMBAT</span>';
-  handArea.appendChild(combatTimerEl);
+  const pauseBtn = container.querySelector('#btn-pause');
+  pauseBtn.parentElement.insertBefore(combatTimerEl, pauseBtn);
 
   const handUI = new HandUI(handInner, {
     onSelect: handleCardSelect,
@@ -1102,11 +1105,9 @@ export async function mount(container, params = {}) {
 
     // Switch to combat UI
     board3D.enterCombatMode();
-    handToolbar.style.display = 'none';
-    handInner.style.display = 'none';
-    if (prepTimerEl) prepTimerEl.style.display = 'none';
+    handArea.style.display = 'none';
     container.querySelector('#graveyard-area').style.display = 'none';
-    btnCombat.style.display = 'none';
+    prepRow.style.display = 'none';
     const speedControls = container.querySelector('#speed-controls');
     speedControls.style.display = '';
     combatTimerEl.style.display = '';
@@ -1247,8 +1248,7 @@ export async function mount(container, params = {}) {
     setTimeout(() => {
       _hideCombatMultipliers();
       board3D.exitCombatMode();
-      handToolbar.style.display = '';
-      handInner.style.display = '';
+      handArea.style.display = '';
       combatTimerEl.style.display = 'none';
       const sc = container.querySelector('#speed-controls');
       sc.style.display = 'none';
@@ -1260,7 +1260,7 @@ export async function mount(container, params = {}) {
         if (pl) pl.textContent = 'Pause';
         bp.classList.remove('active');
       }
-      btnCombat.style.display = '';
+      prepRow.style.display = '';
 
       _showEndRound(winner, playerSurvivorsAtk, enemySurvivorsAtk, playerSurvivors, enemySurvivors, attributeResult.damage_multiplier_bonus);
     }, 1000);

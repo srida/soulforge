@@ -281,11 +281,10 @@ export async function mount(container, params = {}) {
       btn.style.setProperty('--hc-art',  T.art);
 
       btn.innerHTML = `
-        <img class="hand-card-img" src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy">
-        <div class="hand-card-edge-glow"></div>
-        <div class="hand-card-footer"><span class="hand-card-name">${esc(c.name)}</span></div>
-        <div class="hand-card-tier-badge">T${c.tier}</div>
-        ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}${sacCost > 0 ? `<span class="hand-card-summon-count">×${sacCost}</span>` : ''}</div>` : ''}
+        <div class="db-lib-thumb"><img src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy"></div>
+        <span class="db-lib-name">${esc(c.name)}</span>
+        <span class="db-lib-tier-pill">T${c.tier}</span>
+        ${hasIcon ? `<div class="db-lib-summon-icon">${_summonSvg(summon, T.ink)}${sacCost > 0 ? `<span class="hand-card-summon-count">×${sacCost}</span>` : ''}</div>` : ''}
         ${!isFull ? `<span class="db-lib-add">+</span>` : ''}
       `;
 
