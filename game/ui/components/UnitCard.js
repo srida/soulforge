@@ -71,11 +71,6 @@ function _inner(unit) {
     : '';
 
   return `
-    <div class="unit-diamond">
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <path d="M50 3L57 43L97 50L57 57L50 97L43 57L3 50L43 43Z" fill="var(--uc-diamond,rgba(255,255,255,.1))"/>
-      </svg>
-    </div>
     <img class="unit-art" src="/illustrations/${unit.card_id}" alt="${esc(unit.name)}">
     <div class="unit-foil"></div>
     <div class="unit-top-edge"></div>
@@ -93,13 +88,6 @@ function _inner(unit) {
       <div class="unit-bars-stack">
         ${pwrBar}
         <div class="unit-hp-bar"><div class="unit-hp-fill" style="width:${hpPct}%"></div></div>
-      </div>
-    </div>
-    <div class="unit-ko-overlay">
-      <div class="unit-ko-badge">
-        <svg width="58%" height="58%" viewBox="0 0 24 24" fill="none" stroke="#d9d2ec" stroke-width="2.2" stroke-linecap="round">
-          <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
-        </svg>
       </div>
     </div>
   `.trim();

@@ -612,11 +612,6 @@
               0 0 28px -2px var(--uc-glow, rgba(95,180,232,.55));
   font-family: var(--font-display);
 }
-.unit-diamond {
-  position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  display: flex; align-items: center; justify-content: center;
-}
-.unit-diamond svg { width: 62%; height: 62%; opacity: .9; }
 .unit-art {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; z-index: 0;
 }
@@ -731,21 +726,6 @@
 }
 .unit-player .unit-hp-fill { background: linear-gradient(90deg,#5f9dff,#bcd6ff); box-shadow: 0 0 8px rgba(95,157,255,.6); }
 .unit-enemy  .unit-hp-fill { background: linear-gradient(90deg,#e8546e,#ffb3c0); box-shadow: 0 0 8px rgba(232,84,110,.6); }
-
-/* KO overlay */
-.unit-ko-overlay {
-  position: absolute; inset: 0; z-index: 4;
-  display: none; align-items: center; justify-content: center;
-  background: rgba(6,5,12,.45);
-  pointer-events: none;
-}
-.unit-card.neutralized .unit-ko-overlay { display: flex; }
-.graveyard-units .unit-card.neutralized .unit-ko-overlay { display: none; }
-.unit-ko-badge {
-  width: 18px; height: 18px; border-radius: 6px;
-  background: rgba(10,8,16,.8); border: 1px solid rgba(255,255,255,.22);
-  display: flex; align-items: center; justify-content: center;
-}
 
 /* Hand */
 .hand-ui-wrap {
@@ -1821,75 +1801,12 @@ img {
   .tb-browser-col { width: 150px; }
 }
 
-/* ── Poc3D — cadres dégradés par tier ───────────────────────────────────────
-   Technique "donut" CSS : le ::before a un padding (épaisseur du cadre) et
-   un masque qui rend l'intérieur (content-box) transparent → seule la zone
-   padding reste visible, affichant le dégradé de bordure.
-   Les valeurs px sont dans l'espace DOM pré-scale CSS3D (scale = CELL/CARD_PX).
-   Couleurs synchronisées avec TIER_COLORS dans HandUI.js.
-─────────────────────────────────────────────────────────────────────────────── */
-/* Les barres (z-index 2) et badges (z-index 3) restent au-dessus du cadre */
-.poc3d-frame {
-  position: absolute;
-  inset: 0;
-  border-radius: 6px;
-  pointer-events: none;
-  z-index: 1;
-  overflow: visible;
-}
 /* Barre de vie et hexagone d'équipe dans les limites du cadre (POC et Jouer 3D) */
 .poc3d-card-wrap .unit-bars {
   bottom: 6px;
   left: 6px;
   right: 6px;
 }
-
-/* Cadre commun : le masque crée l'anneau de bordure */
-.poc3d-frame::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 6px;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-}
-
-/* T1 — Vert (liseré 2px) */
-.poc3d-frame-t1::before {
-  padding: 2px;
-  background: linear-gradient(160deg, #1f4a3a 0%, #46d39a 50%, #1f4a3a 100%);
-}
-
-/* T2 — Bleu (cadre 3px) */
-.poc3d-frame-t2::before {
-  padding: 3px;
-  background: linear-gradient(160deg, #1f3a52 0%, #5fb4e8 50%, #1f3a52 100%);
-}
-
-/* T3 — Violet (cadre 3px) */
-.poc3d-frame-t3::before {
-  padding: 3px;
-  background: linear-gradient(160deg, #352663 0%, #a78bfa 50%, #352663 100%);
-}
-
-/* T4 — Or (cadre 4px) */
-.poc3d-frame-t4::before {
-  padding: 4px;
-  background: linear-gradient(160deg, #5a3f1c 0%, #e8a850 50%, #5a3f1c 100%);
-}
-
-/* T5 — Rouge (cadre 5px) */
-.poc3d-frame-t5::before {
-  padding: 5px;
-  background: linear-gradient(160deg, #5a1f2c 0%, #e85a6e 50%, #5a1f2c 100%);
-}
-
 </style>
 </head>
 <body>

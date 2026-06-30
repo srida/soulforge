@@ -1118,12 +1118,6 @@ export class Board3D {
     return (this._combatMode || this.showEnemySide || unit.side === 'player') ? 1 : 0;
   }
 
-  _createTierFrame(tier) {
-    const frame = document.createElement('div');
-    frame.className = `poc3d-frame poc3d-frame-t${Math.max(1, Math.min(5, tier))}`;
-    return frame;
-  }
-
   _spawnUnitObj(unit) {
     const THREE = this.THREE;
     const pos = unit.position;
@@ -1137,7 +1131,6 @@ export class Board3D {
     wrap.className = 'poc3d-card-wrap';
     const el = createUnitEl(unit);
     wrap.appendChild(el);
-    wrap.appendChild(this._createTierFrame(unit.tier ?? 1));
 
     const obj = new this.CSS3DObject(wrap);
     // CSS3DObject force pointer-events: auto sur l'élément — on l'annule pour
