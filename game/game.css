@@ -164,7 +164,7 @@
 html, body {
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--grad-app-bg);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 14px;

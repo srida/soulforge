@@ -1485,7 +1485,7 @@ export async function mount(container, params = {}) {
     const mult = side === 'player' ? gameState.player_unit_multiplier : gameState.enemy_unit_multiplier;
     const bonus = side === 'player' ? (damageMultiplierBonus || 0) : 0;
     const total = Math.round(atk * (mult * gameState.round + bonus));
-    const sign = isVictory ? '+' : '−';
+    const sign = '−';
     const dc = isVictory ? '--victory' : '--defeat';
 
     const units = survivors
@@ -1568,7 +1568,7 @@ export async function mount(container, params = {}) {
               <summary>
                 <div class="end-round-bd-chevron">${_CHEVRON_SVG('#7fe6b6')}</div>
                 <span class="end-round-bd-label">Détail des dégâts infligés</span>
-                <span class="end-round-bd-badge end-round-bd-badge--victory">+${total} PV</span>
+                <span class="end-round-bd-badge end-round-bd-badge--victory">−${total} PV</span>
               </summary>
               ${body}
             </details>

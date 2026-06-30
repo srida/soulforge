@@ -94,7 +94,7 @@ export async function mount(container, params = {}) {
       </div>
       <button class="db-save-btn" id="db-save" disabled>
         <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3 H12 L15 6 V15 H3 Z"/><path d="M6 3 V7 H11"/><path d="M6 15 V11 H12 V15"/></svg>
-        SAUVER
+        <span class="db-save-label">SAUVER</span>
       </button>
     </div>
     <div class="db-mobile-meta">
