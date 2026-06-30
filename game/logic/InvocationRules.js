@@ -77,24 +77,36 @@ export function materialCandidateCells(card, alreadySelected, board, optionIndex
     const required = card.cost?.materials ?? [];
     const coveredIds = alreadySelected.flatMap(u => u.represented_ids ?? [u.card_id]);
     const stillNeeded = required.filter(id => !coveredIds.includes(id));
-    if (stillNeeded.length === 0) return [];
-    return units.filter(u => !selected.has(u) && materialLineageLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id))).map(u => ({ ...u.position }));
+    // Doublon of the fusion result must also be consumed as a material
+    const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id && !selected.has(u));
+    if (stillNeeded.length === 0) {
+      return duplicate ? [{ ...duplicate.position }] : [];
+    }
+    const candidates = units.filter(u => !selected.has(u) && materialLineageLegit(u, required) && stillNeeded.some(id => matchesMaterial(u, id)));
+    if (duplicate && !candidates.includes(duplicate)) candidates.push(duplicate);
+    return candidates.map(u => ({ ...u.position }));
   }
 
   if (card.summon_type === 'heritage') {
     const required = card.cost?.materials ?? [];
     const sacrifice = card.cost?.sacrifice ?? 0;
-    if (sumMaterialValue(alreadySelected) >= sacrifice) return [];
+    // Doublon of the heritage result must also be consumed as a material
+    const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id && !selected.has(u));
+    if (sumMaterialValue(alreadySelected) >= sacrifice) {
+      return duplicate ? [{ ...duplicate.position }] : [];
+    }
     const uncovered = getUncoveredRequirements(required, alreadySelected);
     const remainingSlots = sacrifice - sumMaterialValue(alreadySelected);
     // If remaining slots == uncovered requirements, only allow units matching those requirements
+    let candidates;
     if (uncovered.length > 0 && uncovered.length === remainingSlots) {
-      return units
-        .filter(u => !selected.has(u) && uncovered.some(matId => matchesMaterial(u, matId)))
-        .map(u => ({ ...u.position }));
+      candidates = units.filter(u => !selected.has(u) && uncovered.some(matId => matchesMaterial(u, matId)));
+    } else {
+      // Free slots available — any unit is acceptable
+      candidates = units.filter(u => !selected.has(u));
     }
-    // Free slots available — any unit is acceptable
-    return units.filter(u => !selected.has(u)).map(u => ({ ...u.position }));
+    if (duplicate && !candidates.includes(duplicate)) candidates.push(duplicate);
+    return candidates.map(u => ({ ...u.position }));
   }
 
   return [];

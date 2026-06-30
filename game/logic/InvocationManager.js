@@ -82,6 +82,12 @@ function _canSummonForType(card, type, cost, pos, board, hand, graveyard, select
         if (!onBoard && !inGrave)
           return fail(`Matériau manquant sur le terrain ou au cimetière : ${matId}`);
       }
+      // Si un doublon du résultat de cette fusion est déjà vivant sur le terrain, il doit
+      // être sélectionné comme matériau pour être consommé.
+      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
+      if (duplicate && !selectedMaterials.includes(duplicate)) {
+        return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
+      }
       return ok();
     }
 
@@ -98,6 +104,12 @@ function _canSummonForType(card, type, cost, pos, board, hand, graveyard, select
         const idx = pool.findIndex(u => _matchesMaterial(u, matId));
         if (idx === -1) return fail(`Matériau Heritage manquant : ${matId}`);
         pool.splice(idx, 1);
+      }
+      // Si un doublon du résultat de cette heritage est déjà vivant sur le terrain, il doit
+      // être sélectionné comme matériau pour être consommé.
+      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
+      if (duplicate && !selectedMaterials.includes(duplicate)) {
+        return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
       }
       return ok();
     }

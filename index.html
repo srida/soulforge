@@ -592,9 +592,9 @@
   margin-top: 2px;
 }
 
-.unit-card.material-selected { outline: 3px solid var(--green); }
+.unit-card.material-selected { outline: 3px solid #ffffff; }
 .unit-card.material-complete  { outline: 3px solid #ffffff; }
-.unit-card.material-candidate { outline: 3px solid var(--yellow); }
+.unit-card.material-candidate { outline: 3px solid #ff9833; }
 .graveyard-units .unit-card.material-complete { outline: 3px solid #ffffff; }
 .hand-card.dim { opacity: 1; border-color: rgba(255,255,255,.1) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04) !important; }
 
@@ -636,7 +636,7 @@
   position: absolute; left: 0; right: 0; bottom: 0; height: 46%; z-index: 2; pointer-events: none;
   background: linear-gradient(transparent, rgba(6,5,12,.82) 78%);
 }
-.unit-card.selected { outline: 2px solid var(--yellow); outline-offset: -2px; }
+.unit-card.selected { outline: 2px solid #ff9833; outline-offset: -2px; }
 .unit-card.neutralized { filter: grayscale(.85) brightness(.62); }
 
 /* Tier badge — top-left */
@@ -949,6 +949,11 @@
   z-index: -2;
   opacity: 0.5;
 }
+.hand-card-stack-wrap:has(> .hand-card.dim)::before,
+.hand-card-stack-wrap:has(> .hand-card.dim)::after {
+  background: rgba(12,10,20,.92);
+  border-color: rgba(255,255,255,.1);
+}
 .hand-card--grouped .hand-card-count {
   bottom: 22px;
   right: unset;
@@ -1057,14 +1062,14 @@
 .graveyard-units .unit-card.material-candidate {
   opacity: 1;
   filter: none;
-  border-color: var(--yellow);
-  box-shadow: 0 0 0 1px var(--yellow);
+  border-color: #ff9833;
+  box-shadow: 0 0 0 1px #ff9833;
 }
 .graveyard-units .unit-card.material-selected {
   opacity: 1;
   filter: none;
-  border-color: var(--green);
-  box-shadow: 0 0 0 2px var(--green);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px #ffffff;
   outline: none;
 }
 /* Override neutralized dimming inside graveyard — already styled by the panel */
@@ -1816,11 +1821,12 @@ img {
   .tb-browser-col { width: 150px; }
 }
 
-/* ── Poc3D — cadres texturés par tier ───────────────────────────────────────
+/* ── Poc3D — cadres dégradés par tier ───────────────────────────────────────
    Technique "donut" CSS : le ::before a un padding (épaisseur du cadre) et
    un masque qui rend l'intérieur (content-box) transparent → seule la zone
-   padding reste visible, affichant la texture dégradée.
+   padding reste visible, affichant le dégradé de bordure.
    Les valeurs px sont dans l'espace DOM pré-scale CSS3D (scale = CELL/CARD_PX).
+   Couleurs synchronisées avec TIER_COLORS dans HandUI.js.
 ─────────────────────────────────────────────────────────────────────────────── */
 /* Les barres (z-index 2) et badges (z-index 3) restent au-dessus du cadre */
 .poc3d-frame {
@@ -1838,7 +1844,7 @@ img {
   right: 6px;
 }
 
-/* Cadre texturé commun : le masque crée l'anneau de bordure */
+/* Cadre commun : le masque crée l'anneau de bordure */
 .poc3d-frame::before {
   content: '';
   position: absolute;
@@ -1854,74 +1860,34 @@ img {
   mask-composite: exclude;
 }
 
-/* T1 — Jade (liseré 2px, texture pierre verte) */
+/* T1 — Vert (liseré 2px) */
 .poc3d-frame-t1::before {
   padding: 2px;
-  background: linear-gradient(160deg,
-    #1a5040 0%, #4a9870 18%, #78c8a8 35%, #aaeacc 50%, #78c8a8 65%, #4a9870 82%, #1a5040 100%);
+  background: linear-gradient(160deg, #1f4a3a 0%, #46d39a 50%, #1f4a3a 100%);
 }
 
-/* T2 — Saphir (cadre 3px + reflet lumineux) */
-.poc3d-frame-t2 {
-  box-shadow: 0 0 8px rgba(106, 180, 232, 0.28);
-}
+/* T2 — Bleu (cadre 3px) */
 .poc3d-frame-t2::before {
   padding: 3px;
-  background: linear-gradient(160deg,
-    #082030 0%, #1a5888 18%, #4898d0 36%, #6ab4e8 48%, #b8e4ff 54%, #6ab4e8 62%, #4898d0 76%, #1a5888 90%, #082030 100%);
+  background: linear-gradient(160deg, #1f3a52 0%, #5fb4e8 50%, #1f3a52 100%);
 }
 
-/* T3 — Améthyste (cadre 3px + cristal violet) */
-.poc3d-frame-t3 {
-  box-shadow: 0 0 12px rgba(200, 120, 224, 0.35);
-}
+/* T3 — Violet (cadre 3px) */
 .poc3d-frame-t3::before {
   padding: 3px;
-  background: linear-gradient(160deg,
-    #2a0848 0%, #7020a8 22%, #c060d8 40%, #c878e0 50%, #eab8ff 55%, #c878e0 62%, #7020a8 80%, #2a0848 100%);
+  background: linear-gradient(160deg, #352663 0%, #a78bfa 50%, #352663 100%);
 }
 
-/* T4 — Or battu (cadre 4px + shimmer animé) */
-.poc3d-frame-t4 {
-  box-shadow: 0 0 16px rgba(240, 160, 64, 0.40);
-  animation: poc3d-glow-t4 2.6s ease-in-out infinite;
-}
-@keyframes poc3d-glow-t4 {
-  0%, 100% { box-shadow: 0 0 16px rgba(240, 160, 64, 0.40); }
-  50%       { box-shadow: 0 0 26px rgba(255, 185, 80, 0.60); }
-}
+/* T4 — Or (cadre 4px) */
 .poc3d-frame-t4::before {
   padding: 4px;
-  background: linear-gradient(90deg,
-    #3c1a00 0%, #9a5010 10%, #d88820 22%, #f0a840 33%,
-    #ffe080 45%, #fff4b0 50%, #ffe080 55%,
-    #f0a840 67%, #d88820 78%, #9a5010 90%, #3c1a00 100%);
-  background-size: 300% 100%;
-  animation: poc3d-shimmer 3s linear infinite;
+  background: linear-gradient(160deg, #5a3f1c 0%, #e8a850 50%, #5a3f1c 100%);
 }
 
-/* T5 — Dragon infernal (cadre 5px + shimmer rouge animé) */
-.poc3d-frame-t5 {
-  box-shadow: 0 0 18px rgba(240, 80, 80, 0.45), 0 0 36px rgba(240, 80, 80, 0.18);
-  animation: poc3d-glow-t5 1.9s ease-in-out infinite;
-}
-@keyframes poc3d-glow-t5 {
-  0%, 100% { box-shadow: 0 0 18px rgba(240, 80, 80, 0.45), 0 0 36px rgba(240, 80, 80, 0.18); }
-  50%       { box-shadow: 0 0 28px rgba(255, 90, 90, 0.65), 0 0 54px rgba(240, 80, 80, 0.28); }
-}
+/* T5 — Rouge (cadre 5px) */
 .poc3d-frame-t5::before {
   padding: 5px;
-  background: linear-gradient(90deg,
-    #280000 0%, #700000 10%, #b01010 22%, #e03030 33%,
-    #f87070 45%, #ffa8a8 50%, #f87070 55%,
-    #e03030 67%, #b01010 78%, #700000 90%, #280000 100%);
-  background-size: 300% 100%;
-  animation: poc3d-shimmer 2.2s linear infinite;
-}
-
-@keyframes poc3d-shimmer {
-  0%   { background-position: 0% center; }
-  100% { background-position: 300% center; }
+  background: linear-gradient(160deg, #5a1f2c 0%, #e85a6e 50%, #5a1f2c 100%);
 }
 
 </style>

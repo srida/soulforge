@@ -1074,10 +1074,9 @@ export class Board3D {
     // CSS_SCALE transform — compensate by sizing the ring in pre-scale px, and
     // allow it to render outside the wrapper's bounds.
     if (isMatSelected) {
-      const ringColor = this._materialsAllSelected ? '#ffffff' : 'var(--green)';
-      wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px ${ringColor}`;
+      wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px #ffffff`;
     } else if (isMatCandidate) {
-      wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px var(--yellow)`;
+      wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px #ff9833`;
     } else if (isSelected) {
       wrap.style.boxShadow = `inset 0 0 0 ${HIGHLIGHT_RING_PX}px var(--accent)`;
     } else {
@@ -1096,10 +1095,10 @@ export class Board3D {
       color = 0x2a2a5c; emissive = 0x6c63ff; intensity = 0.35;
     }
     if (this._materialCandidates.has(k)) {
-      emissive = 0xf0c040; intensity = 0.3;
+      emissive = 0xff9833; intensity = 0.3;
     }
     if (this._materialSelected.has(k)) {
-      color = 0x1c3a2e; emissive = 0x4caf80; intensity = 0.5;
+      color = 0x3a3a3a; emissive = 0xffffff; intensity = 0.4;
     }
     if (this._selectedPos && this._selectedPos.col === col && this._selectedPos.row === row) {
       color = 0x2a2a5c; emissive = 0x6c63ff; intensity = 0.6;
