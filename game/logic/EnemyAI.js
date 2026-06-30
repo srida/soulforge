@@ -1,6 +1,6 @@
 import { Unit } from './Unit.js';
 import { tiersForRound } from './Draw.js';
-import { matchesMaterial } from './InvocationManager.js';
+import { matchesMaterial, materialLineageMatches } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
 
@@ -155,6 +155,18 @@ export class EnemyAI {
  * Returns the placed Unit on success, null otherwise.
  */
 function _tryPlace(card, board, maxUnits, graveyard) {
+  // Cards with multiple invocation options: prefer transformation, then try each in order
+  if (Array.isArray(card.summon_options) && card.summon_options.length > 0) {
+    const sorted = [...card.summon_options].sort((a, b) =>
+      a.summon_type === 'transformation' ? -1 : b.summon_type === 'transformation' ? 1 : 0
+    );
+    for (const opt of sorted) {
+      const result = _tryPlace({ ...card, summon_type: opt.summon_type, cost: opt.cost }, board, maxUnits, graveyard);
+      if (result) return result;
+    }
+    return null;
+  }
+
   const onBoard = board.getLivingUnitsOnSide('enemy').length;
 
   switch (card.summon_type) {
@@ -181,13 +193,24 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       }
       const boardUnits = board.getLivingUnitsOnSide('enemy');
       if (boardUnits.length + graveyard.length < needed) return null;
-      // Consume graveyard first (already off-board), then sacrifice live units
-      const fromGraveCount = Math.min(needed, graveyard.length);
-      const fromBoardCount = needed - fromGraveCount;
-      // Net board change: -fromBoardCount + 1
-      if (onBoard - fromBoardCount + 1 > maxUnits) return null;
+      // If the result card is already on board, that unit must be consumed as a sacrifice material
+      const duplicate = boardUnits.find(u => u.card_id === card.id);
+      let fromBoard, fromGraveCount;
+      if (duplicate) {
+        const otherBoard = boardUnits.filter(u => u !== duplicate);
+        const stillNeeded = needed - 1;
+        fromGraveCount = Math.min(stillNeeded, graveyard.length);
+        const fromBoardCount = stillNeeded - fromGraveCount;
+        if (fromBoardCount > otherBoard.length) return null;
+        fromBoard = [...otherBoard.slice(0, fromBoardCount), duplicate];
+      } else {
+        fromGraveCount = Math.min(needed, graveyard.length);
+        fromBoard = boardUnits.slice(0, needed - fromGraveCount);
+      }
+      // Net board change: -fromBoard.length + 1
+      if (onBoard - fromBoard.length + 1 > maxUnits) return null;
       graveyard.splice(0, fromGraveCount);
-      for (const u of boardUnits.slice(0, fromBoardCount)) board.removeUnit(u);
+      for (const u of fromBoard) board.removeUnit(u);
       const unit = new Unit(card, 'enemy');
       board.placeUnit(unit, _freeCells(board)[0]);
       return unit;
@@ -209,12 +232,12 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       const usedBoard = [];
       const usedGrave = [];
       for (const matId of materials) {
-        let idx = boardPool.findIndex(u => u.card_id === matId);
+        let idx = boardPool.findIndex(u => materialLineageMatches(u, matId, materials));
         if (idx !== -1) {
           usedBoard.push(boardPool[idx]);
           boardPool.splice(idx, 1);
         } else {
-          idx = gravePool.findIndex(u => u.card_id === matId);
+          idx = gravePool.findIndex(u => materialLineageMatches(u, matId, materials));
           if (idx !== -1) {
             usedGrave.push(gravePool[idx]);
             gravePool.splice(idx, 1);
@@ -297,18 +320,31 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       const targetId = card.cost?.materials?.[0];
       if (!targetId) return null;
 
+      const boardUnits = board.getLivingUnitsOnSide('enemy');
+      // If result already on board, that copy must be consumed as the transformation material.
+      // If it doesn't match targetId, the transformation would create a duplicate — invalid.
+      const existingResult = boardUnits.find(u => u.card_id === card.id);
+      if (existingResult) {
+        if (!materialLineageMatches(existingResult, targetId, [targetId])) return null;
+        const pos = { ...existingResult.position };
+        board.removeUnit(existingResult);
+        const unit = new Unit(card, 'enemy');
+        board.placeUnit(unit, pos);
+        return unit;
+      }
+
       // Board target: 1-for-1, no slot limit check
-      const target = board.getLivingUnitsOnSide('enemy').find(u => u.card_id === targetId);
-      if (target) {
-        const pos = { ...target.position };
-        board.removeUnit(target);
+      const boardTarget = boardUnits.find(u => materialLineageMatches(u, targetId, [targetId]));
+      if (boardTarget) {
+        const pos = { ...boardTarget.position };
+        board.removeUnit(boardTarget);
         const unit = new Unit(card, 'enemy');
         board.placeUnit(unit, pos);
         return unit;
       }
 
       // Graveyard target: net +1 on board, need a free slot
-      const graveIdx = graveyard.findIndex(u => u.card_id === targetId);
+      const graveIdx = graveyard.findIndex(u => materialLineageMatches(u, targetId, [targetId]));
       if (graveIdx !== -1) {
         if (onBoard >= maxUnits) return null;
         const cells = _freeCells(board);

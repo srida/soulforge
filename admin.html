@@ -1761,7 +1761,7 @@ function _attrEffectFieldVisibility(type) {
     showTarget: type === 'revive',
     showHpPercent: type === 'revive',
     showCategory: type === 'guaranteed_draw',
-    showValue: !['guaranteed_draw'].includes(type),
+    showValue: !['guaranteed_draw', 'effect_immunity'].includes(type),
   };
 }
 
@@ -1782,6 +1782,7 @@ function renderEffectBlock(ef, ti, ei) {
             <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
             <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
             <option value="damage_multiplier_bonus" ${type === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégât supplémentaire (fin de combat)</option>
+            <option value="effect_immunity" ${type === 'effect_immunity' ? 'selected' : ''}>Immunité aux effets négatifs (poison, paralysie, push, burn…)</option>
           </select>
         </div>
         <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeEffect(${ti},${ei})">×</button>

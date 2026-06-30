@@ -129,6 +129,12 @@ export class AttributeManager {
               u.applyShield(shieldAmount);
             }
             break;
+
+          case 'effect_immunity':
+            for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
+              u.is_effect_immune = true;
+            }
+            break;
         }
       }
     }

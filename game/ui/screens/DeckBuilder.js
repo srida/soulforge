@@ -207,7 +207,8 @@ export async function mount(container, params = {}) {
         const card = cards[i];
         if (card) {
           const summon   = card.summon_type ?? 'normal';
-          const hasIcon  = summon !== 'normal' && !Array.isArray(card.summon_options);
+          const isMulti  = Array.isArray(card.summon_options) && card.summon_options.length > 0;
+          const hasIcon  = summon !== 'normal' || isMulti;
           const sacCost  = summon === 'sacrifice' ? (card.cost?.sacrifice ?? 0) : 0;
           return `<div class="db-slot filled"
             style="--db-edge:${def.edge};--hc-edge:${T.edge};--hc-ink:${T.ink};--hc-glow:${T.glow};--hc-art:${T.art}">
@@ -216,7 +217,7 @@ export async function mount(container, params = {}) {
             <div class="hand-card-edge-glow"></div>
             <div class="hand-card-footer"><span class="hand-card-name">${esc(card.name)}</span></div>
             <div class="hand-card-tier-badge">T${card.tier}</div>
-            ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}</div>` : ''}
+            ${hasIcon ? `<div class="hand-card-summon-icon">${isMulti ? card.summon_options.map(o => _summonSvg(o.summon_type, T.ink)).join('') : _summonSvg(summon, T.ink)}</div>` : ''}
             <button class="db-slot-remove" data-tier="${def.t}" data-idx="${i}" aria-label="Retirer">×</button>
           </div>`;
         }
@@ -269,7 +270,8 @@ export async function mount(container, params = {}) {
       const T      = TIER_COLORS[c.tier];
       const isFull = deckData[c.tier].length >= tierMax[c.tier];
       const summon = c.summon_type ?? 'normal';
-      const hasIcon  = summon !== 'normal' && !Array.isArray(c.summon_options);
+      const isMulti  = Array.isArray(c.summon_options) && c.summon_options.length > 0;
+      const hasIcon  = summon !== 'normal' || isMulti;
       const sacCost  = summon === 'sacrifice' ? (c.cost?.sacrifice ?? 0) : 0;
 
       const btn = document.createElement('button');
@@ -284,7 +286,7 @@ export async function mount(container, params = {}) {
         <div class="tb-card-img-wrap">
           <img src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy">
           <div class="hand-card-tier-badge">T${c.tier}</div>
-          ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}</div>` : ''}
+          ${hasIcon ? `<div class="hand-card-summon-icon">${isMulti ? c.summon_options.map(o => _summonSvg(o.summon_type, T.ink)).join('') : _summonSvg(summon, T.ink)}</div>` : ''}
         </div>
         <span class="hand-card-name">${esc(c.name)}</span>
       `;

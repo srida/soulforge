@@ -258,6 +258,10 @@ export class CombatManager {
       }
 
       case 'POWER_POISON': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
         const dot = {
           damage: Math.max(1, Math.floor(unit.atk / DOT_DAMAGE_DIVISOR)),
           remaining: DOT_PULSES,
@@ -270,6 +274,10 @@ export class CombatManager {
       }
 
       case 'POWER_PARALYSIS': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
         primaryTarget.attack_speed_modifier += POWER_PARALYSIS_MODIFIER;
         primaryTarget.paralysis_remaining = POWER_PARALYSIS_TICKS;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: POWER_PARALYSIS_TICKS } });
@@ -277,6 +285,10 @@ export class CombatManager {
       }
 
       case 'POWER_PUSH': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
         const pushCells = unit.power_value ?? 2;
         const pushed = this._pushUnit(primaryTarget, unit.position, pushCells);
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { pushed } });
@@ -294,6 +306,10 @@ export class CombatManager {
       }
 
       case 'POWER_BURN': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
         const burn = {
           damage: Math.max(1, Math.floor(unit.atk / BURN_DAMAGE_DIVISOR)),
           attacksRemaining: unit.power_value ?? BURN_ATTACKS,
@@ -304,6 +320,10 @@ export class CombatManager {
       }
 
       case 'POWER_FREEZE': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
         // Push the target back by one cell (reuses the same retreat mechanic
         // as POWER_PUSH) and freeze the cell it just vacated — guaranteed
         // empty, unlike the cell it's standing on, whose own card visual
@@ -326,6 +346,10 @@ export class CombatManager {
       }
 
       case 'POWER_BLOCK': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
         primaryTarget.is_power_blocked = true;
         primaryTarget.power_block_remaining = POWER_BLOCK_TICKS;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid });
@@ -333,6 +357,10 @@ export class CombatManager {
       }
 
       case 'POWER_CONFUSION': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
         primaryTarget.confusion_remaining = POWER_CONFUSION_TICKS;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: POWER_CONFUSION_TICKS } });
         break;
