@@ -216,7 +216,7 @@ export async function mount(container, params = {}) {
             <div class="hand-card-edge-glow"></div>
             <div class="hand-card-footer"><span class="hand-card-name">${esc(card.name)}</span></div>
             <div class="hand-card-tier-badge">T${card.tier}</div>
-            ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}${sacCost > 0 ? `<span class="hand-card-summon-count">×${sacCost}</span>` : ''}</div>` : ''}
+            ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}</div>` : ''}
             <button class="db-slot-remove" data-tier="${def.t}" data-idx="${i}" aria-label="Retirer">×</button>
           </div>`;
         }
@@ -284,7 +284,7 @@ export async function mount(container, params = {}) {
         <div class="tb-card-img-wrap">
           <img src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy">
           <div class="hand-card-tier-badge">T${c.tier}</div>
-          ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}${sacCost > 0 ? `<span class="hand-card-summon-count">×${sacCost}</span>` : ''}</div>` : ''}
+          ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}</div>` : ''}
         </div>
         <span class="hand-card-name">${esc(c.name)}</span>
       `;

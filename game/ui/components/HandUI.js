@@ -188,7 +188,7 @@ export class HandUI {
         <div class="hand-card-tier-badge">T${card.tier}</div>
         ${!playable
           ? `<div class="hand-card-summon-icon">${_redrawSvg()}</div>`
-          : (hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}${sacrificeCost > 0 ? `<span class="hand-card-summon-count">×${sacrificeCost}</span>` : ''}</div>` : '')
+          : (hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}</div>` : '')
         }
         ${isGrouped ? `<span class="hand-card-count">×${group.length}</span>` : ''}
       `;
@@ -259,7 +259,7 @@ function _syncPlayabilityEl(el, playable, card) {
   let icon = el.querySelector('.hand-card-summon-icon');
   if (playable) {
     if (hasIcon) {
-      const html = _summonSvg(summon, T.ink) + (sacrificeCost > 0 ? `<span class="hand-card-summon-count">×${sacrificeCost}</span>` : '');
+      const html = _summonSvg(summon, T.ink);
       if (!icon) el.insertAdjacentHTML('beforeend', `<div class="hand-card-summon-icon">${html}</div>`);
       else icon.innerHTML = html;
     } else {

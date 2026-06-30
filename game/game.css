@@ -161,7 +161,12 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html {
+  height: 100%;
+  background-color: var(--bg);
+}
+
+body {
   height: 100%;
   overflow: hidden;
   background: var(--grad-app-bg);
