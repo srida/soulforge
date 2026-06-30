@@ -273,7 +273,7 @@ export async function mount(container, params = {}) {
       const sacCost  = summon === 'sacrifice' ? (c.cost?.sacrifice ?? 0) : 0;
 
       const btn = document.createElement('button');
-      btn.className = 'db-lib-card' + (isFull ? ' tier-full' : '');
+      btn.className = 'card-item db-lib-card' + (isFull ? ' tier-full' : '');
       btn.dataset.id = c.id;
       btn.style.setProperty('--hc-edge', T.edge);
       btn.style.setProperty('--hc-ink',  T.ink);
@@ -281,11 +281,12 @@ export async function mount(container, params = {}) {
       btn.style.setProperty('--hc-art',  T.art);
 
       btn.innerHTML = `
-        <div class="db-lib-thumb"><img src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy"></div>
-        <span class="db-lib-name">${esc(c.name)}</span>
-        <span class="db-lib-tier-pill">T${c.tier}</span>
-        ${hasIcon ? `<div class="db-lib-summon-icon">${_summonSvg(summon, T.ink)}${sacCost > 0 ? `<span class="hand-card-summon-count">×${sacCost}</span>` : ''}</div>` : ''}
-        ${!isFull ? `<span class="db-lib-add">+</span>` : ''}
+        <div class="tb-card-img-wrap">
+          <img src="/illustrations/${c.id}" alt="${esc(c.name)}" loading="lazy">
+          <div class="hand-card-tier-badge">T${c.tier}</div>
+          ${hasIcon ? `<div class="hand-card-summon-icon">${_summonSvg(summon, T.ink)}${sacCost > 0 ? `<span class="hand-card-summon-count">×${sacCost}</span>` : ''}</div>` : ''}
+        </div>
+        <span class="hand-card-name">${esc(c.name)}</span>
       `;
 
       let longPress;
