@@ -136,10 +136,6 @@ export async function mount(container, params = {}) {
           <div class="graveyard-units" id="graveyard-units"></div>
         </div>
         <div id="hand-area"></div>
-        <div class="gs-timer" id="combat-timer" style="display:none">
-          <span class="gs-timer-val">--</span>
-          <span class="gs-timer-label">COMBAT</span>
-        </div>
         <button class="btn btn-primary btn-full gs-combat-btn" id="btn-combat">⚔ LANCER LE COMBAT</button>
         <div class="combat-speed-controls" id="speed-controls" style="display:none">
           <span class="speed-label">VITESSE</span>
@@ -163,7 +159,7 @@ export async function mount(container, params = {}) {
   const btnCombat     = container.querySelector('#btn-combat');
   const phaseLabel    = container.querySelector('#phase-label');
   const roundBadge    = container.querySelector('#gs-round-badge');
-  const combatTimerEl = container.querySelector('#combat-timer');
+  let combatTimerEl; // created after handArea setup, appended into handArea
   let prepTimerEl = null; // created after hand UI is set up
 
   const PREP_DURATION_S = 60;
@@ -509,6 +505,13 @@ export async function mount(container, params = {}) {
   prepTimerEl.style.display = 'none';
   prepTimerEl.innerHTML = '<span class="gs-timer-val">60s</span><span class="gs-timer-label">RESTANT</span>';
   handArea.appendChild(prepTimerEl);
+
+  combatTimerEl = document.createElement('div');
+  combatTimerEl.id = 'combat-timer';
+  combatTimerEl.className = 'gs-timer';
+  combatTimerEl.style.cssText = 'display:none;margin-left:auto';
+  combatTimerEl.innerHTML = '<span class="gs-timer-val">--</span><span class="gs-timer-label">COMBAT</span>';
+  handArea.appendChild(combatTimerEl);
 
   const handUI = new HandUI(handInner, {
     onSelect: handleCardSelect,
@@ -1099,7 +1102,9 @@ export async function mount(container, params = {}) {
 
     // Switch to combat UI
     board3D.enterCombatMode();
-    handArea.style.display = 'none';
+    handToolbar.style.display = 'none';
+    handInner.style.display = 'none';
+    if (prepTimerEl) prepTimerEl.style.display = 'none';
     container.querySelector('#graveyard-area').style.display = 'none';
     btnCombat.style.display = 'none';
     const speedControls = container.querySelector('#speed-controls');
@@ -1242,7 +1247,8 @@ export async function mount(container, params = {}) {
     setTimeout(() => {
       _hideCombatMultipliers();
       board3D.exitCombatMode();
-      handArea.style.display = '';
+      handToolbar.style.display = '';
+      handInner.style.display = '';
       combatTimerEl.style.display = 'none';
       const sc = container.querySelector('#speed-controls');
       sc.style.display = 'none';
