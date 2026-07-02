@@ -75,10 +75,7 @@ function _inner(unit) {
     <div class="unit-foil"></div>
     <div class="unit-top-edge"></div>
     <div class="unit-bottom-scrim"></div>
-    <div class="unit-tier-badge">
-      <span class="unit-tier-num">T${tier}</span>
-      <span class="unit-tier-stars">${stars}</span>
-    </div>
+
     <div class="unit-vet-badge" style="display:none"></div>
     <div class="unit-medallion" style="display:none"></div>
     <div class="unit-bars">
