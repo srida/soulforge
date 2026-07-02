@@ -720,10 +720,10 @@ export async function mount(container, params = {}) {
     if (gameState.phase !== Phase.PREPARATION) return;
     if (unit.side !== 'player') return;
     if (toPos.col === fromPos.col && toPos.row === fromPos.row) return;
-    if (!board.isPlayerCell(toPos)) return;
+    if (!board.isPlayerCell(toPos)) { board3D.refresh(); return; }
 
     const targetUnit = board.getUnit(toPos);
-    if (targetUnit && targetUnit.side !== 'player') return;
+    if (targetUnit && targetUnit.side !== 'player') { board3D.refresh(); return; }
 
     board.removeUnit(unit);
     if (targetUnit) {
@@ -1621,7 +1621,11 @@ export async function mount(container, params = {}) {
         </div>`;
 
     } else {
-      // draw / timeout — aucun damage à afficher
+      // draw / timeout — show breakdown for both sides
+      const playerTotal = _breakdownTotal('player', playerSurvivorsAtk, damageMultiplierBonus);
+      const playerBody  = _breakdownBodyHtml('player', playerSurvivorsAtk, playerSurvivors, damageMultiplierBonus, true);
+      const enemyTotal  = _breakdownTotal('enemy', enemySurvivorsAtk, 0);
+      const enemyBody   = _breakdownBodyHtml('enemy', enemySurvivorsAtk, enemySurvivors, 0, false);
       panelHtml = `
         <div class="end-round-panel">
           <div class="end-round-bg end-round-bg--draw"></div>
@@ -1638,12 +1642,28 @@ export async function mount(container, params = {}) {
                 <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
               </div>
               <span class="end-round-vs">VS</span>
-              <div class="end-round-hp-pill end-round-hp-pill--enemy-dim">
-                <span class="end-round-hp-val end-round-hp-val--enemy-dim">${gameState.enemy_hp}</span>
-                <span class="end-round-hp-lbl end-round-hp-lbl--enemy-dim">PV</span>
-                <span class="end-round-hp-dot end-round-hp-dot--enemy-dim"></span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy">
+                <span class="end-round-hp-val end-round-hp-val--enemy">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy"></span>
               </div>
             </div>
+            <details class="end-round-breakdown end-round-breakdown--victory">
+              <summary>
+                <div class="end-round-bd-chevron">${_CHEVRON_SVG('#7fe6b6')}</div>
+                <span class="end-round-bd-label">Détail joueur</span>
+                <span class="end-round-bd-badge end-round-bd-badge--victory">${playerTotal} PV</span>
+              </summary>
+              ${playerBody}
+            </details>
+            <details class="end-round-breakdown end-round-breakdown--defeat">
+              <summary>
+                <div class="end-round-bd-chevron">${_CHEVRON_SVG('#a78bfa')}</div>
+                <span class="end-round-bd-label">Détail adversaire</span>
+                <span class="end-round-bd-badge end-round-bd-badge--defeat">${enemyTotal} PV</span>
+              </summary>
+              ${enemyBody}
+            </details>
             <button class="end-round-btn" id="btn-next">
               <div class="end-round-btn-shine"></div>
               <span class="end-round-btn-label">${btnLabel}</span>

@@ -74,6 +74,12 @@ export function applyEffect(magie, { gameState = null, targetUnit = null } = {})
       if (targetUnit) {
         targetUnit.is_neutralized = false;
         targetUnit._deathEmitted = false;
+        targetUnit.dot_effects = [];
+        targetUnit.burn_stacks = [];
+        targetUnit.paralysis_remaining = 0;
+        targetUnit.attack_speed_modifier = 0;
+        targetUnit.is_power_blocked = false;
+        targetUnit.power_block_remaining = 0;
         targetUnit.current_hp = Math.max(1, Math.round(targetUnit.max_hp * (e.value / 100)));
       }
       break;
