@@ -720,10 +720,10 @@ export async function mount(container, params = {}) {
     if (gameState.phase !== Phase.PREPARATION) return;
     if (unit.side !== 'player') return;
     if (toPos.col === fromPos.col && toPos.row === fromPos.row) return;
-    if (!board.isPlayerCell(toPos)) { board3D.refresh(); return; }
+    if (!board.isPlayerCell(toPos)) { board3D.animateUnitMove(unit.uid, fromPos, 0.15); return; }
 
     const targetUnit = board.getUnit(toPos);
-    if (targetUnit && targetUnit.side !== 'player') { board3D.refresh(); return; }
+    if (targetUnit && targetUnit.side !== 'player') { board3D.animateUnitMove(unit.uid, fromPos, 0.15); return; }
 
     board.removeUnit(unit);
     if (targetUnit) {

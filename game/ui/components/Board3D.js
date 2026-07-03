@@ -1450,6 +1450,7 @@ export class Board3D {
       const dx = e.clientX - state.startX;
       const dy = e.clientY - state.startY;
       if (!state.dragging && state.entry && Math.hypot(dx, dy) > 10) {
+        if (this._combatMode) return;
         state.dragging = true;
         if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
       }
