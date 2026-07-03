@@ -1476,7 +1476,10 @@ export class Board3D {
         return;
       }
       if (state.entry) {
-        this.onUnitTap(state.entry.unit, state.cell);
+        const screen = this.worldToScreen(state.entry.obj.position.clone());
+        const top = screen.y - CARD_PX / 2;
+        const rect = { left: screen.x - CARD_PX / 2, top, bottom: top + CARD_PX, width: CARD_PX, height: CARD_PX };
+        this.onUnitTap(state.entry.unit, state.cell, rect);
         return;
       }
       this.onCellTap(state.cell);

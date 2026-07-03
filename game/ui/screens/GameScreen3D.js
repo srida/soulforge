@@ -625,13 +625,18 @@ export async function mount(container, params = {}) {
     }
   }
 
-  function handleUnitTap(unit, pos) {
+  function handleUnitTap(unit, pos, rect) {
     if (_summonOptionMenuEl) return;
-    Tooltip.hide();
     if (_shoppingUnitCallback) {
+      Tooltip.hide();
       if (unit.side === 'player') _shoppingUnitCallback(unit);
       return;
     }
+    if (gameState.phase !== Phase.PREPARATION) {
+      Tooltip.showAtRect(Tooltip.unitHtml(unit, PowerDatabase, AttributeDatabase, CardDatabase), rect);
+      return;
+    }
+    Tooltip.hide();
     if (unit.side !== 'player') return;
 
     // Material selection mode: a card requiring board materials is selected
