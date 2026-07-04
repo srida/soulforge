@@ -159,13 +159,13 @@ export async function mount(container, params = {}) {
   // ── Tags ──────────────────────────────────────────────────────────────────
   function computeTags() {
     const all = [1,2,3,4,5].flatMap(t => deckData[t]);
+    const n = all.length;
+
+    // Attribute tags (up to 2)
     const attrCounts = {};
     for (const card of all)
       for (const id of (card.attributes ?? []))
         attrCounts[id] = (attrCounts[id] || 0) + 1;
-
-    const tierCounts = {};
-    for (const card of all) tierCounts[card.tier] = (tierCounts[card.tier] || 0) + 1;
 
     const dominant = Object.entries(attrCounts)
       .filter(([,n]) => n >= 2)
@@ -174,10 +174,27 @@ export async function mount(container, params = {}) {
       .map(([id]) => AttributeDatabase.getAttribute(id)?.name ?? id);
 
     const tags = [...dominant];
-    const highTier = (tierCounts[4]||0) + (tierCounts[5]||0);
-    const lowTier  = (tierCounts[1]||0) + (tierCounts[2]||0);
-    if (highTier >= 2) tags.push('Agressif');
-    else if (lowTier >= 5) tags.push('Contrôle');
+
+    // Style tag (1 max) — range > ATK > movement priority
+    if (n > 0) {
+      const meleeCount = all.filter(c => (c.stats?.range ?? 1) === 1).length;
+      const meleeRatio = meleeCount / n;
+      if (meleeRatio >= 0.65) {
+        tags.push('Mêlée');
+      } else if (meleeRatio <= 0.35) {
+        tags.push('Distance');
+      } else {
+        const brutalCount = all.filter(c => (c.stats?.atk ?? 0) > 28).length;
+        const avgAtk = all.reduce((s, c) => s + (c.stats?.atk ?? 0), 0) / n;
+        if (brutalCount >= 2) tags.push('Brutal');
+        else if (avgAtk > 22) tags.push('Offensif');
+        else {
+          const mobileCount = all.filter(c => (c.stats?.movement_speed ?? 0) >= 15).length;
+          if (mobileCount / n >= 0.3) tags.push('Mobile');
+        }
+      }
+    }
+
     return tags.slice(0, 3);
   }
 
