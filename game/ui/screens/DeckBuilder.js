@@ -9,6 +9,7 @@ const DECK_COLORS = [
   '#7c5cff', '#e85a6e', '#46d39a', '#5fb4e8',
   '#e8a850', '#c084fc',
   '#facc15', '#f0f0f0', '#0f0f1a', '#92400e',
+  '#6b7280', '#1e3a5f', '#c9a876', '#166534',
 ];
 
 const DECK_MIN = 20;

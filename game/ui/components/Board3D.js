@@ -497,7 +497,7 @@ export class Board3D {
     const glowColor = 0xe8c8ff;
 
     const group = new THREE.Group();
-    group.position.set(center.x, 0.05, center.z);
+    group.position.set(center.x, 0.55, center.z);
     this.scene.add(group);
 
     const ringDefs = [

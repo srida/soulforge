@@ -194,6 +194,7 @@ export class AttributeManager {
       guaranteed_draws: [], // { category, attribute }
       board_slot_bonus: 0,
       damage_multiplier_bonus: 0,
+      shopping_bonus: 0,
     };
 
     const attrIds = new Set(this.playerUnits.flatMap(u => u.attributes));
@@ -242,6 +243,9 @@ export class AttributeManager {
             break;
           case 'damage_multiplier_bonus':
             result.damage_multiplier_bonus += effect.value;
+            break;
+          case 'shopping_bonus':
+            result.shopping_bonus = Math.min(result.shopping_bonus + (effect.value ?? 1), effect.max ?? Infinity);
             break;
         }
       }

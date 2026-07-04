@@ -1381,7 +1381,9 @@ export async function mount(container, params = {}) {
   const SHOPPING_DURATION_S = 15;
 
   function _startShopping(winner) {
-    const offered = MagieDatabase.getRandomMagies(3);
+    const shoppingCount = 3 + (gameState.player_extra_shopping_magies || 0);
+    gameState.player_extra_shopping_magies = 0;
+    const offered = MagieDatabase.getRandomMagies(shoppingCount);
     if (!offered.length) { gameState.nextRound(); startPreparation(); return; }
 
     const overlay = document.createElement('div');
@@ -1407,7 +1409,7 @@ export async function mount(container, params = {}) {
             </svg>
             <span class="shopping-timer-num" id="shopping-timer-num">${SHOPPING_DURATION_S}<span>s</span></span>
           </div>
-          <div class="shopping-magies-row">
+          <div class="shopping-magies-row" style="grid-template-columns:repeat(${Math.min(offered.length, 4)},1fr)">
             ${offered.map((m, i) => `
               <div class="shopping-magie-card" data-idx="${i}">
                 <div class="shopping-magie-card-hover"></div>

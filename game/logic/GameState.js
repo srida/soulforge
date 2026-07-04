@@ -33,6 +33,7 @@ export class GameState {
     this.player_extra_draws = 0;   // accumulated draw_bonus
     this.player_guaranteed_draws = []; // [{ category, attribute }]
     this.player_hand_modifiers = []; // [{ type, value? }] applied to drawn cards
+    this.player_extra_shopping_magies = 0; // accumulated shopping_bonus
   }
 
   // ── Phase transitions ──
@@ -84,6 +85,9 @@ export class GameState {
     }
     if (attributeResult.guaranteed_draws?.length) {
       this.player_guaranteed_draws.push(...attributeResult.guaranteed_draws);
+    }
+    if (attributeResult.shopping_bonus) {
+      this.player_extra_shopping_magies += attributeResult.shopping_bonus;
     }
   }
 
