@@ -63,14 +63,13 @@ export class GameState {
   applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult = {}) {
     this.phase = Phase.END_ROUND;
 
-    if (winner === 'player' || winner === 'timeout') {
+    if (winner === 'player' || winner === 'timeout' || winner === 'draw') {
       const mult = this.player_multiplier + (attributeResult.damage_multiplier_bonus || 0);
       this.enemy_hp -= Math.round(playerSurvivorsAtk * mult);
     }
-    if (winner === 'enemy' || winner === 'timeout') {
+    if (winner === 'enemy' || winner === 'timeout' || winner === 'draw') {
       this.player_hp -= Math.round(enemySurvivorsAtk * this.enemy_multiplier);
     }
-    // draw: no damage
 
     // Clamp HP
     this.player_hp = Math.max(0, this.player_hp);

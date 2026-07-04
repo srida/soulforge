@@ -5,6 +5,7 @@ const SCREENS = {
   deck_builder:  () => import('./ui/screens/DeckBuilder.js'),
   testbench3d:   () => import('./ui/screens/TestBench3D.js'),
   game3d:        () => import('./ui/screens/GameScreen3D.js'),
+  tournament:    () => import('./ui/screens/TournamentScreen.js'),
 };
 
 const container = document.getElementById('screen');

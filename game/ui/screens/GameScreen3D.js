@@ -50,7 +50,9 @@ export async function mount(container, params = {}) {
   if (!rawDeck) { navigate('deck_selector'); return; }
 
   const enemyDeckName = params.enemyDeckName;
-  const rawEnemyDeck  = (enemyDeckName && DeckRepository.loadDeck(enemyDeckName)) || rawDeck;
+  const rawEnemyDeck  = params.enemyDeckRaw
+    || (enemyDeckName && DeckRepository.loadDeck(enemyDeckName))
+    || rawDeck;
 
   // Precompute per-tier card arrays from the deck
   const cardsByTier = {};
@@ -580,20 +582,115 @@ export async function mount(container, params = {}) {
     return { ...rest, summon_type: opt.summon_type, cost: opt.cost };
   }
 
-  const _SUMMON_TYPE_LABELS = { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Heritage', transformation: 'Transformation' };
+  const _TIER_EDGE = { 1:'#46d39a', 2:'#5fb4e8', 3:'#a78bfa', 4:'#e8a850', 5:'#e85a6e' };
+  const _TIER_INK  = { 1:'#7ef0c0', 2:'#9ad2f6', 3:'#cdbcff', 4:'#f0c48a', 5:'#f5a0ad' };
+
+  const _SUMMON_MODE_CFG = {
+    normal:         { label:'Normal',         color:'#5fb4e8', glow:'rgba(95,180,232,.5)',  chipBg:'rgba(95,180,232,.12)',  bd:'rgba(95,180,232,.45)',  rowBd:'rgba(95,180,232,.35)',  iconPath:'M12 5v14 M5 12h14' },
+    sacrifice:      { label:'Sacrifice',      color:'#e85a6e', glow:'rgba(232,90,110,.5)',  chipBg:'rgba(232,90,110,.12)',  bd:'rgba(232,90,110,.45)',  rowBd:'rgba(232,90,110,.35)',  iconPath:'M12 2c-1.5 3-5 5-5 9a7 7 0 0 0 14 0c0-4-3.5-6-5-9 M12 21v-3 M9.5 17l2.5-3 2.5 3' },
+    fusion:         { label:'Fusion',         color:'#a78bfa', glow:'rgba(167,139,250,.5)', chipBg:'rgba(167,139,250,.12)', bd:'rgba(167,139,250,.45)', rowBd:'rgba(167,139,250,.3)',  iconPath:'M8 3H5a2 2 0 0 0-2 2v3 M21 8V5a2 2 0 0 0-2-2h-3 M3 16v3a2 2 0 0 0 2 2h3 M16 21h3a2 2 0 0 0 2-2v-3' },
+    heritage:       { label:'Héritage',       color:'#e8b25a', glow:'rgba(232,178,90,.5)',  chipBg:'rgba(232,178,90,.14)',  bd:'rgba(232,178,90,.45)',  rowBd:'rgba(232,178,90,.45)',  iconPath:'M4 19h16 M4 19V9l4 3.5L12 5l4 7.5L20 9v10' },
+    transformation: { label:'Transformation', color:'#a78bfa', glow:'rgba(167,139,250,.5)', chipBg:'rgba(167,139,250,.12)', bd:'rgba(167,139,250,.45)', rowBd:'rgba(167,139,250,.3)',  iconPath:'M20 11a8 8 0 1 0-1.6 5 M20 5v5h-5' },
+  };
+
+  function _summonPrereqText(summon_type, cost) {
+    if (summon_type === 'normal') return 'Placement direct';
+    if (summon_type === 'sacrifice') {
+      const n = cost?.sacrifice ?? 0;
+      return `Sacrifie ${n} unité${n > 1 ? 's' : ''}`;
+    }
+    if (summon_type === 'fusion') {
+      const mats = cost?.materials ?? [];
+      if (!mats.length) return 'Sans matériaux';
+      return mats.map(id => CardDatabase.getCard(id)?.name ?? id).join(' + ');
+    }
+    if (summon_type === 'heritage') {
+      const mats = cost?.materials ?? [];
+      const sac  = cost?.sacrifice ?? 0;
+      const parts = [];
+      if (mats.length) parts.push(mats.map(id => CardDatabase.getCard(id)?.name ?? id).join(' + '));
+      if (sac) parts.push(`+ ${sac} sacrifice${sac > 1 ? 's' : ''}`);
+      return parts.join(' ') || 'Aucun prérequis';
+    }
+    if (summon_type === 'transformation') {
+      const targetId = cost?.materials?.[0];
+      return 'Transforme ' + (targetId ? (CardDatabase.getCard(targetId)?.name ?? targetId) : '?');
+    }
+    return '';
+  }
 
   function _openSummonOptionMenu(card, options) {
-    const menu = document.createElement('div');
-    menu.className = 'summon-option-banner';
-    menu.innerHTML = `
-      <div class="summon-option-title">${card.name} — Choisissez le mode d'invocation</div>
-      <div class="summon-option-pills">
-        ${options.map(o => `<button type="button" class="summon-option-pill" data-idx="${o.index}">${_SUMMON_TYPE_LABELS[o.summon_type] || o.summon_type}</button>`).join('')}
-      </div>
-    `;
-    container.appendChild(menu);
-    _summonOptionMenuEl = menu;
-    menu.querySelectorAll('.summon-option-pill').forEach(btn => {
+    const tier = card.tier ?? 2;
+    const edge = _TIER_EDGE[tier] ?? '#a78bfa';
+    const ink  = _TIER_INK[tier]  ?? '#cdbcff';
+
+    const thumbImg = card._has_illustration
+      ? `<img src="/illustrations/${card.id}" alt="">`
+      : '';
+
+    const rowsHtml = options.map(o => {
+      const cfg    = _SUMMON_MODE_CFG[o.summon_type] ?? _SUMMON_MODE_CFG.normal;
+      const prereq = _summonPrereqText(o.summon_type, o.cost);
+      return `
+        <button type="button" class="si-row" data-idx="${o.index}"
+                style="border-color:${cfg.rowBd};">
+          <span class="si-row-icon"
+                style="background:${cfg.chipBg}; border-color:${cfg.bd}; box-shadow:0 0 18px -6px ${cfg.glow};">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                 stroke="${cfg.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="${cfg.iconPath}"></path>
+            </svg>
+          </span>
+          <div class="si-row-body">
+            <div class="si-row-name" style="color:${cfg.color};">${cfg.label}</div>
+          </div>
+          <span class="si-row-prereq">
+            <span class="si-row-tier" style="border-color:${edge}; color:${ink};">T${tier}</span>
+            <span class="si-row-prereq-text">${prereq}</span>
+          </span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+               stroke="${cfg.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               style="flex:none;">
+            <path d="M6 3l5 5-5 5"></path>
+          </svg>
+        </button>`;
+    }).join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'si-overlay';
+    overlay.innerHTML = `
+      <div class="si-modal">
+        <div class="si-modal-accent"></div>
+        <div class="si-modal-header">
+          <div class="si-modal-thumb" style="border-color:${edge};">
+            <div class="si-modal-thumb-tier" style="border-color:${edge}; color:${ink};">T${tier}</div>
+            ${thumbImg}
+          </div>
+          <div class="si-modal-header-text">
+            <div class="si-modal-header-label">CHOISISSEZ LE MODE D'INVOCATION</div>
+            <div class="si-modal-header-name">${card.name}</div>
+          </div>
+          <button type="button" class="si-modal-close" id="si-close">
+            <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <line x1="3" y1="3" x2="11" y2="11"></line>
+              <line x1="11" y1="3" x2="3" y2="11"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="si-modal-rows">${rowsHtml}</div>
+        <div class="si-modal-footer">
+          <button type="button" class="si-modal-cancel" id="si-cancel">Annuler l'invocation</button>
+        </div>
+      </div>`;
+
+    container.appendChild(overlay);
+    _summonOptionMenuEl = overlay;
+
+    overlay.querySelector('#si-close').addEventListener('pointerdown', e => { e.stopPropagation(); _closeSummonOptionMenu(); });
+    overlay.querySelector('#si-cancel').addEventListener('pointerdown', e => { e.stopPropagation(); _closeSummonOptionMenu(); });
+    overlay.addEventListener('pointerdown', e => { if (e.target === overlay) { e.stopPropagation(); _closeSummonOptionMenu(); } });
+
+    overlay.querySelectorAll('.si-row').forEach(btn => {
       btn.addEventListener('pointerdown', e => {
         e.stopPropagation();
         const idx = +btn.dataset.idx;
@@ -1632,13 +1729,13 @@ export async function mount(container, params = {}) {
       const enemyTotal  = _breakdownTotal('enemy', enemySurvivorsAtk, 0);
       const enemyBody   = _breakdownBodyHtml('enemy', enemySurvivorsAtk, enemySurvivors, 0, false);
       panelHtml = `
-        <div class="end-round-panel">
+        <div class="end-round-panel end-round-panel--draw">
           <div class="end-round-bg end-round-bg--draw"></div>
           <div class="end-round-accent end-round-accent--draw"></div>
           <div class="end-round-inner">
             <div class="end-round-header">
               <div class="end-round-icon end-round-icon--draw">⚖️</div>
-              <div class="end-round-title">ÉGALITÉ</div>
+              <div class="end-round-title end-round-title--draw">ÉGALITÉ DU ROUND</div>
             </div>
             <div class="end-round-hps">
               <div class="end-round-hp-pill end-round-hp-pill--player">
@@ -1646,7 +1743,7 @@ export async function mount(container, params = {}) {
                 <span class="end-round-hp-val end-round-hp-val--player">${gameState.player_hp}</span>
                 <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
               </div>
-              <span class="end-round-vs">VS</span>
+              <span class="end-round-vs end-round-vs--draw">=</span>
               <div class="end-round-hp-pill end-round-hp-pill--enemy">
                 <span class="end-round-hp-val end-round-hp-val--enemy">${gameState.enemy_hp}</span>
                 <span class="end-round-hp-lbl end-round-hp-lbl--enemy">PV</span>
@@ -1656,16 +1753,16 @@ export async function mount(container, params = {}) {
             <details class="end-round-breakdown end-round-breakdown--victory">
               <summary>
                 <div class="end-round-bd-chevron">${_CHEVRON_SVG('#7fe6b6')}</div>
-                <span class="end-round-bd-label">Détail joueur</span>
-                <span class="end-round-bd-badge end-round-bd-badge--victory">${playerTotal} PV</span>
+                <span class="end-round-bd-label">Vos survivants</span>
+                <span class="end-round-bd-badge end-round-bd-badge--victory">−${playerTotal} PV</span>
               </summary>
               ${playerBody}
             </details>
             <details class="end-round-breakdown end-round-breakdown--defeat">
               <summary>
-                <div class="end-round-bd-chevron">${_CHEVRON_SVG('#a78bfa')}</div>
-                <span class="end-round-bd-label">Détail adversaire</span>
-                <span class="end-round-bd-badge end-round-bd-badge--defeat">${enemyTotal} PV</span>
+                <div class="end-round-bd-chevron">${_CHEVRON_SVG('#f08296')}</div>
+                <span class="end-round-bd-label">Survivants ennemis</span>
+                <span class="end-round-bd-badge end-round-bd-badge--defeat">−${enemyTotal} PV</span>
               </summary>
               ${enemyBody}
             </details>
@@ -1695,6 +1792,7 @@ export async function mount(container, params = {}) {
   function _showGameOver() {
     _updateHUD();
     const winner = gameState.getWinner();
+    const menuBtnLabel = params.tournamentMatch ? 'RETOUR AU TOURNOI' : 'MENU PRINCIPAL';
 
     let panelHtml;
 
@@ -1725,7 +1823,7 @@ export async function mount(container, params = {}) {
             <button class="end-round-btn end-round-btn--gameover-victory" id="btn-menu">
               <div class="end-round-btn-shine"></div>
               ${_ARROW_LEFT}
-              <span class="end-round-btn-label">MENU PRINCIPAL</span>
+              <span class="end-round-btn-label">${menuBtnLabel}</span>
             </button>
           </div>
         </div>`;
@@ -1757,21 +1855,21 @@ export async function mount(container, params = {}) {
             <button class="end-round-btn end-round-btn--gameover-defeat" id="btn-menu">
               <div class="end-round-btn-shine"></div>
               ${_ARROW_LEFT}
-              <span class="end-round-btn-label">MENU PRINCIPAL</span>
+              <span class="end-round-btn-label">${menuBtnLabel}</span>
             </button>
           </div>
         </div>`;
 
     } else {
       panelHtml = `
-        <div class="end-round-panel">
-          <div class="end-round-bg end-round-bg--draw"></div>
-          <div class="end-round-accent end-round-accent--draw"></div>
+        <div class="end-round-panel end-round-panel--gameover-draw">
+          <div class="end-round-bg end-round-bg--gameover-draw"></div>
+          <div class="end-round-accent end-round-accent--gameover-draw"></div>
           <div class="end-round-inner end-round-inner--gameover">
             <div class="end-round-header">
               <div class="end-round-icon end-round-icon--draw end-round-icon--gameover">⚖️</div>
-              <div class="end-round-title end-round-title--gameover">ÉGALITÉ</div>
-              <div class="end-round-sub" style="color:#5d5878;">FIN DE PARTIE</div>
+              <div class="end-round-title end-round-title--draw end-round-title--gameover">ÉGALITÉ</div>
+              <div class="end-round-sub end-round-sub--draw">FIN DE PARTIE</div>
             </div>
             <div class="end-round-hps">
               <div class="end-round-hp-pill end-round-hp-pill--player end-round-hp-pill--gameover">
@@ -1779,17 +1877,17 @@ export async function mount(container, params = {}) {
                 <span class="end-round-hp-val end-round-hp-val--player end-round-hp-val--gameover">${gameState.player_hp}</span>
                 <span class="end-round-hp-lbl end-round-hp-lbl--player">PV</span>
               </div>
-              <span class="end-round-vs">VS</span>
-              <div class="end-round-hp-pill end-round-hp-pill--enemy-dim end-round-hp-pill--gameover">
-                <span class="end-round-hp-val end-round-hp-val--enemy-dim end-round-hp-val--gameover">${gameState.enemy_hp}</span>
-                <span class="end-round-hp-lbl end-round-hp-lbl--enemy-dim">PV</span>
-                <span class="end-round-hp-dot end-round-hp-dot--enemy-dim"></span>
+              <span class="end-round-vs end-round-vs--draw">=</span>
+              <div class="end-round-hp-pill end-round-hp-pill--enemy end-round-hp-pill--gameover">
+                <span class="end-round-hp-val end-round-hp-val--enemy end-round-hp-val--gameover">${gameState.enemy_hp}</span>
+                <span class="end-round-hp-lbl end-round-hp-lbl--enemy">PV</span>
+                <span class="end-round-hp-dot end-round-hp-dot--enemy"></span>
               </div>
             </div>
-            <button class="end-round-btn" id="btn-menu">
+            <button class="end-round-btn end-round-btn--gameover-draw" id="btn-menu">
               <div class="end-round-btn-shine"></div>
               ${_ARROW_LEFT}
-              <span class="end-round-btn-label">MENU PRINCIPAL</span>
+              <span class="end-round-btn-label">${menuBtnLabel}</span>
             </button>
           </div>
         </div>`;
@@ -1799,7 +1897,13 @@ export async function mount(container, params = {}) {
     overlay.className = 'end-round-overlay';
     overlay.innerHTML = panelHtml;
     container.appendChild(overlay);
-    overlay.querySelector('#btn-menu').addEventListener('click', () => navigate('main_menu'));
+    overlay.querySelector('#btn-menu').addEventListener('click', () => {
+      if (params.tournamentMatch) {
+        navigate('tournament', { resumeMatchId: params.tournamentMatch.id, gameWinner: winner });
+      } else {
+        navigate('main_menu');
+      }
+    });
   }
 
   // ── Events ───────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ export async function mount(container) {
       </div>
       <div class="main-menu-actions">
         <button class="btn main-menu-cta btn-full" id="btn-game3d">⚔ Jouer</button>
+        <button class="btn btn-secondary btn-full" id="btn-tournament">🏆 Mode Tournoi</button>
         <button class="btn btn-secondary btn-full" id="btn-testbench3d">TestBench (dev)</button>
         <button class="btn btn-secondary btn-full" id="btn-admin">Administration</button>
       </div>
@@ -21,6 +22,7 @@ export async function mount(container) {
 
   container.querySelector('#btn-testbench3d').addEventListener('click', () => navigate('testbench3d'));
   container.querySelector('#btn-game3d').addEventListener('click', () => navigate('deck_selector', { target: 'game3d' }));
+  container.querySelector('#btn-tournament').addEventListener('click', () => navigate('tournament'));
   container.querySelector('#btn-admin').addEventListener('click', () => { window.location.href = '/admin'; });
 
   const fsBtn = container.querySelector('#btn-fullscreen');

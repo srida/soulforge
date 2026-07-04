@@ -15,10 +15,12 @@ export class EnemyAI {
   /**
    * @param {Object} deck   - { "1": [cardId, ...], ..., "5": [...] }
    * @param {CardDatabase} cardDb - must already be initialised
+   * @param {'player'|'enemy'} side - which board side this AI plays (default 'enemy')
    */
-  constructor(deck, cardDb) {
+  constructor(deck, cardDb, side = 'enemy') {
     this._deck = deck;
     this._cardDb = cardDb;
+    this._side = side;
     this._hand = [];
   }
 
@@ -71,7 +73,7 @@ export class EnemyAI {
       );
 
       for (const card of sorted) {
-        const unit = _tryPlace(card, board, maxUnits, graveyard);
+        const unit = _tryPlace(card, board, maxUnits, graveyard, this._side);
         if (unit) placed.push(unit);
         else remaining.push(card);
       }
@@ -100,7 +102,7 @@ export class EnemyAI {
    * @param {number} maxUnits
    */
   rearrangeUnits(board, maxUnits = 5) {
-    const units = board.getLivingUnitsOnSide('enemy');
+    const units = board.getLivingUnitsOnSide(this._side);
     if (units.length === 0) return;
 
     for (const u of units) board.removeUnit(u);
@@ -118,17 +120,23 @@ export class EnemyAI {
     // Column order: centre-out so units are never bunched at one edge
     const COL = [2, 1, 3, 0, 4];
 
-    // Assign positions for a group: max 3 per row, then spill into next row.
-    // startRow: row 7 for melee (front), row 9 for ranged (or 8 if no melee).
+    // Front row = closest to the neutral zone (row 7 for enemy, row 3 for player).
+    // Enemy rows grow downward from the front (7→9); player rows grow upward (3→1).
+    const frontRow = this._side === 'player' ? 3 : 7;
+    const rowStep  = this._side === 'player' ? -1 : 1;
+    const meleeFrontRow  = frontRow;
+    const rangedFrontRow = melee.length > 0 ? frontRow + rowStep * 2 : frontRow + rowStep;
+
+    // Assign positions for a group: max 3 per row, then spill into the next row back.
     const assign = (group, startRow) =>
       group.map((u, i) => ({
         unit: u,
-        pos: { col: COL[i % 5], row: startRow + Math.floor(i / 3) },
+        pos: { col: COL[i % 5], row: startRow + rowStep * Math.floor(i / 3) },
       }));
 
     const placements = [
-      ...assign(melee, 7),
-      ...assign(ranged, melee.length > 0 ? 9 : 8),
+      ...assign(melee, meleeFrontRow),
+      ...assign(ranged, rangedFrontRow),
     ];
 
     for (const { unit, pos } of placements) {
@@ -154,29 +162,31 @@ export class EnemyAI {
  * graveyard is mutated in-place when units are consumed as materials.
  * Returns the placed Unit on success, null otherwise.
  */
-function _tryPlace(card, board, maxUnits, graveyard) {
+function _tryPlace(card, board, maxUnits, graveyard, side = 'enemy') {
   // Cards with multiple invocation options: prefer transformation, then try each in order
   if (Array.isArray(card.summon_options) && card.summon_options.length > 0) {
     const sorted = [...card.summon_options].sort((a, b) =>
       a.summon_type === 'transformation' ? -1 : b.summon_type === 'transformation' ? 1 : 0
     );
     for (const opt of sorted) {
-      const result = _tryPlace({ ...card, summon_type: opt.summon_type, cost: opt.cost }, board, maxUnits, graveyard);
+      const variant = { ...card, summon_type: opt.summon_type, cost: opt.cost };
+      delete variant.summon_options; // avoid re-entering this branch → infinite recursion
+      const result = _tryPlace(variant, board, maxUnits, graveyard, side);
       if (result) return result;
     }
     return null;
   }
 
-  const onBoard = board.getLivingUnitsOnSide('enemy').length;
+  const onBoard = board.getLivingUnitsOnSide(side).length;
 
   switch (card.summon_type) {
     case 'normal': {
       if (onBoard >= maxUnits) return null;
       // Pas de doublon (même card_id) sur le terrain, comme pour le joueur
-      if (board.getLivingUnitsOnSide('enemy').some(u => u.card_id === card.id)) return null;
-      const cells = _freeCells(board);
+      if (board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id)) return null;
+      const cells = _freeCells(board, side);
       if (cells.length === 0) return null;
-      const unit = new Unit(card, 'enemy');
+      const unit = new Unit(card, side);
       board.placeUnit(unit, cells[0]);
       return unit;
     }
@@ -185,13 +195,13 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       const needed = card.cost?.sacrifice ?? 0;
       if (needed === 0) {
         if (onBoard >= maxUnits) return null;
-        const cells = _freeCells(board);
+        const cells = _freeCells(board, side);
         if (cells.length === 0) return null;
-        const unit = new Unit(card, 'enemy');
+        const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
         return unit;
       }
-      const boardUnits = board.getLivingUnitsOnSide('enemy');
+      const boardUnits = board.getLivingUnitsOnSide(side);
       if (boardUnits.length + graveyard.length < needed) return null;
       // If the result card is already on board, that unit must be consumed as a sacrifice material
       const duplicate = boardUnits.find(u => u.card_id === card.id);
@@ -211,8 +221,8 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       if (onBoard - fromBoard.length + 1 > maxUnits) return null;
       graveyard.splice(0, fromGraveCount);
       for (const u of fromBoard) board.removeUnit(u);
-      const unit = new Unit(card, 'enemy');
-      board.placeUnit(unit, _freeCells(board)[0]);
+      const unit = new Unit(card, side);
+      board.placeUnit(unit, _freeCells(board, side)[0]);
       return unit;
     }
 
@@ -220,14 +230,14 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       const materials = card.cost?.materials ?? [];
       if (materials.length === 0) {
         if (onBoard >= maxUnits) return null;
-        const cells = _freeCells(board);
+        const cells = _freeCells(board, side);
         if (cells.length === 0) return null;
-        const unit = new Unit(card, 'enemy');
+        const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
         return unit;
       }
       // Find each required material on board first, then in graveyard
-      const boardPool = [...board.getLivingUnitsOnSide('enemy')];
+      const boardPool = [...board.getLivingUnitsOnSide(side)];
       const gravePool = [...graveyard];
       const usedBoard = [];
       const usedGrave = [];
@@ -253,8 +263,8 @@ function _tryPlace(card, board, maxUnits, graveyard) {
         const gi = graveyard.indexOf(u);
         if (gi !== -1) graveyard.splice(gi, 1);
       }
-      const unit = new Unit(card, 'enemy');
-      board.placeUnit(unit, _freeCells(board)[0]);
+      const unit = new Unit(card, side);
+      board.placeUnit(unit, _freeCells(board, side)[0]);
       return unit;
     }
 
@@ -263,13 +273,13 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       const sacrifice = card.cost?.sacrifice ?? 0;
       if (sacrifice === 0 && required.length === 0) {
         if (onBoard >= maxUnits) return null;
-        const cells = _freeCells(board);
+        const cells = _freeCells(board, side);
         if (cells.length === 0) return null;
-        const unit = new Unit(card, 'enemy');
+        const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
         return unit;
       }
-      const boardPool = [...board.getLivingUnitsOnSide('enemy')];
+      const boardPool = [...board.getLivingUnitsOnSide(side)];
       const gravePool = [...graveyard];
       if (boardPool.length + gravePool.length < sacrifice) return null;
 
@@ -311,8 +321,8 @@ function _tryPlace(card, board, maxUnits, graveyard) {
         const gi = graveyard.indexOf(u);
         if (gi !== -1) graveyard.splice(gi, 1);
       }
-      const unit = new Unit(card, 'enemy');
-      board.placeUnit(unit, _freeCells(board)[0]);
+      const unit = new Unit(card, side);
+      board.placeUnit(unit, _freeCells(board, side)[0]);
       return unit;
     }
 
@@ -320,7 +330,7 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       const targetId = card.cost?.materials?.[0];
       if (!targetId) return null;
 
-      const boardUnits = board.getLivingUnitsOnSide('enemy');
+      const boardUnits = board.getLivingUnitsOnSide(side);
       // If result already on board, that copy must be consumed as the transformation material.
       // If it doesn't match targetId, the transformation would create a duplicate — invalid.
       const existingResult = boardUnits.find(u => u.card_id === card.id);
@@ -328,7 +338,7 @@ function _tryPlace(card, board, maxUnits, graveyard) {
         if (!materialLineageMatches(existingResult, targetId, [targetId])) return null;
         const pos = { ...existingResult.position };
         board.removeUnit(existingResult);
-        const unit = new Unit(card, 'enemy');
+        const unit = new Unit(card, side);
         board.placeUnit(unit, pos);
         return unit;
       }
@@ -338,7 +348,7 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       if (boardTarget) {
         const pos = { ...boardTarget.position };
         board.removeUnit(boardTarget);
-        const unit = new Unit(card, 'enemy');
+        const unit = new Unit(card, side);
         board.placeUnit(unit, pos);
         return unit;
       }
@@ -347,10 +357,10 @@ function _tryPlace(card, board, maxUnits, graveyard) {
       const graveIdx = graveyard.findIndex(u => materialLineageMatches(u, targetId, [targetId]));
       if (graveIdx !== -1) {
         if (onBoard >= maxUnits) return null;
-        const cells = _freeCells(board);
+        const cells = _freeCells(board, side);
         if (cells.length === 0) return null;
         graveyard.splice(graveIdx, 1);
-        const unit = new Unit(card, 'enemy');
+        const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
         return unit;
       }
@@ -369,9 +379,10 @@ function _summonPriority(card) {
   return order[card.summon_type] ?? 5;
 }
 
-function _freeCells(board) {
+function _freeCells(board, side = 'enemy') {
+  const [rowStart, rowEnd] = side === 'player' ? [0, 3] : [7, 10];
   const cells = [];
-  for (let row = 7; row <= 10; row++)
+  for (let row = rowStart; row <= rowEnd; row++)
     for (let col = 0; col < 5; col++)
       if (!board.isOccupied({ col, row })) cells.push({ col, row });
   return cells;

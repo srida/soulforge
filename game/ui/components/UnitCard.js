@@ -149,7 +149,7 @@ function _updateVet(el, unit) {
   const pts = unit.veterancy_points ?? 0;
   if (pts >= 2) {
     vet.style.display = 'flex';
-    vet.textContent = `⭐ ${pts}`;
+    vet.innerHTML = `<div class="unit-vet-inner"><svg width="62%" height="62%" viewBox="0 0 24 24" fill="none" stroke="#f6da82" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l7-6 7 6"/><path d="M5 18l7-6 7 6"/></svg><span class="unit-vet-count">${Math.round(pts)}</span></div>`;
   } else {
     vet.style.display = 'none';
   }

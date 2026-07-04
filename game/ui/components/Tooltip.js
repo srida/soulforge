@@ -273,7 +273,8 @@ function _shoppingBonusRow(unit) {
 function _veterancyRow(unit) {
   const pts = unit.veterancy_points ?? 0;
   if (pts < VETERANCY_THRESHOLD) return '';
-  return _infoRow(`⭐ Vétéran (${pts}) : +${pts * VETERANCY_ATK_PER_POINT} ATK / +${pts * VETERANCY_HP_PER_POINT} HP`, '#f0c87a');
+  const icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f6da82" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;flex-shrink:0"><path d="M5 13l7-6 7 6"/><path d="M5 18l7-6 7 6"/></svg>`;
+  return _infoRow(`${icon}Vétéran (${pts}) : +${pts * VETERANCY_ATK_PER_POINT} ATK / +${pts * VETERANCY_HP_PER_POINT} HP`, '#f0c87a');
 }
 
 // ── Public: attribute synergy tooltip ─────────────────────────────────────────
