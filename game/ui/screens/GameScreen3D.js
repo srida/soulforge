@@ -1295,12 +1295,16 @@ export async function mount(container, params = {}) {
         u.initial_position &&
         (u.position.col !== u.initial_position.col || u.position.row !== u.initial_position.row)
       );
+      console.log('[DEBUG reposition] enemy toReposition:', toReposition.map(u => `${u.name}(${u.uid}) pos=${JSON.stringify(u.position)} → init=${JSON.stringify(u.initial_position)}`));
       for (const u of toReposition) board.removeUnit(u);
       for (const u of toReposition) {
         // initial_position can be occupied by another survivor that drifted there
         // during combat — fall back to any free enemy cell rather than losing the unit.
         const dest = !board.isOccupied(u.initial_position) ? u.initial_position : board.firstEmptyEnemyCell();
+        const occupant = dest ? board.grid[dest.col]?.[dest.row] : null;
+        if (occupant) console.warn('[DEBUG reposition] enemy COLLISION — dest', JSON.stringify(dest), 'occupé par', occupant.name, occupant.uid, '— moveUnit va écraser');
         if (dest) board.moveUnit(u, dest);
+        else console.warn('[DEBUG reposition] enemy NO DEST for', u.name, u.uid);
       }
     }
 
@@ -1336,12 +1340,16 @@ export async function mount(container, params = {}) {
         u.initial_position &&
         (u.position.col !== u.initial_position.col || u.position.row !== u.initial_position.row)
       );
+      console.log('[DEBUG reposition] player toReposition:', toReposition.map(u => `${u.name}(${u.uid}) pos=${JSON.stringify(u.position)} → init=${JSON.stringify(u.initial_position)}`));
       for (const u of toReposition) board.removeUnit(u);
       for (const u of toReposition) {
         // initial_position can be occupied by another survivor that drifted there
         // during combat — fall back to any free player cell rather than losing the unit.
         const dest = !board.isOccupied(u.initial_position) ? u.initial_position : board.firstEmptyPlayerCell();
+        const occupant = dest ? board.grid[dest.col]?.[dest.row] : null;
+        if (occupant) console.warn('[DEBUG reposition] player COLLISION — dest', JSON.stringify(dest), 'occupé par', occupant.name, occupant.uid, '— moveUnit va écraser');
         if (dest) board.moveUnit(u, dest);
+        else console.warn('[DEBUG reposition] player NO DEST for', u.name, u.uid);
       }
     }
 
