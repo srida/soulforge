@@ -183,7 +183,10 @@ export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
   }
   if (card.summon_type === 'sacrifice') {
     const needed = card.cost?.sacrifice ?? 0;
-    if (needed === 0) return hasEmptyPlayerCell(board);
+    if (needed === 0) {
+      if (board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id)) return false; // doublon pour sacrifice gratuit
+      return hasEmptyPlayerCell(board);
+    }
     return sumMaterialValue(board.getLivingUnitsOnSide('player')) + sumMaterialValue(graveyard) >= needed;
   }
   if (card.summon_type === 'fusion') {

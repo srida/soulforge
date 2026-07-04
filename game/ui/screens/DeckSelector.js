@@ -23,9 +23,13 @@ function deckCard(opts) {
   const letter = esc(name[0].toUpperCase());
   const count  = countCards(name);
   const deckColor = DeckRepository.getDeckColor?.(name);
+  const deckTags  = DeckRepository.getDeckTags?.(name) ?? [];
   const avatarStyle = deckColor
     ? `style="background:linear-gradient(135deg,${deckColor},${deckColor}99)"`
     : `data-av="${av}"`;
+  const tagsHtml = deckTags.length
+    ? `<span class="ds-deck-tags">${deckTags.map(t => `<span class="ds-deck-tag">${esc(t)}</span>`).join('')}</span>`
+    : '';
   return `
     <div class="ds-card${isSelected ? ' selected' : ''}" ${dataAttr}>
       <div class="ds-card-sheen"></div>
@@ -37,7 +41,7 @@ function deckCard(opts) {
             <span class="ds-card-name">${esc(name)}</span>
             ${isActive ? '<span class="ds-badge-active">ACTIF</span>' : ''}
           </div>
-          <div class="ds-card-meta">${count} cartes</div>
+          <div class="ds-card-meta">${count} cartes${tagsHtml}</div>
         </div>
         ${showActions ? `
         <div class="ds-card-actions">

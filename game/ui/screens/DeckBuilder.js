@@ -376,6 +376,7 @@ export async function mount(container, params = {}) {
     if (editName && editName !== name && DeckRepository.deckExists(editName)) DeckRepository.deleteDeck(editName);
     DeckRepository.saveDeck(name, toSave);
     if (deckColor) DeckRepository.setDeckColor(name, deckColor);
+    DeckRepository.setDeckTags(name, computeTags());
     navigate('deck_selector');
   });
 

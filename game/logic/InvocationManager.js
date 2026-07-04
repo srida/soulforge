@@ -60,7 +60,12 @@ function _canSummonForType(card, type, cost, pos, board, hand, graveyard, select
 
     case 'sacrifice': {
       const needed = cost?.sacrifice ?? 0;
-      if (needed === 0) return ok();
+      if (needed === 0) {
+        // Sacrifice gratuit (coût réduit par magie) : même règle de doublon que l'invocation normale
+        if (board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id))
+          return fail('Cette carte est déjà présente sur le terrain');
+        return ok();
+      }
       // Si un doublon de la carte invoquée est déjà vivant sur le terrain, il doit être
       // sélectionné comme matériau (sinon on se retrouverait avec deux exemplaires vivants).
       const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);

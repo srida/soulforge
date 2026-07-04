@@ -73,17 +73,28 @@ function _renderSetup(container) {
             <div class="ds-empty-icon">🃏</div>
             <div class="ds-empty-text">Aucun deck sauvegardé</div>
             <div class="ds-empty-sub">Crée un deck avant de lancer un tournoi.</div>
-          </div>` : names.map(name => `
+          </div>` : names.map(name => {
+            const color = DeckRepository.getDeckColor?.(name);
+            const avatarStyle = color
+              ? `style="background:linear-gradient(135deg,${color},${color}99)"`
+              : 'data-av="0"';
+            const tags = DeckRepository.getDeckTags?.(name) ?? [];
+            const tagsHtml = tags.length
+              ? `<div class="ds-card-meta" style="margin-top:4px;"><span class="ds-deck-tags">${tags.map(t => `<span class="ds-deck-tag">${_esc(t)}</span>`).join('')}</span></div>`
+              : '';
+            return `
           <div class="ds-card${name === selected ? ' selected' : ''}" data-name="${_esc(name)}">
             <div class="ds-card-sheen"></div>
             <div class="ds-accent-bar"></div>
             <div class="ds-card-inner">
-              <div class="ds-avatar" data-av="0">${_esc(name[0]?.toUpperCase() || '?')}</div>
+              <div class="ds-avatar" ${avatarStyle}>${_esc(name[0]?.toUpperCase() || '?')}</div>
               <div class="ds-card-body">
                 <div class="ds-card-title"><span class="ds-card-name">${_esc(name)}</span></div>
+                ${tagsHtml}
               </div>
             </div>
-          </div>`).join('')}
+          </div>`;
+          }).join('')}
       </div>
       <div class="ds-footer">
         <button class="ds-cta" id="btn-start" ${selected ? '' : 'disabled'}>
@@ -128,18 +139,24 @@ function _renderBracket(container, deps) {
         </div>
       ` : _tournament.rounds.map((r, i) => _roundHtml(r, i)).join('')}
     </div>
-    <div class="ds-footer">
+    <div class="ds-footer" style="display:flex;flex-direction:column;gap:8px;">
       ${complete
         ? `<button class="ds-cta" id="btn-menu"><span>MENU PRINCIPAL</span></button>`
         : playerMatch
           ? `<button class="ds-cta" id="btn-play"><span>⚔ ${_drawNotice ? 'REJOUER LA MANCHE (égalité)' : 'JOUER MON MATCH'}</span></button>`
           : `<div class="ds-empty-sub" style="text-align:center;padding:8px;">Vous avez été éliminé du tournoi.</div>`
       }
+      ${!complete ? `<button class="ds-cta-secondary" id="btn-quit-tournament"><span>Quitter le tournoi</span></button>` : ''}
     </div>
   `;
 
   container.querySelector('#btn-back').addEventListener('click', () => navigate('main_menu'));
   container.querySelector('#btn-menu')?.addEventListener('click', () => { _tournament = null; navigate('main_menu'); });
+  container.querySelector('#btn-quit-tournament')?.addEventListener('click', () => {
+    if (!confirm('Quitter le tournoi en cours ?')) return;
+    _tournament = null;
+    navigate('main_menu');
+  });
   container.querySelector('#btn-play')?.addEventListener('click', () => {
     const match = playerMatch;
     const playerSlot = match.players.findIndex(p => p.isPlayer);

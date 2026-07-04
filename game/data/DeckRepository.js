@@ -39,6 +39,16 @@ export function setDeckColor(name, color) {
   saveMeta(meta);
 }
 
+export function getDeckTags(name) {
+  return loadMeta()[name]?.tags ?? [];
+}
+
+export function setDeckTags(name, tags) {
+  const meta = loadMeta();
+  meta[name] = { ...(meta[name] || {}), tags };
+  saveMeta(meta);
+}
+
 // Sauvegarde un deck. Structure : { "1": ["ID", ...], "2": [...], ... }
 export function saveDeck(name, deckData) {
   const decks = load();

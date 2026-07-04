@@ -474,6 +474,24 @@ body {
   margin-top: 4px;
   font: 600 11px var(--font-body);
   color: var(--sf-ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ds-deck-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ds-deck-tag {
+  padding: 1px 6px;
+  border-radius: var(--r-xs);
+  background: rgba(124,92,255,.18);
+  border: 1px solid rgba(124,92,255,.35);
+  font: 600 9px var(--font-display);
+  color: #c0a8ff;
+  letter-spacing: .05em;
 }
 
 .ds-card-actions {
@@ -545,6 +563,21 @@ body {
 }
 .ds-cta[disabled] { opacity: .35; pointer-events: none; }
 .ds-cta span { position: relative; }
+.ds-cta-secondary {
+  height: 40px;
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.18);
+  width: 100%;
+  font: 600 13px var(--font-display);
+  color: var(--sf-ink-muted);
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+.ds-cta-secondary:hover { background: rgba(255,255,255,.06); }
 .ds-cta-icon {
   position: relative;
   display: flex;
