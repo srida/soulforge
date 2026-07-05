@@ -1,8 +1,8 @@
-// Explorateur SQLite read-only pour le mode administration.
-// Monté sous /api/admin/db AVEC requireAuth (basic-auth admin) dans server.js —
-// indispensable car les GET sous /api sont publics par défaut.
+// Explorateur SQLite (+ une action d'écriture ciblée : promotion admin) pour
+// le mode administration. Monté sous /api/admin/db AVEC requireSiteAdmin dans
+// server.js — indispensable car les GET sous /api sont publics par défaut.
 const express = require('express');
-const { db } = require('../db');
+const { db, stmt } = require('../db');
 
 const router = express.Router();
 
@@ -57,6 +57,17 @@ router.get('/table/:name', (req, res) => {
     });
 
     res.json({ name, columns, rows, total, limit, offset });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Bascule le statut admin d'un compte joueur (permet de promouvoir le premier
+// admin depuis l'explorateur, une fois entré via la basic-auth du site).
+router.put('/users/:id/admin', (req, res) => {
+  try {
+    const isAdmin = !!req.body.is_admin;
+    const result = stmt.setUserAdmin.run(isAdmin ? 1 : 0, req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    res.json({ ok: true, is_admin: isAdmin });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

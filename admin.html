@@ -349,6 +349,9 @@ select.filter:focus { border-color: var(--accent); }
 .db-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
 .db-table tbody tr:hover { background: var(--surface2); }
 .db-null { color: var(--muted); font-style: italic; opacity: .6; }
+.db-admin-toggle { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; white-space: nowrap; }
+.db-admin-toggle:hover { border-color: var(--accent); color: var(--text); }
+.db-admin-toggle.is-admin { background: var(--accent); color: #fff; border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -658,10 +661,23 @@ async function openDbTable(name, offset) {
   catch (e) { if (view) view.innerHTML = `<div class="empty"><span>Erreur : ${esc(e.message)}</span></div>`; return; }
   if (data.error) { if (view) view.innerHTML = `<div class="empty"><span>Erreur : ${esc(data.error)}</span></div>`; return; }
 
-  const head = data.columns.map(c => `<th>${esc(c)}</th>`).join('');
+  const isUsers = name === 'users' && data.columns.includes('is_admin') && data.columns.includes('id');
+  const head = data.columns.map(c => `<th>${esc(c)}</th>`).join('') + (isUsers ? '<th>Admin</th>' : '');
+  const colCount = data.columns.length + (isUsers ? 1 : 0);
   const body = data.rows.length
-    ? data.rows.map(r => `<tr>${data.columns.map(c => `<td>${r[c] === null ? '<span class="db-null">NULL</span>' : esc(r[c])}</td>`).join('')}</tr>`).join('')
-    : `<tr><td colspan="${data.columns.length || 1}" style="text-align:center;color:var(--muted);padding:16px">Aucune ligne</td></tr>`;
+    ? data.rows.map(r => {
+        const cells = data.columns.map(c => `<td>${r[c] === null ? '<span class="db-null">NULL</span>' : esc(r[c])}</td>`).join('');
+        if (!isUsers) return `<tr>${cells}</tr>`;
+        const isAdminNow = r.is_admin === '1';
+        const actionCell = `<td>
+          <button class="db-admin-toggle${isAdminNow ? ' is-admin' : ''}"
+            onclick="toggleUserAdmin('${esc(r.id)}', ${!isAdminNow})">
+            ${isAdminNow ? '✓ Admin' : 'Promouvoir'}
+          </button>
+        </td>`;
+        return `<tr>${cells}${actionCell}</tr>`;
+      }).join('')
+    : `<tr><td colspan="${colCount || 1}" style="text-align:center;color:var(--muted);padding:16px">Aucune ligne</td></tr>`;
 
   const from = data.total ? offset + 1 : 0;
   const to = Math.min(offset + DB_PAGE, data.total);
@@ -680,6 +696,20 @@ async function openDbTable(name, offset) {
     <div class="db-table-scroll">
       <table class="db-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
     </div>`;
+}
+
+async function toggleUserAdmin(userId, nextIsAdmin) {
+  try {
+    const res = await fetch(`/api/admin/db/users/${encodeURIComponent(userId)}/admin`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_admin: nextIsAdmin }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) { toast(data.error || 'Erreur', 'err'); return; }
+    toast(nextIsAdmin ? 'Promu administrateur.' : 'Droits admin retirés.');
+    openDbTable('users', dbOffset);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 // ================== CARDS ==================

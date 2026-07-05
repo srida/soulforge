@@ -55,6 +55,14 @@ db.exec(`
   );
 `);
 
+// Ajout additif de colonne (ALTER TABLE ADD COLUMN échoue si déjà présente,
+// donc on vérifie via PRAGMA avant — CREATE TABLE IF NOT EXISTS ne suffit
+// pas pour les colonnes ajoutées après coup à une table existante).
+const userColumns = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+if (!userColumns.includes('is_admin')) {
+  db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+}
+
 // --- Prepared statements ---
 const stmt = {
   insertUser: db.prepare(`
@@ -65,6 +73,7 @@ const stmt = {
   userByEmail: db.prepare('SELECT * FROM users WHERE email = ?'),
   userByUsernameLc: db.prepare('SELECT * FROM users WHERE username_lc = ?'),
   updateProfile: db.prepare('UPDATE users SET username = @username, username_lc = @username_lc, avatar = @avatar WHERE id = @id'),
+  setUserAdmin: db.prepare('UPDATE users SET is_admin = ? WHERE id = ?'),
   searchUsers: db.prepare(`
     SELECT id, username, avatar FROM users
     WHERE username_lc LIKE ? AND id != ?

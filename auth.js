@@ -44,7 +44,10 @@ function destroySession(token) {
 // Retire les champs sensibles avant de renvoyer un user au client.
 function publicUser(u) {
   if (!u) return null;
-  return { id: u.id, email: u.email, username: u.username, avatar: u.avatar, created_at: u.created_at };
+  return {
+    id: u.id, email: u.email, username: u.username, avatar: u.avatar,
+    created_at: u.created_at, is_admin: !!u.is_admin,
+  };
 }
 
 // --- Cookies ---
@@ -96,6 +99,14 @@ function optionalUser(req, res, next) {
   next();
 }
 
+// Route réservée aux comptes marqués is_admin (indépendant de la basic-auth
+// admin de site, utilisée elle pour /admin et l'explorateur DB).
+function requireAppAdmin(req, res, next) {
+  const user = attachUser(req);
+  if (!user || !user.is_admin) return res.status(403).json({ error: 'Accès réservé aux administrateurs.' });
+  next();
+}
+
 // --- Rate limiting (mémoire, best-effort) ---
 const buckets = new Map();
 function rateLimit({ windowMs = 60_000, max = 10 } = {}) {
@@ -121,6 +132,7 @@ module.exports = {
   createSession, getSession, destroySession,
   publicUser,
   setSessionCookie, clearSessionCookie,
-  requireUser, optionalUser,
+  attachUser,
+  requireUser, optionalUser, requireAppAdmin,
   rateLimit,
 };

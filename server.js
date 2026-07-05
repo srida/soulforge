@@ -4,6 +4,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
+const auth = require('./auth');
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));
@@ -57,6 +58,15 @@ function requireAuth(req, res, next) {
   next();
 }
 
+// Accès admin : soit un compte joueur marqué is_admin (session cookie), soit
+// les identifiants basic-auth du site (ADMIN_USER/ADMIN_PASS, utilisés aussi
+// par les scripts type sync-data.js). L'un ou l'autre suffit.
+function requireSiteAdmin(req, res, next) {
+  const user = auth.attachUser(req);
+  if (user && user.is_admin) return next();
+  return requireAuth(req, res, next);
+}
+
 // Game modules (public, ES modules)
 app.use('/game', express.static(path.join(__dirname, 'game')));
 
@@ -64,7 +74,7 @@ app.use('/game', express.static(path.join(__dirname, 'game')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // Admin (protected)
-app.get('/admin', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/admin', requireSiteAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 // Illustrations public (game needs card art) — adds .png extension automatically
 app.get('/illustrations/:id', (req, res) => {
@@ -98,13 +108,13 @@ function illustrationChecksum(id) {
 // sous la protection admin.
 app.use('/api', require('./routes/online'));
 
-// Explorateur SQLite du mode admin — READ-ONLY, protégé par la basic-auth admin
-// (obligatoire : les GET sous /api sont publics par défaut).
-app.use('/api/admin/db', requireAuth, require('./routes/admin-db'));
+// Explorateur SQLite du mode admin — READ-ONLY, protégé (obligatoire : les
+// GET sous /api sont publics par défaut).
+app.use('/api/admin/db', requireSiteAdmin, require('./routes/admin-db'));
 
 // Protect write operations on /api (reads stay public for the game)
 app.use('/api', (req, res, next) => {
-  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) return requireAuth(req, res, next);
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) return requireSiteAdmin(req, res, next);
   next();
 });
 
@@ -354,7 +364,7 @@ app.get('/api/boards', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/boards', requireAuth, (req, res) => {
+app.post('/api/boards', requireSiteAdmin, (req, res) => {
   try {
     const boards = readJson(BOARDS_FILE);
     const board  = req.body;
@@ -366,7 +376,7 @@ app.post('/api/boards', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/boards/import', requireAuth, (req, res) => {
+app.post('/api/boards/import', requireSiteAdmin, (req, res) => {
   try {
     const { items, mode = 'skip' } = req.body;
     const boards = readJson(BOARDS_FILE);
@@ -385,7 +395,7 @@ app.post('/api/boards/import', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/boards/:id', requireAuth, (req, res) => {
+app.put('/api/boards/:id', requireSiteAdmin, (req, res) => {
   try {
     const boards = readJson(BOARDS_FILE);
     const idx = boards.findIndex(b => b.id === req.params.id);
@@ -396,7 +406,7 @@ app.put('/api/boards/:id', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/boards/:id', requireAuth, (req, res) => {
+app.delete('/api/boards/:id', requireSiteAdmin, (req, res) => {
   try {
     let boards = readJson(BOARDS_FILE);
     const idx = boards.findIndex(b => b.id === req.params.id);
@@ -407,7 +417,7 @@ app.delete('/api/boards/:id', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/boards/:id/illustration', requireAuth, async (req, res) => {
+app.post('/api/boards/:id/illustration', requireSiteAdmin, async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'url required' });
   const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
@@ -424,7 +434,7 @@ app.post('/api/boards/:id/illustration', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/boards/:id/illustration', requireAuth, (req, res) => {
+app.delete('/api/boards/:id/illustration', requireSiteAdmin, (req, res) => {
   const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -440,7 +450,7 @@ app.get('/api/magies', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/magies', requireAuth, (req, res) => {
+app.post('/api/magies', requireSiteAdmin, (req, res) => {
   try {
     const magies = readJson(MAGIES_FILE);
     const magie  = req.body;
@@ -453,7 +463,7 @@ app.post('/api/magies', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/magies/import', requireAuth, (req, res) => {
+app.post('/api/magies/import', requireSiteAdmin, (req, res) => {
   try {
     const { items, mode = 'skip' } = req.body;
     if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
@@ -477,7 +487,7 @@ app.post('/api/magies/import', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/magies/:id', requireAuth, (req, res) => {
+app.put('/api/magies/:id', requireSiteAdmin, (req, res) => {
   try {
     const magies = readJson(MAGIES_FILE);
     const idx = magies.findIndex(m => m.id === req.params.id);
@@ -490,7 +500,7 @@ app.put('/api/magies/:id', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/magies/:id', requireAuth, (req, res) => {
+app.delete('/api/magies/:id', requireSiteAdmin, (req, res) => {
   try {
     let magies = readJson(MAGIES_FILE);
     const idx = magies.findIndex(m => m.id === req.params.id);
@@ -501,7 +511,7 @@ app.delete('/api/magies/:id', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/magies/:id/illustration', requireAuth, async (req, res) => {
+app.post('/api/magies/:id/illustration', requireSiteAdmin, async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'url required' });
   const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
@@ -518,7 +528,7 @@ app.post('/api/magies/:id/illustration', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/magies/:id/illustration', requireAuth, (req, res) => {
+app.delete('/api/magies/:id/illustration', requireSiteAdmin, (req, res) => {
   const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -533,7 +543,7 @@ app.get('/api/decks', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/decks', requireAuth, (req, res) => {
+app.post('/api/decks', requireSiteAdmin, (req, res) => {
   try {
     const decks = readJson(PUBLIC_DECKS_FILE);
     const deck = req.body;
@@ -545,7 +555,7 @@ app.post('/api/decks', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/decks/import', requireAuth, (req, res) => {
+app.post('/api/decks/import', requireSiteAdmin, (req, res) => {
   try {
     const { items, mode = 'skip' } = req.body;
     if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
@@ -568,7 +578,7 @@ app.post('/api/decks/import', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/decks/:id', requireAuth, (req, res) => {
+app.put('/api/decks/:id', requireSiteAdmin, (req, res) => {
   try {
     const decks = readJson(PUBLIC_DECKS_FILE);
     const idx = decks.findIndex(d => d.id === req.params.id);
@@ -579,7 +589,7 @@ app.put('/api/decks/:id', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/decks/:id', requireAuth, (req, res) => {
+app.delete('/api/decks/:id', requireSiteAdmin, (req, res) => {
   try {
     let decks = readJson(PUBLIC_DECKS_FILE);
     const idx = decks.findIndex(d => d.id === req.params.id);

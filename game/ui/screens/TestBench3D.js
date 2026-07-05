@@ -1,4 +1,5 @@
 import { navigate } from '../../main.js';
+import * as AuthClient from '../../data/AuthClient.js';
 import * as CardDatabase from '../../data/CardDatabase.js';
 import * as PowerDatabase from '../../data/PowerDatabase.js';
 import * as AttributeDatabase from '../../data/AttributeDatabase.js';
@@ -26,6 +27,11 @@ export function unmount() {
 }
 
 export async function mount(container) {
+  // Réservé aux comptes admin (accès direct via ?screen=testbench3d sinon).
+  let user = AuthClient.getUser();
+  if (!user) { try { user = await AuthClient.me(); } catch { /* ignore */ } }
+  if (!user?.is_admin) { navigate('main_menu'); return; }
+
   await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init(), BoardDatabase.init()]);
 
   const board = new Board();
