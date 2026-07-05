@@ -100,7 +100,7 @@ export async function mount(container, params = {}) {
       try { await DeckRepository.flushSync(); } catch { /* ignore */ }
       try { await AuthClient.logout(); } catch { /* ignore */ }
       DeckRepository.handleLogout();
-      navigate('main_menu');
+      navigate('auth'); // connexion obligatoire → retour au login
     });
   }
 

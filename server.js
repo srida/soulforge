@@ -98,6 +98,10 @@ function illustrationChecksum(id) {
 // sous la protection admin.
 app.use('/api', require('./routes/online'));
 
+// Explorateur SQLite du mode admin — READ-ONLY, protégé par la basic-auth admin
+// (obligatoire : les GET sous /api sont publics par défaut).
+app.use('/api/admin/db', requireAuth, require('./routes/admin-db'));
+
 // Protect write operations on /api (reads stay public for the game)
 app.use('/api', (req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) return requireAuth(req, res, next);

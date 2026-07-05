@@ -15,9 +15,14 @@ export async function mount(container, params = {}) {
 
   function render() {
     const isLogin = mode === 'login';
+    // Connexion obligatoire : pas de retour possible tant qu'on n'est pas
+    // connecté (la page de login est l'entrée du jeu).
+    const canGoBack = AuthClient.isLoggedIn();
     container.innerHTML = `
       <div class="topbar">
-        <button class="topbar-back" id="btn-back">${BACK_SVG}</button>
+        ${canGoBack
+          ? `<button class="topbar-back" id="btn-back">${BACK_SVG}</button>`
+          : `<span style="width:var(--touch-target)"></span>`}
         <span class="topbar-title">${isLogin ? 'CONNEXION' : 'INSCRIPTION'}</span>
         <span style="width:var(--touch-target)"></span>
       </div>
@@ -61,7 +66,7 @@ export async function mount(container, params = {}) {
     const showError = (msg) => { errBox.textContent = msg; errBox.hidden = false; };
     const clearError = () => { errBox.hidden = true; };
 
-    container.querySelector('#btn-back').addEventListener('click', () => navigate('main_menu'));
+    container.querySelector('#btn-back')?.addEventListener('click', () => navigate('main_menu'));
     container.querySelectorAll('.auth-tab').forEach(tab => {
       tab.addEventListener('click', () => { mode = tab.dataset.mode; render(); });
     });

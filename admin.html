@@ -217,8 +217,9 @@ select.filter:focus { border-color: var(--accent); }
   .main.show-detail .sidebar  { transform: translateX(-105%); pointer-events: none; }
   .main.show-detail .content  { transform: translateX(0); pointer-events: auto; }
 
-  /* Stats tab — no sidebar, always visible */
-  #tab-stats .content {
+  /* Stats & DB tabs — no sidebar, always visible */
+  #tab-stats .content,
+  #tab-db .content {
     transform: none !important; position: relative !important;
     inset: auto !important; height: 100% !important;
   }
@@ -333,6 +334,21 @@ select.filter:focus { border-color: var(--accent); }
 .broken-link-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; font-size: 12px; }
 .broken-link-row:hover { background: var(--surface2); }
 .broken-link-row:last-child { border-bottom: none; }
+
+/* DB explorer */
+.db-tables-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.db-table-chip { padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.db-table-chip:hover { color: var(--text); border-color: var(--accent); }
+.db-table-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.db-count { background: rgba(0,0,0,.25); border-radius: 999px; padding: 1px 7px; font-size: 11px; }
+.db-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+.db-pager { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.db-table-scroll { overflow: auto; max-height: calc(100vh - 220px); border: 1px solid var(--border); border-radius: 8px; }
+.db-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.db-table th { position: sticky; top: 0; background: var(--surface2); color: var(--muted); text-align: left; padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); z-index: 1; }
+.db-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+.db-table tbody tr:hover { background: var(--surface2); }
+.db-null { color: var(--muted); font-style: italic; opacity: .6; }
 </style>
 </head>
 <body>
@@ -348,6 +364,7 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab" onclick="switchTab('magies')">Magies</button>
       <button class="tab" onclick="switchTab('decks')">Decks publics</button>
       <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
+      <button class="tab" onclick="switchTab('db')">🗄️ Base SQL</button>
     </div>
   </div>
 
@@ -507,6 +524,12 @@ select.filter:focus { border-color: var(--accent); }
       <div class="empty"><span>Chargement...</span></div>
     </div>
   </div>
+
+  <div id="tab-db" class="main hidden">
+    <div class="content" id="db-content" style="padding:20px;overflow:auto;width:100%">
+      <div class="empty"><span>Chargement...</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- FAB -->
@@ -594,11 +617,69 @@ function switchTab(tab) {
                   (tab === 'boards' && t.includes('terrain')) ||
                   (tab === 'magies' && t.includes('magie')) ||
                   (tab === 'decks' && t.includes('deck')) ||
-                  (tab === 'stats' && t.includes('stat'));
+                  (tab === 'stats' && t.includes('stat')) ||
+                  (tab === 'db' && t.includes('sql'));
     if (match) el.classList.add('active');
   });
   if (tab === 'stats') renderStats();
+  if (tab === 'db') renderDbTables();
   showList(); // reset panel on tab switch
+}
+
+// ================== DB EXPLORER (read-only) ==================
+let dbCurrentTable = null;
+let dbOffset = 0;
+const DB_PAGE = 50;
+
+async function renderDbTables() {
+  const el = document.getElementById('db-content');
+  el.innerHTML = '<div class="empty"><span>Chargement...</span></div>';
+  let data;
+  try { data = await apiFetch('/api/admin/db/tables'); }
+  catch (e) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(e.message)}</span></div>`; return; }
+  if (data.error) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(data.error)}</span></div>`; return; }
+  const chips = data.tables.map(t =>
+    `<button class="db-table-chip${t.name === dbCurrentTable ? ' active' : ''}" data-table="${esc(t.name)}" onclick="openDbTable('${esc(t.name)}', 0)">
+       ${esc(t.name)} <span class="db-count">${t.count}</span>
+     </button>`).join('');
+  el.innerHTML = `
+    <div class="db-tables-bar">${chips || '<span style="color:var(--muted)">Aucune table</span>'}</div>
+    <div id="db-table-view"><div class="empty"><span>Choisis une table ci-dessus.</span></div></div>`;
+  if (dbCurrentTable && data.tables.some(t => t.name === dbCurrentTable)) openDbTable(dbCurrentTable, dbOffset);
+}
+
+async function openDbTable(name, offset) {
+  dbCurrentTable = name; dbOffset = offset;
+  document.querySelectorAll('.db-table-chip').forEach(c => c.classList.toggle('active', c.dataset.table === name));
+  const view = document.getElementById('db-table-view');
+  if (view) view.innerHTML = '<div class="empty"><span>Chargement...</span></div>';
+  let data;
+  try { data = await apiFetch(`/api/admin/db/table/${encodeURIComponent(name)}?limit=${DB_PAGE}&offset=${offset}`); }
+  catch (e) { if (view) view.innerHTML = `<div class="empty"><span>Erreur : ${esc(e.message)}</span></div>`; return; }
+  if (data.error) { if (view) view.innerHTML = `<div class="empty"><span>Erreur : ${esc(data.error)}</span></div>`; return; }
+
+  const head = data.columns.map(c => `<th>${esc(c)}</th>`).join('');
+  const body = data.rows.length
+    ? data.rows.map(r => `<tr>${data.columns.map(c => `<td>${r[c] === null ? '<span class="db-null">NULL</span>' : esc(r[c])}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${data.columns.length || 1}" style="text-align:center;color:var(--muted);padding:16px">Aucune ligne</td></tr>`;
+
+  const from = data.total ? offset + 1 : 0;
+  const to = Math.min(offset + DB_PAGE, data.total);
+  const prevDis = offset <= 0 ? 'disabled' : '';
+  const nextDis = offset + DB_PAGE >= data.total ? 'disabled' : '';
+  document.getElementById('db-table-view').innerHTML = `
+    <div class="db-toolbar">
+      <strong>${esc(name)}</strong>
+      <span style="color:var(--muted)">${data.total} ligne(s)</span>
+      <div class="db-pager">
+        <button class="tab" ${prevDis} onclick="openDbTable('${esc(name)}', ${Math.max(0, offset - DB_PAGE)})">‹</button>
+        <span>${from}–${to}</span>
+        <button class="tab" ${nextDis} onclick="openDbTable('${esc(name)}', ${offset + DB_PAGE})">›</button>
+      </div>
+    </div>
+    <div class="db-table-scroll">
+      <table class="db-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+    </div>`;
 }
 
 // ================== CARDS ==================

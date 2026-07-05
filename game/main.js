@@ -31,21 +31,25 @@ const initialParams = new URLSearchParams(window.location.search);
 const initialScreen = initialParams.get('screen');
 
 async function bootstrap() {
-  // Résout la session puis synchronise les decks du compte, idéalement AVANT le
-  // premier écran (pour que DeckSelector/DeckBuilder voient les bons decks).
-  // Mais on ne bloque JAMAIS le rendu sur le réseau online : si le serveur
-  // traîne ou ne répond pas, on rend le menu au bout de 2s en mode local.
-  const sync = (async () => {
-    const AuthClient = await import('./data/AuthClient.js');
-    await AuthClient.me();
-    if (AuthClient.isLoggedIn()) {
-      const DeckRepository = await import('./data/DeckRepository.js');
-      await DeckRepository.pull();
-    }
-  })().catch(() => { /* ignore : mode local */ });
-
+  // Connexion obligatoire : on résout d'abord la session. Sans session valide,
+  // le joueur est envoyé sur la page de login et ne peut pas entrer dans le jeu.
+  // Cap dur de 4s pour ne pas bloquer sur un serveur injoignable (→ page login).
+  const AuthClient = await import('./data/AuthClient.js');
+  let user = null;
   try {
-    await Promise.race([sync, new Promise(r => setTimeout(r, 2000))]);
+    user = await Promise.race([
+      AuthClient.me(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
+    ]);
+  } catch { user = null; }
+
+  if (!user) { navigate('auth'); return; }
+
+  // Connecté : synchronise les decks du compte avant le premier écran, sans
+  // bloquer plus de 2s si le réseau traîne.
+  try {
+    const DeckRepository = await import('./data/DeckRepository.js');
+    await Promise.race([DeckRepository.pull(), new Promise(r => setTimeout(r, 2000))]);
   } catch { /* ignore */ }
 
   if (initialScreen && SCREENS[initialScreen]) {
