@@ -374,7 +374,7 @@ function _matchRow(c) {
   const you = !!c.you, win = !!c.win, tbd = !!c.tbd, live = !!c.live;
   const nameColor = tbd ? '#4a4462' : (win ? (you ? GOLD : '#ece9f5') : '#6f6786');
   const scoreColor = tbd ? '#3f3a58' : (live ? '#a78bfa' : (win ? '#7fe6b6' : '#6f6786'));
-  const score = tbd ? '—' : (live ? '0' : (c.score != null ? String(c.score) : ''));
+  const score = tbd ? '—' : (c.score != null ? String(c.score) : '');
   return `
     <div style="display:flex;align-items:center;gap:9px;padding:0 12px;height:34px;
       ${you ? 'background:rgba(124,92,255,.12);' : ''}">

@@ -40,8 +40,8 @@ export class HandUI {
     this._hand = [];
     this._selectedIdx = null;
     this._selectedEl  = null; // direct element reference — immune to DOM index shifts after removals
-    this._grouped = false; // when true, duplicate card_id entries render as a single card with a ×N badge
-    this._sortedByTier = false; // when true, cards are displayed ordered by tier ascending
+    this._grouped = true; // when true, duplicate card_id entries render as a single card with a ×N badge
+    this._sortedByTier = true; // when true, cards are displayed ordered by tier ascending
   }
 
   setHand(cards) {

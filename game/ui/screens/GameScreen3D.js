@@ -69,7 +69,7 @@ export async function mount(container, params = {}) {
   let enemyUnits    = [];
   let enemyHand     = [];
   let enemyGraveyard = [];
-  let combatSpeed = 1; // persists across rounds (Tour suivant ne doit pas réinitialiser la vitesse choisie)
+  let combatSpeed = 2; // persists across rounds (Tour suivant ne doit pas réinitialiser la vitesse choisie)
   let _graveyardElMap = new Map(); // uid → DOM element (smart diff to avoid img rebuilds)
   let selectedCard = null;
   let selectedBoardPos = null;
@@ -144,8 +144,8 @@ export async function mount(container, params = {}) {
         <div class="combat-speed-controls" id="speed-controls" style="display:none">
           <span class="speed-label">VITESSE</span>
           <div class="speed-seg-wrap">
-            <button class="speed-btn active" data-speed="1">×1</button>
-            <button class="speed-btn" data-speed="2">×2</button>
+            <button class="speed-btn" data-speed="1">×1</button>
+            <button class="speed-btn active" data-speed="2">×2</button>
             <button class="speed-btn" data-speed="4">×4</button>
           </div>
           <div style="flex:1"></div>
@@ -487,11 +487,11 @@ export async function mount(container, params = {}) {
   const handToolbar = document.createElement('div');
   handToolbar.className = 'hand-toolbar';
   const handGroupBtn = document.createElement('button');
-  handGroupBtn.className = 'btn btn-icon hand-group-toggle';
+  handGroupBtn.className = 'btn btn-icon hand-group-toggle active';
   handGroupBtn.title = 'Grouper les cartes identiques';
   handGroupBtn.textContent = '☰';
   const handSortBtn = document.createElement('button');
-  handSortBtn.className = 'btn btn-icon hand-sort-toggle';
+  handSortBtn.className = 'btn btn-icon hand-sort-toggle active';
   handSortBtn.title = 'Trier par tier';
   handSortBtn.textContent = '⇅';
   const handInner = document.createElement('div');
