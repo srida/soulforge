@@ -93,6 +93,11 @@ function illustrationChecksum(id) {
   return crypto.createHash('md5').update(fs.readFileSync(p)).digest('hex');
 }
 
+// Online API (accounts, sessions, friends) — auth par session cookie, pas la
+// basic-auth admin. Monté avant le write-guard ci-dessous pour ne pas tomber
+// sous la protection admin.
+app.use('/api', require('./routes/online'));
+
 // Protect write operations on /api (reads stay public for the game)
 app.use('/api', (req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) return requireAuth(req, res, next);
