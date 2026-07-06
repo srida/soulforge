@@ -1844,6 +1844,7 @@ export async function mount(container, params = {}) {
               </summary>
               ${body}
             </details>
+            <div class="end-round-timer"><span id="end-round-countdown">30</span>s</div>
             <button class="end-round-btn" id="btn-next">
               <div class="end-round-btn-shine"></div>
               <span class="end-round-btn-label">${btnLabel}</span>
@@ -1885,6 +1886,7 @@ export async function mount(container, params = {}) {
               </summary>
               ${body}
             </details>
+            <div class="end-round-timer"><span id="end-round-countdown">30</span>s</div>
             <button class="end-round-btn" id="btn-next">
               <div class="end-round-btn-shine"></div>
               <span class="end-round-btn-label">${btnLabel}</span>
@@ -1937,6 +1939,7 @@ export async function mount(container, params = {}) {
               </summary>
               ${enemyBody}
             </details>
+            <div class="end-round-timer"><span id="end-round-countdown">30</span>s</div>
             <button class="end-round-btn" id="btn-next">
               <div class="end-round-btn-shine"></div>
               <span class="end-round-btn-label">${btnLabel}</span>
@@ -1950,7 +1953,8 @@ export async function mount(container, params = {}) {
     overlay.className = 'end-round-overlay';
     overlay.innerHTML = panelHtml;
     container.appendChild(overlay);
-    overlay.querySelector('#btn-next').addEventListener('click', () => {
+    const btnNext = overlay.querySelector('#btn-next');
+    btnNext.addEventListener('click', () => {
       overlay.remove();
       if (isOver) {
         if (isPvp) PvpConnection.send('match:report_result', { round: gameState.round, localWinner: gameState.getWinner() });
@@ -1959,6 +1963,15 @@ export async function mount(container, params = {}) {
         _startShopping(winner);
       }
     });
+
+    let _countdown = 30;
+    const countdownEl = overlay.querySelector('#end-round-countdown');
+    const autoTimer = setInterval(() => {
+      _countdown--;
+      if (countdownEl) countdownEl.textContent = _countdown;
+      if (_countdown <= 0) { clearInterval(autoTimer); btnNext.click(); }
+    }, 1000);
+    btnNext.addEventListener('click', () => clearInterval(autoTimer), { once: true });
   }
 
   function _showGameOver() {
