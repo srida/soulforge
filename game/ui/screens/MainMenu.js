@@ -16,8 +16,12 @@ const MISSIONS = [
   { done: false, label: 'Invoquer 10 cartes',      progress: 6, total: 10, reward: '◆ 5', gem: true  },
 ];
 
-function avatarImg(src) {
-  return src ? `<img class="mm-avatar-img" src="${esc(src)}" alt="">` : '';
+function avatarContent(avatar) {
+  if (!avatar) return '';
+  if (/^(https?:|data:)/i.test(avatar)) {
+    return `<img class="mm-avatar-img" src="${esc(avatar)}" alt="">`;
+  }
+  return `<span class="mm-avatar-text">${esc(avatar)}</span>`;
 }
 
 export async function mount(container) {
@@ -134,7 +138,7 @@ export async function mount(container) {
       <div class="mm-header">
         <button class="mm-avatar-btn" data-action="profile">
           <div class="mm-avatar-circle">
-            ${avatarImg(user.avatar)}
+            ${avatarContent(user.avatar)}
             <div class="mm-avatar-level">${s.level}</div>
           </div>
           <div class="mm-header-identity">
@@ -173,7 +177,7 @@ export async function mount(container) {
           </div>
           <button class="mm-profile-btn" data-action="profile">
             <div class="mm-avatar-circle">
-              ${avatarImg(user.avatar)}
+              ${avatarContent(user.avatar)}
             </div>
             <div>
               <div class="mm-header-name">${esc(user.username)}</div>
@@ -201,7 +205,7 @@ export async function mount(container) {
               <span class="mm-profile-banner-lbl">BANNIÈRE DE PROFIL</span>
               <div class="mm-profile-avatar-wrap">
                 <div class="mm-avatar-circle mm-avatar-lg">
-                  ${avatarImg(user.avatar)}
+                  ${avatarContent(user.avatar)}
                   <div class="mm-avatar-level">${s.level}</div>
                 </div>
               </div>

@@ -1397,6 +1397,18 @@ body {
   object-fit: cover;
   z-index: 1;
 }
+.mm-avatar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  z-index: 1;
+  border-radius: 50%;
+  background: var(--sf-void-3);
+}
 .mm-avatar-level {
   position: absolute;
   right: -3px;
