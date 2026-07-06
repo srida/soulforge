@@ -40,8 +40,8 @@ export async function register({ email, username, password }) {
   return user;
 }
 
-export async function login({ email, password }) {
-  const { user } = await api('/auth/login', { method: 'POST', body: { email, password } });
+export async function login({ email, password, rememberMe = false }) {
+  const { user } = await api('/auth/login', { method: 'POST', body: { email, password, rememberMe } });
   currentUser = user; fetched = true;
   return user;
 }

@@ -18,6 +18,7 @@ function validPassword(v) { return typeof v === 'string' && v.length >= 8 && v.l
 // =====================================================================
 router.post('/auth/register', auth.rateLimit({ max: 10 }), (req, res) => {
   const email = normEmail(req.body.email);
+  const rememberMe = !!req.body.rememberMe;
   const username = String(req.body.username || '').trim();
   const password = req.body.password;
 
@@ -40,12 +41,13 @@ router.post('/auth/register', auth.rateLimit({ max: 10 }), (req, res) => {
   stmt.insertUser.run(user);
 
   const token = auth.createSession(user.id);
-  auth.setSessionCookie(res, token);
+  auth.setSessionCookie(res, token, { remember: rememberMe });
   res.json({ user: auth.publicUser(user) });
 });
 
 router.post('/auth/login', auth.rateLimit({ max: 15 }), (req, res) => {
   const email = normEmail(req.body.email);
+  const rememberMe = !!req.body.rememberMe;
   const password = req.body.password;
   const user = stmt.userByEmail.get(email);
   // Message générique : ne révèle pas si l'e-mail existe.
@@ -53,7 +55,7 @@ router.post('/auth/login', auth.rateLimit({ max: 15 }), (req, res) => {
     return res.status(401).json({ error: 'E-mail ou mot de passe incorrect.' });
   }
   const token = auth.createSession(user.id);
-  auth.setSessionCookie(res, token);
+  auth.setSessionCookie(res, token, { remember: rememberMe });
   res.json({ user: auth.publicUser(user) });
 });
 

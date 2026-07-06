@@ -51,13 +51,13 @@ function publicUser(u) {
 }
 
 // --- Cookies ---
-function setSessionCookie(res, token) {
+function setSessionCookie(res, token, { remember = true } = {}) {
   res.setHeader('Set-Cookie', cookie.serialize(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: IS_PROD,
     path: '/',
-    maxAge: Math.floor(SESSION_TTL_MS / 1000),
+    ...(remember ? { maxAge: Math.floor(SESSION_TTL_MS / 1000) } : {}),
   }));
 }
 
