@@ -24,6 +24,14 @@ function avatarContent(avatar) {
   return `<span class="mm-avatar-text">${esc(avatar)}</span>`;
 }
 
+function friendAvatarContent(avatar) {
+  if (!avatar) return '';
+  if (/^(https?:|data:)/i.test(avatar)) {
+    return `<img class="mm-friend-av-img" src="${esc(avatar)}" alt="">`;
+  }
+  return `<span class="mm-friend-av-text">${esc(avatar)}</span>`;
+}
+
 export async function mount(container) {
   let user = AuthClient.getUser();
   if (!user) {
@@ -49,7 +57,7 @@ export async function mount(container) {
   const incomingRows = requests.incoming.map(r => `
     <div class="mm-friend">
       <div class="mm-friend-av">
-        ${r.avatar ? `<img class="mm-friend-av-img" src="${esc(r.avatar)}" alt="">` : ''}
+        ${friendAvatarContent(r.avatar)}
         <span class="mm-friend-dot" style="background:var(--sf-team-red)"></span>
       </div>
       <div class="mm-friend-info">
@@ -67,7 +75,7 @@ export async function mount(container) {
     ? friends.map(f => `
       <div class="mm-friend">
         <div class="mm-friend-av">
-          ${f.avatar ? `<img class="mm-friend-av-img" src="${esc(f.avatar)}" alt="">` : ''}
+          ${friendAvatarContent(f.avatar)}
           <span class="mm-friend-dot"></span>
         </div>
         <div class="mm-friend-info">

@@ -1958,7 +1958,6 @@ body {
   border-radius: 50%;
   background: repeating-linear-gradient(45deg, #241c38, #241c38 5px, #2e2446 5px, #2e2446 10px);
   flex: none;
-  overflow: hidden;
 }
 .mm-friend-av-img {
   position: absolute;
@@ -1966,6 +1965,18 @@ body {
   border-radius: 50%;
   object-fit: cover;
   z-index: 1;
+}
+.mm-friend-av-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  z-index: 1;
+  border-radius: 50%;
+  background: var(--sf-void-3);
 }
 .mm-friend-av .mm-friend-dot {
   position: absolute;
