@@ -18,7 +18,6 @@ function validPassword(v) { return typeof v === 'string' && v.length >= 8 && v.l
 // =====================================================================
 router.post('/auth/register', auth.rateLimit({ max: 10 }), (req, res) => {
   const email = normEmail(req.body.email);
-  const rememberMe = !!req.body.rememberMe;
   const username = String(req.body.username || '').trim();
   const password = req.body.password;
 
@@ -27,13 +26,16 @@ router.post('/auth/register', auth.rateLimit({ max: 10 }), (req, res) => {
   if (!validPassword(password)) return res.status(400).json({ error: 'Mot de passe : 8 caractères minimum.', field: 'password' });
 
   if (stmt.userByEmail.get(email)) return res.status(409).json({ error: 'Cet e-mail est déjà utilisé.', field: 'email' });
-  if (stmt.userByUsernameLc.get(username.toLowerCase())) return res.status(409).json({ error: 'Ce pseudo est déjà pris.', field: 'username' });
+
+  const username_lc = username.toLowerCase();
+  const { next_tag } = stmt.nextTagForUsername.get(username_lc);
 
   const user = {
     id: crypto.randomUUID(),
     email,
     username,
-    username_lc: username.toLowerCase(),
+    username_lc,
+    tag: next_tag,
     password_hash: auth.hashPassword(password),
     avatar: req.body.avatar || null,
     created_at: Date.now(),
@@ -41,7 +43,7 @@ router.post('/auth/register', auth.rateLimit({ max: 10 }), (req, res) => {
   stmt.insertUser.run(user);
 
   const token = auth.createSession(user.id);
-  auth.setSessionCookie(res, token, { remember: rememberMe });
+  auth.setSessionCookie(res, token);
   res.json({ user: auth.publicUser(user) });
 });
 
@@ -71,6 +73,76 @@ router.get('/auth/me', auth.optionalUser, (req, res) => {
 });
 
 // =====================================================================
+//  MOT DE PASSE OUBLIÉ
+// =====================================================================
+const RESET_TTL_MS = 60 * 60 * 1000; // 1h
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM || 'noreply@soulforge.app';
+const APP_URL = process.env.APP_URL || 'https://soulforge.up.railway.app';
+
+router.post('/auth/forgot-password', auth.rateLimit({ windowMs: 60_000, max: 5 }), async (req, res) => {
+  const email = normEmail(req.body.email);
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Adresse e-mail invalide.', field: 'email' });
+
+  if (!RESEND_API_KEY) return res.status(503).json({ error: 'Service e-mail non configuré.' });
+
+  // Réponse générique : ne révèle pas si l'e-mail existe.
+  const user = stmt.userByEmail.get(email);
+  if (!user) return res.json({ ok: true });
+
+  stmt.deleteExpiredResetTokens.run(Date.now());
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const now = Date.now();
+  stmt.insertResetToken.run(token, user.id, now, now + RESET_TTL_MS);
+
+  const resetUrl = `${APP_URL}/?screen=resetpwd&token=${token}`;
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: [email],
+        subject: 'Réinitialisation de ton mot de passe — Soulforge',
+        html: `
+          <p>Bonjour ${user.username},</p>
+          <p>Tu as demandé la réinitialisation de ton mot de passe Soulforge.</p>
+          <p><a href="${resetUrl}" style="background:#7c5cff;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Réinitialiser mon mot de passe</a></p>
+          <p>Ce lien est valable <strong>1 heure</strong>. Si tu n'as pas fait cette demande, ignore cet e-mail.</p>
+          <p style="color:#888;font-size:12px;">${resetUrl}</p>
+        `,
+      }),
+    });
+  } catch (err) {
+    console.error('[forgot-password] Resend error:', err.message);
+    return res.status(500).json({ error: 'Erreur lors de l\'envoi de l\'e-mail.' });
+  }
+
+  res.json({ ok: true });
+});
+
+router.post('/auth/reset-password', auth.rateLimit({ windowMs: 60_000, max: 10 }), (req, res) => {
+  const { token, password } = req.body;
+  if (!token) return res.status(400).json({ error: 'Token manquant.' });
+  if (!validPassword(password)) return res.status(400).json({ error: 'Mot de passe : 8 caractères minimum.', field: 'password' });
+
+  stmt.deleteExpiredResetTokens.run(Date.now());
+  const row = stmt.resetTokenByToken.get(token);
+  if (!row || row.expires_at < Date.now()) return res.status(400).json({ error: 'Lien expiré ou invalide.' });
+
+  const user = stmt.userById.get(row.user_id);
+  if (!user) return res.status(400).json({ error: 'Compte introuvable.' });
+
+  require('../db').db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+    .run(auth.hashPassword(password), user.id);
+  stmt.deleteResetToken.run(token);
+
+  res.json({ ok: true });
+});
+
+// =====================================================================
 //  PROFILE
 // =====================================================================
 router.get('/profile/me', auth.requireUser, (req, res) => {
@@ -81,20 +153,23 @@ router.put('/profile/me', auth.requireUser, (req, res) => {
   const current = req.user;
   let username = current.username;
   let username_lc = current.username_lc;
+  let tag = current.tag;
 
   if (req.body.username !== undefined) {
     const next = String(req.body.username).trim();
     if (!USERNAME_RE.test(next)) return res.status(400).json({ error: 'Pseudo : 3 à 20 caractères (lettres, chiffres, _).', field: 'username' });
     const lc = next.toLowerCase();
-    const taken = stmt.userByUsernameLc.get(lc);
-    if (taken && taken.id !== current.id) return res.status(409).json({ error: 'Ce pseudo est déjà pris.', field: 'username' });
+    // Si le pseudo change, assigner un nouveau tag pour ce nouveau pseudo.
+    if (lc !== username_lc) {
+      tag = stmt.nextTagForUsername.get(lc).next_tag;
+    }
     username = next;
     username_lc = lc;
   }
 
   const avatar = req.body.avatar !== undefined ? (req.body.avatar || null) : current.avatar;
-  stmt.updateProfile.run({ id: current.id, username, username_lc, avatar });
-  res.json({ user: auth.publicUser({ ...current, username, username_lc, avatar }) });
+  stmt.updateProfile.run({ id: current.id, username, username_lc, tag, avatar });
+  res.json({ user: auth.publicUser({ ...current, username, username_lc, tag, avatar }) });
 });
 
 // =====================================================================
@@ -130,9 +205,10 @@ router.get('/friends/requests', auth.requireUser, (req, res) => {
   });
 });
 
+// Envoi/acceptation de demande d'ami par ID utilisateur.
 router.post('/friends/request', auth.requireUser, (req, res) => {
-  const target = stmt.userByUsernameLc.get(String(req.body.username || '').trim().toLowerCase());
-  if (!target) return res.status(404).json({ error: 'Aucun joueur avec ce pseudo.' });
+  const target = stmt.userById.get(String(req.body.userId || ''));
+  if (!target) return res.status(404).json({ error: 'Joueur introuvable.' });
   if (target.id === req.user.id) return res.status(400).json({ error: 'Tu ne peux pas t\'ajouter toi-même.' });
 
   const existing = stmt.friendshipBetween.get({ a: req.user.id, b: target.id });

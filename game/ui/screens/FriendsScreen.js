@@ -9,11 +9,14 @@ function esc(s) {
 function avatarGlyph(u) {
   return u.avatar || (u.username ? u.username[0].toUpperCase() : '?');
 }
+function displayName(u) {
+  return u.tag ? `${u.username}#${u.tag}` : u.username;
+}
 function personRow(u, actionsHtml) {
   return `
     <div class="friend-row">
       <div class="friend-avatar">${esc(avatarGlyph(u))}</div>
-      <div class="friend-name">${esc(u.username)}</div>
+      <div class="friend-name">${esc(displayName(u))}</div>
       <div class="friend-actions">${actionsHtml}</div>
     </div>`;
 }
@@ -43,9 +46,6 @@ export async function mount(container, params = {}) {
     </div>
   `;
 
-  // Racine locale à l'écran : recréée à chaque montage et détruite quand le
-  // routeur vide #screen. On y attache la délégation de clics pour éviter
-  // d'empiler des listeners sur le container global (#screen) à chaque visite.
   const screenRoot = container.querySelector('.friends-screen');
   const searchInput = container.querySelector('#friend-search');
   const resultsBox = container.querySelector('#search-results');
@@ -66,7 +66,6 @@ export async function mount(container, params = {}) {
       AuthClient.getRequests(),
     ]);
 
-    // Demandes
     const { incoming, outgoing } = requests;
     let reqHtml = '';
     if (incoming.length) {
@@ -82,13 +81,11 @@ export async function mount(container, params = {}) {
     }
     requestsSection.innerHTML = reqHtml;
 
-    // Liste d'amis
     friendsList.innerHTML = friends.length
       ? friends.map(u => personRow(u, `<button class="friend-btn is-remove" data-remove="${u.friendship_id}">Retirer</button>`)).join('')
       : `<div class="friends-empty">Aucun ami pour l'instant. Cherche un pseudo ci-dessus.</div>`;
   }
 
-  // Recherche (debounce)
   let searchTimer = null;
   searchInput.addEventListener('input', () => {
     clearTimeout(searchTimer);
@@ -102,8 +99,8 @@ export async function mount(container, params = {}) {
               let action;
               if (u.relation === 'friends') action = `<span class="friend-tag">Ami</span>`;
               else if (u.relation === 'outgoing') action = `<span class="friend-tag">Envoyée</span>`;
-              else if (u.relation === 'incoming') action = `<button class="friend-btn is-accept" data-add="${esc(u.username)}">Accepter</button>`;
-              else action = `<button class="friend-btn is-add" data-add="${esc(u.username)}">Ajouter</button>`;
+              else if (u.relation === 'incoming') action = `<button class="friend-btn is-accept" data-add-id="${u.id}">Accepter</button>`;
+              else action = `<button class="friend-btn is-add" data-add-id="${u.id}">Ajouter</button>`;
               return personRow(u, action);
             }).join('')
           : `<div class="friends-empty">Aucun joueur trouvé.</div>`;
@@ -111,13 +108,12 @@ export async function mount(container, params = {}) {
     }, 250);
   });
 
-  // Délégation d'événements (sur la racine locale, pas sur #screen)
   screenRoot.addEventListener('click', async (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
     try {
-      if (btn.dataset.add) {
-        await AuthClient.sendRequest(btn.dataset.add);
+      if (btn.dataset.addId) {
+        await AuthClient.sendRequest(btn.dataset.addId);
         flash('Demande envoyée.');
         searchInput.value = ''; resultsBox.innerHTML = '';
         await refresh();

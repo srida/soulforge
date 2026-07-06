@@ -69,8 +69,8 @@ export async function getFriends() {
 export async function getRequests() {
   return api('/friends/requests'); // { incoming, outgoing }
 }
-export async function sendRequest(username) {
-  return api('/friends/request', { method: 'POST', body: { username } });
+export async function sendRequest(userId) {
+  return api('/friends/request', { method: 'POST', body: { userId } });
 }
 export async function acceptRequest(friendshipId) {
   return api(`/friends/${friendshipId}/accept`, { method: 'POST' });

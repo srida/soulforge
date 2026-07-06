@@ -32,7 +32,7 @@ export async function mount(container, params = {}) {
       <div class="profile-screen">
         <div class="profile-hero">
           <div class="profile-avatar">${esc(avatarGlyph(user))}</div>
-          <div class="profile-name">${esc(user.username)}</div>
+          <div class="profile-name">${esc(user.username)}${user.tag ? '<span class="profile-tag">#' + esc(user.tag) + '</span>' : ''}</div>
           <div class="profile-email">${esc(user.email)}</div>
         </div>
 

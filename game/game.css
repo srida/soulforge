@@ -971,6 +971,9 @@ body {
   font: 600 12px var(--font-body);
   color: var(--sf-violet-400);
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
 }
 .auth-new-input {
   height: 52px;
@@ -1021,6 +1024,16 @@ body {
 .auth-new-remember-text {
   font: 600 13px var(--font-body);
   color: var(--sf-ink-muted);
+}
+
+/* success message */
+.auth-new-ok {
+  padding: 10px 14px;
+  background: rgba(52,211,153,.12);
+  border: 1px solid rgba(52,211,153,.35);
+  border-radius: 8px;
+  font: 500 13px var(--font-body);
+  color: #34d399;
 }
 
 /* error */
@@ -1168,7 +1181,8 @@ body {
     background:
       radial-gradient(120% 80% at 22% 8%, rgba(124,92,255,.32), transparent 56%),
       radial-gradient(80% 70% at 90% 112%, rgba(176,118,255,.22), transparent 60%),
-      linear-gradient(150deg, #120c22, #0a0712);
+      linear-gradient(150deg, rgba(18,12,34,.68), rgba(10,7,18,.82)),
+      url('/game/soulforge-splashscreen.png') center/cover no-repeat;
     overflow: hidden;
   }
   .auth-new-hero::before {
@@ -1260,6 +1274,7 @@ body {
   font-weight: 700;
 }
 .profile-name { font-size: 20px; font-weight: 700; color: var(--sf-ink-bright); }
+.profile-tag { font-size: 14px; font-weight: 500; color: var(--sf-ink-muted); margin-left: 2px; }
 .profile-email { font-size: 13px; color: var(--sf-ink-muted); }
 
 .profile-edit {

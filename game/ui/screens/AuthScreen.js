@@ -78,7 +78,7 @@ function render(container, version) {
           <label class="auth-new-field">
             <div class="auth-new-label-row">
               <span class="auth-new-label">MOT DE PASSE</span>
-              ${isLogin ? '<span class="auth-new-forgot">Mot de passe oublié ?</span>' : ''}
+              ${isLogin ? '<button type="button" class="auth-new-forgot">Mot de passe oublié ?</button>' : ''}
             </div>
             <input class="auth-new-input" type="password" name="password" autocomplete="${isLogin ? 'current-password' : 'new-password'}" placeholder="••••••••" required>
             ${!isLogin ? '<span class="auth-new-hint">8 caractères minimum.</span>' : ''}
@@ -133,6 +133,8 @@ function render(container, version) {
 
   const showError = (msg) => { errBox.textContent = msg; errBox.hidden = false; };
   const clearError = () => { errBox.hidden = true; };
+
+  container.querySelector('.auth-new-forgot')?.addEventListener('click', () => navigate('resetpwd'));
 
   container.querySelector('#switch-mode')?.addEventListener('click', () => {
     mode = isLogin ? 'register' : 'login';

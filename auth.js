@@ -45,7 +45,7 @@ function destroySession(token) {
 function publicUser(u) {
   if (!u) return null;
   return {
-    id: u.id, email: u.email, username: u.username, avatar: u.avatar,
+    id: u.id, email: u.email, username: u.username, tag: u.tag, avatar: u.avatar,
     created_at: u.created_at, is_admin: !!u.is_admin,
   };
 }

@@ -9,6 +9,7 @@ const SCREENS = {
   auth:          () => import('./ui/screens/AuthScreen.js'),
   profile:       () => import('./ui/screens/ProfileScreen.js'),
   friends:       () => import('./ui/screens/FriendsScreen.js'),
+  resetpwd:      () => import('./ui/screens/ResetPasswordScreen.js'),
 };
 
 const container = document.getElementById('screen');
@@ -31,6 +32,12 @@ const initialParams = new URLSearchParams(window.location.search);
 const initialScreen = initialParams.get('screen');
 
 async function bootstrap() {
+  // Réinitialisation de mot de passe : accessible sans session.
+  if (initialScreen === 'resetpwd') {
+    navigate('resetpwd', Object.fromEntries(initialParams));
+    return;
+  }
+
   // Connexion obligatoire : on résout d'abord la session. Sans session valide,
   // le joueur est envoyé sur la page de login et ne peut pas entrer dans le jeu.
   // Cap dur de 4s pour ne pas bloquer sur un serveur injoignable (→ page login).
