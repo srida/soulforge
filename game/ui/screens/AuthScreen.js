@@ -3,16 +3,28 @@ import * as AuthClient from '../../data/AuthClient.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
 
 let mode = 'login'; // 'login' | 'register'
+let gameVersion = null;
+
+async function loadVersion() {
+  if (gameVersion) return gameVersion;
+  try {
+    const res = await fetch('/api/version');
+    if (res.ok) { const d = await res.json(); gameVersion = d.version; }
+  } catch { /* ignore */ }
+  return gameVersion;
+}
 
 export async function mount(container, params = {}) {
   if (params.mode === 'register' || params.mode === 'login') mode = params.mode;
-  render(container);
+  const version = await loadVersion();
+  render(container, version);
 }
 
 export function unmount() {}
 
-function render(container) {
+function render(container, version) {
   const isLogin = mode === 'login';
+  const versionLabel = version ? `v${version}` : 'v?';
 
   container.innerHTML = `
     <div class="auth-new">
@@ -24,6 +36,7 @@ function render(container) {
         <img class="auth-new-logo" src="/game/logo.png" alt="Soulforge logo">
         <div class="auth-new-wordmark">SOULFORGE</div>
         <div class="auth-new-tagline">Auto-Chess × Tactiques × Deck building</div>
+        <div class="auth-new-brand-version">${versionLabel}</div>
       </div>
 
       <!-- desktop hero (hidden on mobile) -->
@@ -34,7 +47,7 @@ function render(container) {
           <div class="auth-new-hero-headline">Invoque. Compose.<br>Domine l'arène.</div>
           <div class="auth-new-hero-desc">Mêle l'auto-chess, la tactique au tour par tour et l'invocation de cartes dans un même affrontement 1v1. Ta forge t'attend.</div>
         </div>
-        <div class="auth-new-hero-version">v0.7 · build dev</div>
+        <div class="auth-new-hero-version">${versionLabel}</div>
       </div>
 
       <!-- form panel -->
@@ -73,7 +86,7 @@ function render(container) {
 
           ${isLogin ? `
           <label class="auth-new-remember">
-            <span class="auth-new-checkbox" id="remember-box" aria-role="checkbox" aria-checked="false">✓</span>
+            <span class="auth-new-checkbox" id="remember-box" role="checkbox" aria-checked="false" tabindex="0">✓</span>
             <span class="auth-new-remember-text">Rester connecté sur cet appareil</span>
           </label>
           ` : ''}
@@ -123,8 +136,21 @@ function render(container) {
 
   container.querySelector('#switch-mode')?.addEventListener('click', () => {
     mode = isLogin ? 'register' : 'login';
-    render(container);
+    render(container, version);
   });
+
+  // Remember-me checkbox toggle
+  let rememberMe = false;
+  const rememberBox = container.querySelector('#remember-box');
+  if (rememberBox) {
+    const toggle = () => {
+      rememberMe = !rememberMe;
+      rememberBox.setAttribute('aria-checked', String(rememberMe));
+      rememberBox.classList.toggle('auth-new-checkbox--checked', rememberMe);
+    };
+    rememberBox.addEventListener('click', toggle);
+    rememberBox.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -134,7 +160,7 @@ function render(container) {
     submitLabel.textContent = 'Un instant…';
     try {
       if (mode === 'login') {
-        await AuthClient.login({ email: data.email, password: data.password });
+        await AuthClient.login({ email: data.email, password: data.password, rememberMe });
       } else {
         await AuthClient.register({ email: data.email, username: data.username, password: data.password });
       }

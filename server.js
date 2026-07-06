@@ -106,6 +106,11 @@ function illustrationChecksum(id) {
 // Online API (accounts, sessions, friends) — auth par session cookie, pas la
 // basic-auth admin. Monté avant le write-guard ci-dessous pour ne pas tomber
 // sous la protection admin.
+app.get('/api/version', (req, res) => {
+  const pkg = require('./package.json');
+  res.json({ version: pkg.version });
+});
+
 app.use('/api', require('./routes/online'));
 
 // Explorateur SQLite du mode admin — READ-ONLY, protégé (obligatoire : les

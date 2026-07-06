@@ -911,6 +911,12 @@ body {
   letter-spacing: .04em;
   color: var(--sf-ink-muted);
 }
+.auth-new-brand-version {
+  margin-top: 8px;
+  font: 600 11px var(--font-body);
+  color: var(--sf-ink-faint);
+  letter-spacing: .04em;
+}
 
 /* desktop hero panel — hidden on mobile */
 .auth-new-hero { display: none; }
@@ -1003,8 +1009,14 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  color: var(--sf-violet-200);
+  color: transparent;
   flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.auth-new-checkbox--checked {
+  background: rgba(124,92,255,.55);
+  border-color: var(--sf-violet-300, rgba(167,139,250,.9));
+  color: #fff;
 }
 .auth-new-remember-text {
   font: 600 13px var(--font-body);
