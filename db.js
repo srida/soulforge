@@ -60,6 +60,24 @@ db.exec(`
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL
   );
+
+  -- Historique des duels PvP en ligne. L'état de jeu vivant (unités, board,
+  -- combat en cours) reste en mémoire côté serveur (ws/MatchRelay.js) — cette
+  -- table sert uniquement à l'historique et à retrouver le match actif d'un
+  -- joueur qui se reconnecte après un rechargement de page.
+  CREATE TABLE IF NOT EXISTS matches (
+    id             TEXT PRIMARY KEY,
+    player_a_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    player_b_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status         TEXT NOT NULL DEFAULT 'active',
+    winner_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    ended_reason   TEXT,
+    round          INTEGER NOT NULL DEFAULT 1,
+    created_at     INTEGER NOT NULL,
+    ended_at       INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_matches_player_a ON matches(player_a_id);
+  CREATE INDEX IF NOT EXISTS idx_matches_player_b ON matches(player_b_id);
 `);
 
 // Ajout additif de colonne (ALTER TABLE ADD COLUMN échoue si déjà présente,
@@ -226,6 +244,22 @@ const stmt = {
   resetTokenByToken: db.prepare('SELECT * FROM reset_tokens WHERE token = ?'),
   deleteResetToken: db.prepare('DELETE FROM reset_tokens WHERE token = ?'),
   deleteExpiredResetTokens: db.prepare('DELETE FROM reset_tokens WHERE expires_at < ?'),
+
+  insertMatch: db.prepare(`
+    INSERT INTO matches (id, player_a_id, player_b_id, status, round, created_at)
+    VALUES (@id, @player_a_id, @player_b_id, @status, @round, @created_at)
+  `),
+  matchById: db.prepare('SELECT * FROM matches WHERE id = ?'),
+  activeMatchByUser: db.prepare(`
+    SELECT * FROM matches
+    WHERE status = 'active' AND (player_a_id = ? OR player_b_id = ?)
+    ORDER BY created_at DESC LIMIT 1
+  `),
+  updateMatchRound: db.prepare('UPDATE matches SET round = ? WHERE id = ?'),
+  endMatch: db.prepare(`
+    UPDATE matches SET status = 'ended', winner_user_id = ?, ended_reason = ?, ended_at = ?
+    WHERE id = ?
+  `),
 };
 
 module.exports = { db, stmt, DB_FILE };

@@ -665,5 +665,9 @@ function downloadUrl(url) {
   });
 }
 
+const { attachPvpWebSocketServer } = require('./ws/pvpServer');
+
 const PORT = process.env.PORT || 3742;
-app.listen(PORT, () => console.log(`Card Manager running at http://localhost:${PORT}`));
+const httpServer = http.createServer(app);
+attachPvpWebSocketServer(httpServer);
+httpServer.listen(PORT, () => console.log(`Card Manager running at http://localhost:${PORT}`));

@@ -31,6 +31,8 @@ import { HandUI } from '../components/HandUI.js';
 import { CombatAnimator3D } from '../components/CombatAnimator3D.js';
 import { createUnitEl } from '../components/UnitCard.js';
 import * as Tooltip from '../components/Tooltip.js';
+import * as PvpConnection from '../../net/PvpConnection.js';
+import * as PvpOpponentProvider from '../../net/PvpOpponentProvider.js';
 
 const HAND_SIZE = 5;
 
@@ -44,15 +46,23 @@ export function unmount() {
 export async function mount(container, params = {}) {
   await Promise.all([CardDatabase.init(), PowerDatabase.init(), AttributeDatabase.init(), BoardDatabase.init(), MagieDatabase.init()]);
 
+  // Mode Duel en ligne (PvP 1v1) : params.pvp = { matchId, role: 'A'|'B', opponent }.
+  // Le serveur ne fait que relayer — chaque client simule son propre combat local
+  // à partir d'un état synchronisé (voir game/net/PvpOpponentProvider.js).
+  const isPvp = !!params.pvp;
+
   const deckName = params.deckName || DeckRepository.getActiveDeck();
   if (!deckName) { navigate('deck_selector'); return; }
   const rawDeck = DeckRepository.loadDeck(deckName);
   if (!rawDeck) { navigate('deck_selector'); return; }
 
-  const enemyDeckName = params.enemyDeckName;
-  const rawEnemyDeck  = params.enemyDeckRaw
-    || (enemyDeckName && DeckRepository.loadDeck(enemyDeckName))
-    || rawDeck;
+  let rawEnemyDeck = rawDeck;
+  if (!isPvp) {
+    const enemyDeckName = params.enemyDeckName;
+    rawEnemyDeck = params.enemyDeckRaw
+      || (enemyDeckName && DeckRepository.loadDeck(enemyDeckName))
+      || rawDeck;
+  }
 
   // Precompute per-tier card arrays from the deck
   const cardsByTier = {};
@@ -63,7 +73,7 @@ export async function mount(container, params = {}) {
   // Game objects
   const gameState = new GameState();
   const board = new Board();
-  const enemyAI = new EnemyAI(rawEnemyDeck, CardDatabase);
+  const enemyAI = isPvp ? null : new EnemyAI(rawEnemyDeck, CardDatabase);
   let hand = [];
   let graveyard = [];
   let enemyUnits    = [];
@@ -196,7 +206,7 @@ export async function mount(container, params = {}) {
       remaining -= 1;
       if (remaining <= 0) {
         _stopPrepTimer();
-        if (gameState.phase === Phase.PREPARATION) runCombat();
+        if (gameState.phase === Phase.PREPARATION) _triggerCombat();
         return;
       }
       if (prepTimerEl) prepTimerEl.querySelector('.gs-timer-val').textContent = `${remaining}s`;
@@ -274,6 +284,10 @@ export async function mount(container, params = {}) {
 
       pauseOverlay.querySelector('#pm-confirm-abandon').addEventListener('pointerdown', () => {
         _closePauseMenu();
+        if (isPvp) {
+          PvpConnection.send('match:forfeit');
+          PvpConnection.disconnect();
+        }
         navigate('main_menu');
       });
       pauseOverlay.querySelector('#pm-cancel-abandon').addEventListener('pointerdown', () => {
@@ -471,10 +485,51 @@ export async function mount(container, params = {}) {
 
   container.querySelector('#btn-back').addEventListener('click', _openPauseMenu);
 
+  // ── Duel en ligne (PvP) — événements réseau hors synchro de round ───────
+  let _pvpToast = null;
+  function _showPvpToast(text) {
+    if (_pvpToast) _pvpToast.remove();
+    _pvpToast = document.createElement('div');
+    _pvpToast.className = 'shopping-select-banner';
+    _pvpToast.textContent = text;
+    container.appendChild(_pvpToast);
+  }
+  function _hidePvpToast() {
+    if (_pvpToast) { _pvpToast.remove(); _pvpToast = null; }
+  }
+
+  function _onOpponentDisconnected() {
+    _showPvpToast('Adversaire déconnecté — en attente de reconnexion…');
+  }
+  function _onOpponentReconnected() {
+    _hidePvpToast();
+  }
+  function _onOpponentForfeited(msg) {
+    _hidePvpToast();
+    PvpConnection.disconnect();
+    alert(msg.reason === 'timeout'
+      ? "L'adversaire ne s'est pas reconnecté à temps — victoire par forfait."
+      : "L'adversaire a abandonné la partie — victoire par forfait.");
+    navigate('main_menu');
+  }
+
+  if (isPvp) {
+    PvpConnection.on('match:opponent_disconnected', _onOpponentDisconnected);
+    PvpConnection.on('match:opponent_reconnected', _onOpponentReconnected);
+    PvpConnection.on('match:opponent_forfeited', _onOpponentForfeited);
+  }
+
   _activeUnmount = () => {
     board3D.destroy();
     _stopPrepTimer();
     _closePauseMenu();
+    _pvpSyncToken++;
+    if (isPvp) {
+      PvpConnection.off('match:opponent_disconnected', _onOpponentDisconnected);
+      PvpConnection.off('match:opponent_reconnected', _onOpponentReconnected);
+      PvpConnection.off('match:opponent_forfeited', _onOpponentForfeited);
+      PvpOpponentProvider.reset();
+    }
   };
 
   // Board indicator tap → tooltip
@@ -1143,12 +1198,21 @@ export async function mount(container, params = {}) {
 
     handUI.setHand(hand);
 
-    // Enemy draws and fills empty slots (survivors stay, graveyard available as material)
-    enemyAI.drawHand(gameState.round);
-    enemyAI.placeFromHand(board, gameState.enemy_board_slots, enemyGraveyard);
-    enemyAI.rearrangeUnits(board, gameState.enemy_board_slots);
-    enemyUnits = board.getLivingUnitsOnSide('enemy'); // board is the source of truth
-    enemyHand  = enemyAI.getHand();
+    if (isPvp) {
+      // L'adversaire humain place ses propres unités de son côté ; on ne touche
+      // pas à son board tant que la synchro de fin de préparation n'a pas eu
+      // lieu (voir _startPvpRoundSync). Les survivants du round précédent
+      // restent tels que repositionnés par _finishCombat.
+      enemyUnits = board.getLivingUnitsOnSide('enemy');
+      enemyHand = [];
+    } else {
+      // Enemy draws and fills empty slots (survivors stay, graveyard available as material)
+      enemyAI.drawHand(gameState.round);
+      enemyAI.placeFromHand(board, gameState.enemy_board_slots, enemyGraveyard);
+      enemyAI.rearrangeUnits(board, gameState.enemy_board_slots);
+      enemyUnits = board.getLivingUnitsOnSide('enemy'); // board is the source of truth
+      enemyHand  = enemyAI.getHand();
+    }
 
     _closeSummonOptionMenu();
     selectedCard = null;
@@ -1165,7 +1229,94 @@ export async function mount(container, params = {}) {
 
   // ── Combat ───────────────────────────────────────────────────────────────
 
-  function runCombat() {
+  // ── Duel en ligne (PvP) — synchro de round ──────────────────────────────
+  // Le serveur ne fait que relayer ; chaque client attend le board final de
+  // l'adversaire (positions envoyées dans son orientation locale, reçues en
+  // miroir ici) puis un terrain convenu avant de lancer son propre combat
+  // local — garanti identique des deux côtés car CombatManager est déterministe.
+
+  let _pvpSyncToken = 0; // incrémenté à chaque restart/unmount pour invalider les callbacks en vol
+
+  function _triggerCombat() {
+    if (isPvp) _startPvpRoundSync();
+    else runCombat();
+  }
+
+  function _startPvpRoundSync() {
+    _stopPrepTimer();
+    _closeSummonOptionMenu();
+    selectedCard = null;
+    selectedBoardPos = null;
+    selectedMaterials = [];
+    handUI.deselect();
+    board3D.clearHighlight();
+    board3D.clearMaterialHighlight();
+    btnCombat.disabled = true;
+    phaseLabel.textContent = _phaseText('SYNCHRONISATION');
+    phaseLabel.classList.remove('gs-error');
+
+    const round = gameState.round;
+    const myToken = _pvpSyncToken;
+    const playerUnits = board.getLivingUnitsOnSide('player');
+    PvpOpponentProvider.sendOwnBoard(round, playerUnits);
+
+    PvpOpponentProvider.waitForOpponentBoard(round).then((payload) => {
+      if (myToken !== _pvpSyncToken) return; // round:restart ou unmount entre-temps
+
+      // Remplace le miroir de l'adversaire (potentiellement obsolète, hérité
+      // du round précédent) par l'état réel qu'il vient d'envoyer.
+      for (const u of enemyUnits) board.removeUnit(u);
+      enemyUnits = PvpOpponentProvider.reconstructOpponentUnits(payload, board, CardDatabase);
+      board3D.refresh();
+
+      return _pvpSyncTerrain(round, myToken);
+    });
+  }
+
+  function _pvpSyncTerrain(round, myToken) {
+    if (PvpConnection.getRole() === 'A') {
+      const boardData = BoardDatabase.getRandomBoard();
+      PvpConnection.send('round:terrain_pick', { round, boardId: boardData.id });
+      _pvpAwaitGo(round, myToken, boardData);
+    } else {
+      const onTerrain = (msg) => {
+        if (msg.round !== round) return;
+        PvpConnection.off('round:terrain_pick', onTerrain);
+        if (myToken !== _pvpSyncToken) return;
+        const boardData = BoardDatabase.getBoard(msg.boardId);
+        _pvpAwaitGo(round, myToken, boardData);
+      };
+      PvpConnection.on('round:terrain_pick', onTerrain);
+    }
+  }
+
+  function _pvpAwaitGo(round, myToken, boardData) {
+    const onGo = (msg) => {
+      if (msg.round !== round) return;
+      PvpConnection.off('round:go', onGo);
+      if (myToken !== _pvpSyncToken) return;
+      runCombat(boardData);
+    };
+    PvpConnection.on('round:go', onGo);
+    PvpConnection.send('round:combat_start_ack', { round });
+  }
+
+  // Une déconnexion/reconnexion de l'un des 2 joueurs invalide toute synchro
+  // de round en cours — les deux clients relancent proprement la préparation.
+  if (isPvp) {
+    PvpConnection.on('round:restart', (msg) => {
+      if (msg.round !== gameState.round) return;
+      _pvpSyncToken++; // invalide les promesses/callbacks en attente
+      PvpOpponentProvider.reset();
+      btnCombat.disabled = false;
+      phaseLabel.textContent = _phaseText('PRÉPARATION');
+      _startPrepTimer();
+    });
+  }
+
+  // En PvP, le terrain est convenu à l'avance entre les 2 clients
+  // (voir _startPvpRoundSync) plutôt que tiré localement.
+  function runCombat(presetBoardData = null) {
     _stopPrepTimer();
     _closeSummonOptionMenu();
     selectedCard = null;
@@ -1181,7 +1332,7 @@ export async function mount(container, params = {}) {
     phaseLabel.classList.remove('gs-error');
 
     // ── Board selection ───────────────────────────────────────────────────
-    const boardData = BoardDatabase.getRandomBoard();
+    const boardData = presetBoardData || BoardDatabase.getRandomBoard();
     board.setBlockedCells(boardData?.blocked_cells || []);
     board3D.setBlockedCells(boardData?.blocked_cells || []);
     _hideSlotIndicator();
@@ -1224,36 +1375,46 @@ export async function mount(container, params = {}) {
       },
     });
     animator.setSpeed(combatSpeed);
-    speedControls.querySelectorAll('.speed-btn[data-speed]')
-      .forEach(b => b.classList.toggle('active', +b.dataset.speed === combatSpeed));
 
-    const btnPause = speedControls.querySelector('#btn-pause');
-    const pauseIcon = btnPause.querySelector('.gs-pause-icon');
-    const pauseLabel = btnPause.querySelector('.gs-pause-text');
-    let isPaused = false;
-    btnPause.addEventListener('click', () => {
-      isPaused = !isPaused;
-      if (isPaused) {
-        animator.pause();
-        if (pauseIcon) pauseIcon.textContent = '▶';
-        if (pauseLabel) pauseLabel.textContent = 'Reprendre';
-        btnPause.classList.add('active');
-      } else {
-        animator.resume();
-        if (pauseIcon) pauseIcon.textContent = '⏸';
-        if (pauseLabel) pauseLabel.textContent = 'Pause';
-        btnPause.classList.remove('active');
-      }
-    });
+    if (isPvp) {
+      // Vitesse fixe et pause désactivées en Duel en ligne (le combat doit
+      // rester synchronisé côté serveur/adversaire) — les boutons sont masqués,
+      // le menu pause reste accessible via la topbar pour l'abandon.
+      speedControls.querySelectorAll('.speed-btn[data-speed]').forEach(b => { b.style.display = 'none'; });
+      const btnPauseEl = speedControls.querySelector('#btn-pause');
+      if (btnPauseEl) btnPauseEl.style.display = 'none';
+    } else {
+      speedControls.querySelectorAll('.speed-btn[data-speed]')
+        .forEach(b => b.classList.toggle('active', +b.dataset.speed === combatSpeed));
 
-    speedControls.querySelectorAll('.speed-btn[data-speed]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        combatSpeed = +btn.dataset.speed;
-        animator.setSpeed(combatSpeed);
-        speedControls.querySelectorAll('.speed-btn[data-speed]')
-          .forEach(b => b.classList.toggle('active', b === btn));
-      }, { once: false });
-    });
+      const btnPause = speedControls.querySelector('#btn-pause');
+      const pauseIcon = btnPause.querySelector('.gs-pause-icon');
+      const pauseLabel = btnPause.querySelector('.gs-pause-text');
+      let isPaused = false;
+      btnPause.addEventListener('click', () => {
+        isPaused = !isPaused;
+        if (isPaused) {
+          animator.pause();
+          if (pauseIcon) pauseIcon.textContent = '▶';
+          if (pauseLabel) pauseLabel.textContent = 'Reprendre';
+          btnPause.classList.add('active');
+        } else {
+          animator.resume();
+          if (pauseIcon) pauseIcon.textContent = '⏸';
+          if (pauseLabel) pauseLabel.textContent = 'Pause';
+          btnPause.classList.remove('active');
+        }
+      });
+
+      speedControls.querySelectorAll('.speed-btn[data-speed]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          combatSpeed = +btn.dataset.speed;
+          animator.setSpeed(combatSpeed);
+          speedControls.querySelectorAll('.speed-btn[data-speed]')
+            .forEach(b => b.classList.toggle('active', b === btn));
+        }, { once: false });
+      });
+    }
 
     animator.start();
   }
@@ -1792,6 +1953,7 @@ export async function mount(container, params = {}) {
     overlay.querySelector('#btn-next').addEventListener('click', () => {
       overlay.remove();
       if (isOver) {
+        if (isPvp) PvpConnection.send('match:report_result', { round: gameState.round, localWinner: gameState.getWinner() });
         _showGameOver();
       } else {
         _startShopping(winner);
@@ -1908,6 +2070,7 @@ export async function mount(container, params = {}) {
     overlay.innerHTML = panelHtml;
     container.appendChild(overlay);
     overlay.querySelector('#btn-menu').addEventListener('click', () => {
+      if (isPvp) PvpConnection.disconnect();
       if (params.tournamentMatch) {
         navigate('tournament', { resumeMatchId: params.tournamentMatch.id, gameWinner: winner });
       } else {
@@ -1921,7 +2084,7 @@ export async function mount(container, params = {}) {
   // Use pointerdown (not click) so the event fires reliably on iOS Safari
   btnCombat.addEventListener('pointerdown', e => {
     e.stopPropagation();
-    if (gameState.phase === Phase.PREPARATION) runCombat();
+    if (gameState.phase === Phase.PREPARATION) _triggerCombat();
   });
 
   // Tap outside hand/board/graveyard → deselect everything

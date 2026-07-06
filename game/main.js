@@ -5,6 +5,7 @@ const SCREENS = {
   deck_builder:  () => import('./ui/screens/DeckBuilder.js'),
   testbench3d:   () => import('./ui/screens/TestBench3D.js'),
   game3d:        () => import('./ui/screens/GameScreen3D.js'),
+  online_lobby:  () => import('./ui/screens/OnlineLobby.js'),
   tournament:    () => import('./ui/screens/TournamentScreen.js'),
   auth:          () => import('./ui/screens/AuthScreen.js'),
   profile:       () => import('./ui/screens/ProfileScreen.js'),

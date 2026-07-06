@@ -205,13 +205,18 @@ export async function mount(container, params = {}) {
       if (activeTab === 'private') {
         if (!selectedPlayer) return;
         DeckRepository.setActiveDeck(selectedPlayer);
-        renderStep2();
       } else {
         if (!selectedPublic) return;
         DeckRepository.saveDeck(selectedPublic.name, selectedPublic.deck);
         DeckRepository.setActiveDeck(selectedPublic.name);
-        renderStep2();
+        selectedPlayer = selectedPublic.name;
       }
+      // Le PvP n'a pas de "deck ennemi" à choisir — l'adversaire choisit le sien.
+      if (target === 'online_lobby') {
+        navigate(target, { deckName: selectedPlayer });
+        return;
+      }
+      renderStep2();
     });
   }
 
