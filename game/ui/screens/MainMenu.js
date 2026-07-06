@@ -337,9 +337,6 @@ export async function mount(container) {
               ${friendsSep}
               ${friendRows}
             </div>
-            <div class="mm-logout-row">
-              <div class="mm-watermark">v0.7.2</div>
-            </div>
           </div>
           ${devBar}
         </aside>
