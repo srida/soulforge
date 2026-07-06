@@ -43,9 +43,9 @@ function render(container, version) {
       <div class="auth-new-hero" aria-hidden="true">
         <div class="auth-new-hero-inner">
           <div class="auth-new-hero-title">SOULFORGE</div>
-          <div class="auth-new-hero-badge">SAISON 3 · BATTLE CITY</div>
+          <div class="auth-new-hero-badge">SAISON 1 · BATTLE CITY</div>
           <div class="auth-new-hero-headline">Invoque. Compose.<br>Domine l'arène.</div>
-          <div class="auth-new-hero-desc">Mêle l'auto-chess, la tactique au tour par tour et l'invocation de cartes dans un même affrontement 1v1. Ta forge t'attend.</div>
+          <div class="auth-new-hero-desc">Mêle l'auto-battler, la tactique au tour par tour et l'invocation de cartes dans un même affrontement 1v1. Ta forge t'attend.</div>
         </div>
         <div class="auth-new-hero-version">${versionLabel}</div>
       </div>

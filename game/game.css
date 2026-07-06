@@ -2243,7 +2243,7 @@ body {
 
   /* Season banner desktop */
   .mm-season-banner { height: 128px; padding: 18px 22px; }
-  .mm-season-logo   { display: block; position: absolute; right: 24px; top: 50%; transform: translateY(-50%); height: 160px; opacity: .5; filter: drop-shadow(0 4px 22px rgba(124,92,255,.7)); pointer-events: none; }
+  .mm-season-logo   { display: block; position: absolute; top: 50%; transform: translateY(-50%); opacity: .5; filter: drop-shadow(0 4px 22px rgba(124,92,255,.7)); pointer-events: none; width:100%; left:0;}
   .mm-season-title  { font-size: 26px; }
   .mm-season-sub    { font-size: 13px; }
   .mm-season-details {

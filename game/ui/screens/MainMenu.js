@@ -7,7 +7,7 @@ function esc(s) {
 }
 
 // Placeholder data — will be backed by real API in the online phase
-const SEASON   = { name: 'La Forge des Âmes', num: 3, days: 42 };
+const SEASON   = { name: 'Battle city', num: 1, days: 99 };
 const STATS    = { level: 24, xp: 3200, xpMax: 5000, rank: 'Diamant II', pdl: 64, wins: 68, games: 142, lb: '#8.4k', gold: 1240, gems: 80 };
 const PASS     = { level: 24, xp: 480, xpMax: 1000 };
 const MISSIONS = [
@@ -245,7 +245,7 @@ export async function mount(container) {
           <!-- Season banner -->
           <div class="mm-season-banner">
             <div class="mm-season-lines"></div>
-            <img src="/game/logo.png" class="mm-season-logo" alt="">
+            <img src="/game/Battle_City_battle_royal.png" class="mm-season-logo" alt="">
             <div class="mm-season-body">
               <span class="mm-season-badge">SAISON ${SEASON.num} · EN COURS</span>
               <div class="mm-season-title">${esc(SEASON.name)}</div>
