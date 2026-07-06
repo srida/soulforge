@@ -66,8 +66,12 @@ export class CombatManager {
     const allUnits = [...this.playerUnits, ...this.enemyUnits];
     const livingUnits = allUnits.filter(u => u.isAlive());
 
-    // Sort by initiative desc, tie-break by attack_speed desc
-    livingUnits.sort((a, b) => b.initiative - a.initiative || b.effectiveAttackSpeed() - a.effectiveAttackSpeed());
+    // Sort by initiative desc, tie-break by attack_speed desc, then card_id asc
+    // card_id is absolute (same value on both PvP clients) — prevents ordering divergence on equal stats
+    livingUnits.sort((a, b) =>
+      b.initiative - a.initiative ||
+      b.effectiveAttackSpeed() - a.effectiveAttackSpeed() ||
+      a.card_id.localeCompare(b.card_id));
 
     // ── 1. Passive ticks (power gauge, DOT, paralysis, power block) ──
     for (const u of livingUnits) {

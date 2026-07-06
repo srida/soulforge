@@ -48,6 +48,7 @@ function createMatch(connA, connB) {
     },
     lastTerrainBoardId: null,
     combatStartAcks: new Set(),
+    resultReports: {},
   };
 
   matches.set(matchId, match);
@@ -135,13 +136,33 @@ function relayMessage(matchId, fromUserId, msg) {
 // gagné), 'enemy' (l'émetteur a perdu) ou 'draw'.
 function handleReportResult(matchId, userId, localWinner) {
   const match = findMatch(matchId);
-  if (!match) return;
+  if (!match || match.status !== 'active') return;
   const role = roleOfUser(match, userId);
   if (!role) return;
 
-  if (localWinner === 'draw') { endMatch(matchId, null, 'hp_zero'); return; }
-  const winnerRole = localWinner === 'player' ? role : otherRole(role);
-  endMatch(matchId, match.players[winnerRole].userId, 'hp_zero');
+  // Convert local winner to absolute role ('A' | 'B' | 'draw')
+  const absoluteWinner = localWinner === 'draw'
+    ? 'draw'
+    : localWinner === 'player' ? role : otherRole(role);
+
+  match.resultReports[role] = absoluteWinner;
+
+  // Wait until both clients have reported before closing the match
+  if (!match.resultReports.A || !match.resultReports.B) return;
+
+  const resultA = match.resultReports.A;
+  const resultB = match.resultReports.B;
+
+  if (resultA !== resultB) {
+    console.warn(`[PvP] Match ${matchId} (round ${match.round}): result mismatch — A says "${resultA}", B says "${resultB}". Using A's result.`);
+  }
+
+  // Role A is authoritative on mismatch
+  if (resultA === 'draw') {
+    endMatch(matchId, null, 'hp_zero');
+  } else {
+    endMatch(matchId, match.players[resultA].userId, 'hp_zero');
+  }
 }
 
 function handleForfeit(matchId, userId) {
