@@ -271,7 +271,7 @@ export async function mount(container) {
             <div class="mm-play-icon">▶</div>
             <div class="mm-play-body">
               <div class="mm-play-title">JOUER EN LIGNE</div>
-              <div class="mm-play-sub" id="mm-play-sub">File classée · ~12 s · 1 v 1 v 1 v 1</div>
+              <div class="mm-play-sub" id="mm-play-sub">File classée · ~12 s · 1 v 1</div>
             </div>
             <div class="mm-play-arrow">▸</div>
           </button>
@@ -381,8 +381,8 @@ export async function mount(container) {
   const tabsEl = container.querySelector('#mm-tabs');
   const playSub = container.querySelector('#mm-play-sub');
   const MODES = {
-    ranked: { sub: 'File classée · ~12 s · 1 v 1 v 1 v 1' },
-    normal: { sub: 'Partie normale · 1 v 1 v 1 v 1' },
+    ranked: { sub: 'File classée · ~12 s · 1 v 1' },
+    normal: { sub: 'Partie normale · 1 v 1' },
   };
   let currentMode = 'ranked';
   tabsEl?.addEventListener('click', e => {
