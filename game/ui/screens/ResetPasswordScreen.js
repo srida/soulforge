@@ -31,14 +31,14 @@ function renderForgot(container) {
           </label>
           <div class="auth-new-error" id="forgot-error" hidden></div>
           <div class="auth-new-ok" id="forgot-ok" hidden>E-mail envoyé. Vérifie ta boîte de réception.</div>
-          <button type="submit" class="auth-new-cta" id="forgot-submit">
-            <div class="auth-new-cta-sheen" aria-hidden="true"></div>
-            <span class="auth-new-cta-label">ENVOYER LE LIEN</span>
-            <span class="auth-new-cta-arrow">▸</span>
+          <button type="submit" class="auth-v2-cta" id="forgot-submit">
+            <span class="auth-v2-cta-halo" aria-hidden="true"></span>
+            <span class="auth-v2-cta-sheen" aria-hidden="true"></span>
+            <span class="auth-v2-cta-label">Envoyer le lien</span>
           </button>
         </form>
         <div class="auth-new-footer">
-          <button type="button" class="auth-new-link" id="btn-back">Retour à la connexion</button>
+          <button type="button" class="auth-v2-ghost" id="btn-back" style="margin-top:0">Retour à la connexion</button>
         </div>
       </div>
     </div>
@@ -48,7 +48,7 @@ function renderForgot(container) {
   const errBox = container.querySelector('#forgot-error');
   const okBox = container.querySelector('#forgot-ok');
   const submitBtn = container.querySelector('#forgot-submit');
-  const submitLabel = container.querySelector('.auth-new-cta-label');
+  const submitLabel = container.querySelector('.auth-v2-cta-label');
 
   container.querySelector('#btn-back').addEventListener('click', () => navigate('auth'));
 
@@ -99,14 +99,14 @@ function renderReset(container, token) {
             <span class="auth-new-hint">8 caractères minimum.</span>
           </label>
           <div class="auth-new-error" id="reset-error" hidden></div>
-          <button type="submit" class="auth-new-cta" id="reset-submit">
-            <div class="auth-new-cta-sheen" aria-hidden="true"></div>
-            <span class="auth-new-cta-label">RÉINITIALISER</span>
-            <span class="auth-new-cta-arrow">▸</span>
+          <button type="submit" class="auth-v2-cta" id="reset-submit">
+            <span class="auth-v2-cta-halo" aria-hidden="true"></span>
+            <span class="auth-v2-cta-sheen" aria-hidden="true"></span>
+            <span class="auth-v2-cta-label">Réinitialiser</span>
           </button>
         </form>
         <div class="auth-new-footer">
-          <button type="button" class="auth-new-link" id="btn-back">Retour à la connexion</button>
+          <button type="button" class="auth-v2-ghost" id="btn-back" style="margin-top:0">Retour à la connexion</button>
         </div>
       </div>
     </div>
@@ -115,7 +115,7 @@ function renderReset(container, token) {
   const form = container.querySelector('#reset-form');
   const errBox = container.querySelector('#reset-error');
   const submitBtn = container.querySelector('#reset-submit');
-  const submitLabel = container.querySelector('.auth-new-cta-label');
+  const submitLabel = container.querySelector('.auth-v2-cta-label');
 
   container.querySelector('#btn-back').addEventListener('click', () => navigate('auth'));
 
